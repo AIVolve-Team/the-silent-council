@@ -11,6 +11,8 @@ Poi conta i token Qwen3 di ogni contratto, estrae il campione con seme fisso tra
 | `prepara.py` | download, conteggio dei token, campione e risposte giuste |
 | `categorie.py` | le categorie di ogni benchmark e il ruolo che le guarda |
 | `test_prepara.py` | test delle regole sì/no e della lettura dei tag di CLAUDETTE |
+| `dimostrativo.py` | controlla il set dimostrativo e ne scrive l'hash |
+| `test_dimostrativo.py` | test dei controlli sul set dimostrativo |
 | `set-di-misura/campione.json` | i contratti estratti, per benchmark e insieme |
 | `set-di-misura/risposte-giuste.jsonl` | una riga per coppia (contratto, categoria) dei contratti estratti |
 | `set-di-misura/conteggi.json` | quanti contratti stanno sotto il tetto, con mediana, p90 e massimo |
@@ -61,5 +63,19 @@ In CLAUDETTE la modifica unilaterale comprende anche i cambi di prezzo: è l'uni
 
 ## Set dimostrativo
 
-I 3-5 contratti B2B in italiano scritti dal team stanno in `set-dimostrativo/`, che git ignora: restano fuori dal repo fino alla consegna.
-Nel repo va solo il loro hash, dopo la revisione di una persona del team.
+I contratti B2B in italiano scritti dal team stanno in `set-dimostrativo/`, che git ignora: restano fuori dal repo fino alla consegna.
+Ogni contratto è un file `<nome>.txt` con accanto la risposta attesa `<nome>.json`, nel formato di "Verdetto e dissenso":
+
+- la raccomandazione (firmare, negoziare o non firmare) con la motivazione;
+- le 19 righe CUAD, con citazione e motivazione per le righe a "sì";
+- il dissenso atteso: dove è plausibile che la nota di un esperto e il verdetto non siano d'accordo, e chi ha ragione;
+- gli importi e le date che il verdetto deve riportare giusti.
+
+```bash
+.venv/bin/python dimostrativo.py # controlla citazioni, importi, categorie e dissensi
+.venv/bin/python dimostrativo.py --hash # dopo la revisione: scrive set-dimostrativo.sha256
+shasum -a 256 -c set-dimostrativo.sha256 # alla consegna, per verificare che il set non sia cambiato
+```
+
+Nel repo va solo `set-dimostrativo.sha256`, scritto dopo la revisione di una persona del team.
+Chi rivede il set non fa il controllo a mano dell'eval.
