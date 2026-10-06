@@ -1,0 +1,95 @@
+"""Fa girare il Consiglio su un insieme di contratti e scrive una revisione per riga.
+
+Esempi:
+    python -m revisione.esegui --benchmark cuad --insieme sviluppo --modalita telepatia --passi 10
+    python -m revisione.esegui --benchmark dimostrativo --modalita testo
+    python -m revisione.esegui --benchmark cuad --insieme sviluppo --passi 0 10 20 40   # taratura dei passi
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+from collections import Counter
+from pathlib import Path
+
+from motore import TELEPATIA, TESTO, Modello, Motore
+
+from .categorie import BENCHMARK
+from .consiglio import Consiglio
+from .dati import contratti, dimostrativo, risposte_giuste
+from .punteggio import vota
+
+MODELLI = {
+    "Qwen/Qwen3-0.6B": "c1899de289a04d12100db370d81485cdf75e47ca",
+    "Qwen/Qwen3-1.7B": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+}
+
+
+def _contratti_e_risposte(benchmark: str, insieme: str) -> tuple[list[tuple[str, str]], dict]:
+    if benchmark == "dimostrativo":
+        voci = dimostrativo()
+        giuste = {(cid, r["categoria"]): r["da_segnalare"] for cid, _, attesa in voci for r in attesa["righe"]}
+        return [(cid, testo) for cid, testo, _ in voci], giuste
+    return contratti(benchmark, insieme), risposte_giuste(benchmark, insieme)
+
+
+def sintesi(revisioni: list[dict], giuste: dict) -> str:
+    voto = vota(revisioni, giuste)
+    note = [n for r in revisioni for n in r["note"].values()]
+    validi = sum(r["verdetto"] is not None and r["verdetto"]["dati"] is not None for r in revisioni)
+    dissensi = Counter(d["tipo"] for r in revisioni for d in r["dissensi"])
+    n = len(revisioni) or 1
+    return (
+        f"{len(revisioni)} contratti | verdetti validi {validi}/{len(revisioni)} | note valide "
+        f"{sum(x['dati'] is not None for x in note)}/{len(note)} | F1 {voto.f1:.1f} (P {voto.precisione:.1f}, "
+        f"R {voto.richiamo:.1f}, MCC {voto.mcc:.2f}; sempre sì {voto.f1_sempre_si:.1f}) | dissensi {dict(dissensi)} | "
+        f"token generati {sum(r['token_generati'] for r in revisioni) / n:.0f} e letti "
+        f"{sum(r['token_letti'] for r in revisioni) / n:.0f} per contratto | {sum(r['secondi'] for r in revisioni) / n:.0f} s"
+    )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Fa girare il Consiglio su un insieme di contratti.")
+    parser.add_argument("--benchmark", choices=sorted(BENCHMARK), required=True)
+    parser.add_argument("--insieme", choices=["sviluppo", "test"], default="sviluppo")
+    parser.add_argument("--modalita", choices=[TELEPATIA, TESTO], default=TELEPATIA)
+    parser.add_argument("--passi", type=int, nargs="+", default=[10], help="passi latenti; più valori per la taratura")
+    parser.add_argument("--modello", default="Qwen/Qwen3-1.7B")
+    parser.add_argument("--revisione", help="revisione del modello su Hugging Face (di default quella fissata qui)")
+    parser.add_argument("--limite", type=int, help="solo i primi N contratti")
+    parser.add_argument("--traduci", action="store_true", help="traduzione italiana delle citazioni")
+    parser.add_argument("--uscita", type=Path, default=Path("risultati"))
+    argomenti = parser.parse_args()
+
+    if argomenti.insieme == "test":
+        raise SystemExit(
+            "Il test si fa girare solo con l'eval pre-registrato, una volta, dopo il commit delle regole."
+        )
+    modello = Modello(argomenti.modello, argomenti.revisione or MODELLI[argomenti.modello])
+    motore = Motore(modello, registro=argomenti.uscita / "registro")
+    voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
+    voci = voci[: argomenti.limite] if argomenti.limite else voci
+    argomenti.uscita.mkdir(parents=True, exist_ok=True)
+    for passi in argomenti.passi:
+        consiglio = Consiglio(
+            motore,
+            BENCHMARK[argomenti.benchmark],
+            modalita=argomenti.modalita,
+            passi_latenti=passi,
+            traduci=argomenti.traduci,
+        )
+        nome = f"{argomenti.benchmark}-{argomenti.insieme}-{argomenti.modalita}-m{passi}-{argomenti.modello.split('/')[-1]}"
+        revisioni = []
+        with (argomenti.uscita / f"{nome}.jsonl").open("w") as f:
+            for contratto, testo in voci:
+                revisione = consiglio.revisiona(contratto, testo).come_dict()
+                revisioni.append(revisione)
+                f.write(json.dumps(revisione, ensure_ascii=False) + "\n")
+                f.flush()
+                print(f"  {contratto[:60]}: {revisione['secondi']:.0f} s", flush=True)
+        print(f"{nome}: {sintesi(revisioni, giuste)}", flush=True)
+
+
+if __name__ == "__main__":
+    main()
