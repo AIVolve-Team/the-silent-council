@@ -146,7 +146,7 @@ class Modello:
         ids: torch.Tensor,
         max_nuovi: int,
         *,
-        consentiti: Callable[[list[int]], list[int]] | None = None,
+        consentiti: Callable[[list[int]], list[int] | torch.Tensor] | None = None,
         alternative: int = 5,
         osserva: list[int] | None = None,
     ) -> Generazione:
@@ -163,9 +163,15 @@ class Modello:
             if consentiti is None:
                 scelta = int(torch.argmax(logprob))
             else:
-                maschera = torch.full_like(logprob, float("-inf"))
-                maschera[list(consentiti(prompt + generati))] = 0
-                scelta = int(torch.argmax(logprob + maschera))
+                ammessi = consentiti(prompt + generati)
+                if isinstance(ammessi, torch.Tensor):
+                    maschera = torch.zeros_like(logprob, dtype=torch.bool)
+                    n = min(len(ammessi), len(maschera))
+                    maschera[:n] = ammessi[:n].to(logprob.device)
+                else:
+                    maschera = torch.zeros_like(logprob, dtype=torch.bool)
+                    maschera[list(ammessi)] = True
+                scelta = int(torch.argmax(logprob.masked_fill(~maschera, float("-inf"))))
             if scelta in self.fine:
                 break
             migliori = torch.topk(logprob, alternative)
