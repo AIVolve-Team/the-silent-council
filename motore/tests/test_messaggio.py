@@ -121,3 +121,14 @@ def test_verifica_archivio_anche_senza_kv(tmp_path):
     firma(secondo, carica_private(tmp_path / "altre", ["legale"])["legale"])
     secondo.salva(tmp_path / "2.safetensors", completo=True)
     assert "firma non valida" in verifica_archivio(file, tmp_path / "pubbliche")[1][1].motivo
+
+
+def test_maschera_ammessi_da_lista_e_da_bit():
+    from lmformatenforcer.tokenlist import TokenList
+
+    from motore.motore import maschera_ammessi
+
+    for bit in (False, True):
+        ammessi = TokenList(use_bitmask=bit, vocab_size=70)
+        ammessi.extend([0, 31, 32, 69])
+        assert maschera_ammessi(ammessi).nonzero().flatten().tolist() == [0, 31, 32, 69]

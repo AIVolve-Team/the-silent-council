@@ -50,8 +50,18 @@ def token_ammessi(ammessi) -> list[int]:
     """lm-format-enforcer 0.11 restituisce una `TokenList`: una lista di id, oppure una maschera di bit int32."""
     if not getattr(ammessi, "use_bitmask", False):
         return list(getattr(ammessi, "allowed_tokens", ammessi))
+    return maschera_ammessi(ammessi).nonzero().flatten().tolist()
+
+
+def maschera_ammessi(ammessi) -> torch.Tensor:
+    """La stessa `TokenList` come maschera booleana, senza passare da una lista Python: dentro una stringa JSON
+    sono ammessi quasi tutti i token, e una lista da 150.000 id a ogni passo rallenta la generazione."""
+    if not getattr(ammessi, "use_bitmask", False):
+        maschera = torch.zeros(max(ammessi.allowed_tokens, default=-1) + 1, dtype=torch.bool)
+        maschera[list(ammessi.allowed_tokens)] = True
+        return maschera
     bit = (ammessi.allowed_tokens.unsqueeze(1) >> torch.arange(32, dtype=torch.int32)) & 1
-    return bit.flatten().nonzero().flatten().tolist()
+    return bit.flatten().bool()
 
 
 def con_colleghi(testo: str, ricevuti: list[MessaggioLatente]) -> str:
@@ -194,7 +204,7 @@ class Motore:
             self._dati_tokenizer = build_token_enforcer_tokenizer_data(self.modello.tokenizer)
         configurazione = CharacterLevelParserConfig(force_json_field_order=ordine_campi)
         vincolo = TokenEnforcer(self._dati_tokenizer, JsonSchemaParser(schema, config=configurazione))
-        return lambda sequenza: token_ammessi(vincolo.get_allowed_tokens(sequenza))
+        return lambda sequenza: maschera_ammessi(vincolo.get_allowed_tokens(sequenza))
 
     # --- consegna -------------------------------------------------------------------------------------
 
