@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+# Messaggi salvati, registri degli incidenti e chiavi private restano fuori dal repo.
+prove/
+registro/
+chiavi-private/
+*.safetensors
