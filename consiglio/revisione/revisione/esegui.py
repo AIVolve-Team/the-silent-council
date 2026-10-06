@@ -9,10 +9,12 @@ Esempi:
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 from collections import Counter
 from pathlib import Path
 
+import torch
 from motore import TELEPATIA, TESTO, Modello, Motore
 
 from .categorie import BENCHMARK
@@ -32,6 +34,15 @@ def _contratti_e_risposte(benchmark: str, insieme: str) -> tuple[list[tuple[str,
         giuste = {(cid, r["categoria"]): r["da_segnalare"] for cid, _, attesa in voci for r in attesa["righe"]}
         return [(cid, testo) for cid, testo, _ in voci], giuste
     return contratti(benchmark, insieme), risposte_giuste(benchmark, insieme)
+
+
+def libera_memoria() -> None:
+    """Fra un contratto e l'altro: su un Mac la cache della GPU non torna da sola al sistema."""
+    gc.collect()
+    if torch.backends.mps.is_available():
+        torch.mps.empty_cache()
+    elif torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 
 def sintesi(revisioni: list[dict], giuste: dict) -> str:
@@ -59,6 +70,11 @@ def main() -> None:
     parser.add_argument("--revisione", help="revisione del modello su Hugging Face (di default quella fissata qui)")
     parser.add_argument("--limite", type=int, help="solo i primi N contratti")
     parser.add_argument("--traduci", action="store_true", help="traduzione italiana delle citazioni")
+    parser.add_argument(
+        "--dtype",
+        choices=["float32", "bfloat16"],
+        help="di default bf16 su GPU, fp32 altrove; su un Mac da 16 GB conviene bf16",
+    )
     parser.add_argument("--uscita", type=Path, default=Path("risultati"))
     argomenti = parser.parse_args()
 
@@ -66,7 +82,8 @@ def main() -> None:
         raise SystemExit(
             "Il test si fa girare solo con l'eval pre-registrato, una volta, dopo il commit delle regole."
         )
-    modello = Modello(argomenti.modello, argomenti.revisione or MODELLI[argomenti.modello])
+    dtype = getattr(torch, argomenti.dtype) if argomenti.dtype else None
+    modello = Modello(argomenti.modello, argomenti.revisione or MODELLI[argomenti.modello], dtype=dtype)
     motore = Motore(modello, registro=argomenti.uscita / "registro")
     voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
     voci = voci[: argomenti.limite] if argomenti.limite else voci
@@ -88,6 +105,7 @@ def main() -> None:
                 f.write(json.dumps(revisione, ensure_ascii=False) + "\n")
                 f.flush()
                 print(f"  {contratto[:60]}: {revisione['secondi']:.0f} s", flush=True)
+                libera_memoria()
         print(f"{nome}: {sintesi(revisioni, giuste)}", flush=True)
 
 
