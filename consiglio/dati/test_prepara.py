@@ -1,5 +1,6 @@
 import pytest
 
+from categorie import CLAUDETTE_CATEGORIE, CONTRACTNLI_IPOTESI, CUAD_CATEGORIE, FINANZA, LEGALE, LETTORI, RISCHIO
 from prepara import campiona, estrai_clausole, righe_claudette, righe_contractnli, righe_cuad, risposte_claudette
 
 
@@ -66,3 +67,15 @@ def test_campione_riproducibile_e_indipendente_dall_ordine():
 def test_campione_troppo_piccolo_si_ferma():
     with pytest.raises(SystemExit):
         campiona(["a", "b"], 5, "x-sviluppo")
+
+
+def test_lettori_sono_i_ruoli_con_categorie_nell_ordine_della_staffetta():
+    ruoli = {
+        "cuad": set(CUAD_CATEGORIE.values()),
+        "contractnli": {ruolo for _, ruolo in CONTRACTNLI_IPOTESI.values()},
+        "claudette": {ruolo for _, ruolo in CLAUDETTE_CATEGORIE.values()},
+    }
+    assert set(LETTORI) == set(ruoli)
+    for benchmark, lettori in LETTORI.items():
+        assert set(lettori) == ruoli[benchmark], benchmark
+        assert list(lettori) == [r for r in (LEGALE, FINANZA, RISCHIO) if r in lettori], benchmark

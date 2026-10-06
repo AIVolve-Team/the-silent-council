@@ -53,13 +53,18 @@ Due giri dello script producono gli stessi file.
 | CLAUDETTE | 42/50 | 180 | 143 (79%) | 88,5 |
 
 Su CLAUDETTE quasi tutte le coppie vanno segnalate: un sistema che dice sempre "sì" prende già F1 88,5.
-Il numero va letto contro questa base, oppure sul grado 3 da solo (46 coppie su 180).
+Sul grado 3 da solo (46 coppie su 180) la stessa base scende a F1 40,7.
+Deciso: l'eval riporta accanto a ogni F1 la base "sempre sì" e l'MCC, che vale 0 per chi dice sempre "sì", e per CLAUDETTE anche la vista sul grado 3 da solo.
 
-## Da rivedere
+## Ruoli per benchmark
 
-**Mappa ruolo → categorie per ContractNLI e CLAUDETTE** (`categorie.py`): è una proposta e va rivista da @portapulito prima di far girare quei due benchmark.
-Nessuna delle 17 ipotesi di ContractNLI e delle 9 categorie di CLAUDETTE è finanziaria, quindi la finanza resta senza categorie.
-In CLAUDETTE la modifica unilaterale comprende anche i cambi di prezzo: è l'unica categoria che si potrebbe dare alla finanza.
+Deciso (6/10/2026), in `categorie.py`:
+
+- **CUAD e set dimostrativo:** legale, finanza, rischio e relatore, con la tabella.
+- **ContractNLI e CLAUDETTE:** nessuna delle 17 ipotesi e delle 9 categorie è finanziaria, quindi la finanza non è convocata e il Consiglio è a tre: legale, rischio e relatore.
+  - ContractNLI: al legale cosa è riservato e la proprietà intellettuale (8 ipotesi), al rischio uso, condivisione e durata degli obblighi (9).
+  - CLAUDETTE: al legale responsabilità, arbitrato, foro, legge applicabile, accettazione con l'uso e privacy (6), al rischio modifica unilaterale, recesso unilaterale e rimozione dei contenuti (3).
+- `LETTORI` dà, per ogni benchmark, i ruoli che leggono una sezione nell'ordine della staffetta; il relatore la chiude sempre.
 
 ## Set dimostrativo
 
