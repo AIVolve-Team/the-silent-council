@@ -56,6 +56,8 @@ class Staffetta:
         testi: dict[str, str],
         *,
         schema: dict | None = None,
+        ordine_campi: bool = False,
+        osserva: list[int] | None = None,
         max_token: int | None = None,
         pensieri_da: dict[str, MessaggioLatente] | None = None,
         attacchi: dict[str, Callable[[MessaggioLatente], None]] | None = None,
@@ -93,6 +95,13 @@ class Staffetta:
         if not esito.passa:
             return EsitoStaffetta(catena, None, esito, time.perf_counter() - inizio)
         finale = self.motore.scrivi(
-            self.ultimo, testi[self.ultimo.nome], catena, modalita=self.modalita, schema=schema, max_token=max_token
+            self.ultimo,
+            testi[self.ultimo.nome],
+            catena,
+            modalita=self.modalita,
+            schema=schema,
+            ordine_campi=ordine_campi,
+            osserva=osserva,
+            max_token=max_token,
         )
         return EsitoStaffetta(catena, finale, None, time.perf_counter() - inizio)
