@@ -7,3 +7,5 @@ prove/
 registro/
 chiavi-private/
 *.safetensors
+# Creata da "uv pip install -e".
+*.egg-info/
