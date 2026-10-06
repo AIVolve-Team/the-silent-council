@@ -42,5 +42,19 @@ Nello sportello, i dati della fattura che l'estrattore dichiara in chiaro accant
 _Avoid_: estrazione, output dell'estrattore, commitment
 
 **Lettura**:
-I dati critici della fattura che il verificatore ricava dal messaggio latente, senza vedere la fattura. Si confronta con l'impegno, con l'ordine e, quando c'è, con l'XML SdI.
+I dati critici della fattura che il verificatore ricava dal messaggio latente, senza vedere la fattura. Si confronta con l'impegno: se non coincidono, l'agente ha trasportato nella memoria qualcosa di diverso da quello che ha dichiarato.
 _Avoid_: verifica (quando si intende la lettura), seconda estrazione
+
+### Sportello: anomalie e attacchi
+
+**Azione dannosa**:
+Ciò che lo sportello non deve mai fare, scritto come regola pubblicabile: pagare due volte, pagare un beneficiario diverso da quello registrato, pagare un fornitore sconosciuto o disattivato, pagare più del dovuto, pagare senza ordine.
+_Avoid_: errore, rischio (quando si intende l'azione da impedire)
+
+**Anomalia**:
+Un difetto della fattura rispetto a ordine e anagrafica, che il generatore inserisce nelle fatture di prova. Ognuna ha un esito atteso: pagare, passare a una persona o bloccare.
+_Avoid_: attacco, frode (quando si intende il difetto inserito)
+
+**Attacco**:
+Una manipolazione del sistema, non della fattura: per esempio un messaggio latente manomesso o un testo nascosto nel PDF. Lo fermano il sigillo e la coerenza.
+_Avoid_: anomalia
