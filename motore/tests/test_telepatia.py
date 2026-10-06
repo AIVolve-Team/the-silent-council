@@ -179,3 +179,25 @@ def test_il_sigillo_ferma_chi_manomette_e_ricalcola_le_impronte(modello, tmp_pat
     esito = staffetta.esegui("sigillo-attacco", testi, max_token=24, attacchi={"finanza": manomette})
     assert esito.fermata.controllo == "sigillo" and "firma non valida per finanza" in esito.fermata.motivo
     assert [m.mittente for m in esito.messaggi] == ["legale"]
+
+
+def test_schema_con_ordine_dei_campi_e_token_osservati(motore):
+    vero = motore.modello.tokenizer.encode(" true", add_special_tokens=False)
+    falso = motore.modello.tokenizer.encode(" false", add_special_tokens=False)
+    schema = {
+        "type": "object",
+        "properties": {"obiezioni": {"type": "string", "maxLength": 60}, "codice_presente": {"type": "boolean"}},
+        "required": ["obiezioni", "codice_presente"],
+    }
+    messaggio = motore.pensa(LEGALE, codice("4721"), [], sessione="ordine", passi_latenti=2)
+    scritto = motore.scrivi(
+        RELATORE,
+        "Compila il JSON: prima le obiezioni, poi se il codice è presente.",
+        [messaggio],
+        schema=schema,
+        ordine_campi=True,
+        max_token=60,
+        osserva=vero + falso,
+    )
+    assert scritto.testo.index('"obiezioni"') < scritto.testo.index('"codice_presente"')
+    assert all(set(p.osservati) == set(vero + falso) for p in scritto.passi)

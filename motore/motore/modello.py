@@ -8,7 +8,7 @@ gli stati nascosti dei passi latenti, che LatentMAS scarta.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, DynamicCache
@@ -31,6 +31,8 @@ class Passo:
     testo: str
     logprob: float
     alternative: list[tuple[str, float]]
+    # logprob dei token chiesti con `osserva`, a ogni passo: per esempio true e false, per la confidenza.
+    osservati: dict[int, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -146,8 +148,12 @@ class Modello:
         *,
         consentiti: Callable[[list[int]], list[int]] | None = None,
         alternative: int = 5,
+        osserva: list[int] | None = None,
     ) -> Generazione:
-        """Decodifica greedy sopra la cache. Con `consentiti` sceglie solo fra i token ammessi (schema JSON)."""
+        """Decodifica greedy sopra la cache. Con `consentiti` sceglie solo fra i token ammessi (schema JSON).
+
+        Logprob, alternative e `osservati` vengono dalla distribuzione del modello prima del vincolo.
+        """
         stato = self.leggi(ids, cache)
         prompt = ids[0].tolist()
         generati: list[int] = []
@@ -172,6 +178,7 @@ class Modello:
                         (self.tokenizer.decode([i]), float(v))
                         for v, i in zip(migliori.values, migliori.indices.tolist())
                     ],
+                    {t: float(logprob[t]) for t in osserva or []},
                 )
             )
             generati.append(scelta)
