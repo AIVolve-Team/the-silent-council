@@ -67,3 +67,23 @@ def schema_verdetto(categorie: tuple[Categoria, ...]) -> dict:
         "required": ["obiezioni", "segnalare", "dettagli", "raccomandazione", "motivazione"],
         "additionalProperties": False,
     }
+
+
+def token_massimi(schema: dict) -> int:
+    """Quanti token servono, al massimo, per scrivere un JSON valido per lo schema.
+
+    Si conta un token per carattere: è il caso peggiore, quello di un modello che si incastra in una ripetizione
+    di token corti. Con questo limite nota e verdetto si chiudono sempre.
+    """
+    if "enum" in schema:
+        return max(len(str(v)) for v in schema["enum"]) + 2
+    tipo = schema.get("type")
+    if tipo == "boolean":
+        return 5
+    if tipo == "string":
+        return schema["maxLength"] + 2
+    if tipo == "array":
+        return schema["maxItems"] * (token_massimi(schema["items"]) + 1) + 2
+    if tipo == "object":
+        return 2 + sum(len(k) + 4 + token_massimi(v) for k, v in schema["properties"].items())
+    raise ValueError(f"schema senza limite: {schema}")
