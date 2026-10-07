@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -196,8 +197,10 @@ def test_schema_con_ordine_dei_campi_e_token_osservati(motore):
         [messaggio],
         schema=schema,
         ordine_campi=True,
+        max_spazi=1,
         max_token=60,
         osserva=vero + falso,
     )
     assert scritto.testo.index('"obiezioni"') < scritto.testo.index('"codice_presente"')
+    assert not re.search(r"\s\s", scritto.testo), scritto.testo
     assert all(set(p.osservati) == set(vero + falso) for p in scritto.passi)

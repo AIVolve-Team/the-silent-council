@@ -176,14 +176,16 @@ class Motore:
         modalita: str = TELEPATIA,
         schema: dict | None = None,
         ordine_campi: bool = False,
+        max_spazi: int | None = None,
         max_token: int | None = None,
         osserva: list[int] | None = None,
     ) -> Generazione:
         """L'agente scrive partendo dai messaggi ricevuti: nota, verdetto o decisione. Lavora su una copia della
         memoria.
 
-        Con uno schema JSON la decodifica è vincolata, e `ordine_campi` impone l'ordine di `required` (per esempio
-        prima le obiezioni, poi il verdetto).
+        Con uno schema JSON la decodifica è vincolata. `ordine_campi` impone l'ordine di `required` (per esempio
+        prima le obiezioni, poi il verdetto); `max_spazi` limita gli spazi di fila: con 1 restano gli spazi fra le
+        parole e spariscono i rientri, che consumano token.
         `osserva` registra a ogni passo i logprob di quei token, per la confidenza.
         """
         if modalita == TESTO:
@@ -191,19 +193,28 @@ class Motore:
         else:
             cache = cache_da(ricevuti)
         ids = self.modello.codifica(self.modello.prompt(agente.istruzioni, testo, pensiero=False))
-        consentiti = None if schema is None else self._vincolo(schema, ordine_campi)
+        consentiti = None if schema is None else self._vincolo(schema, ordine_campi, max_spazi)
         return self.modello.genera(
             cache, ids, max_token or self.max_token_testo, consentiti=consentiti, osserva=osserva
         )
 
-    def _vincolo(self, schema: dict, ordine_campi: bool):
+    def _vincolo(self, schema: dict, ordine_campi: bool, max_spazi: int | None):
         from lmformatenforcer import CharacterLevelParserConfig, JsonSchemaParser, TokenEnforcer
         from lmformatenforcer.integrations.transformers import build_token_enforcer_tokenizer_data
 
         if self._dati_tokenizer is None:
             self._dati_tokenizer = build_token_enforcer_tokenizer_data(self.modello.tokenizer)
-        configurazione = CharacterLevelParserConfig(force_json_field_order=ordine_campi)
-        vincolo = TokenEnforcer(self._dati_tokenizer, JsonSchemaParser(schema, config=configurazione))
+        parser = JsonSchemaParser(schema)
+        vincolo = TokenEnforcer(self._dati_tokenizer, parser)
+        # lm-format-enforcer 0.11.3: TokenEnforcer sostituisce la configurazione del parser con una che ha solo
+        # l'alfabeto del tokenizer, e così ordine dei campi e limite degli spazi tornano ai valori predefiniti.
+        # La configurazione giusta si rimette dopo, con lo stesso alfabeto.
+        configurazione = CharacterLevelParserConfig(
+            alphabet=self._dati_tokenizer.tokenizer_alphabet, force_json_field_order=ordine_campi
+        )
+        if max_spazi is not None:
+            configurazione.max_consecutive_whitespaces = max_spazi
+        parser.config = configurazione
         return lambda sequenza: maschera_ammessi(vincolo.get_allowed_tokens(sequenza))
 
     # --- consegna -------------------------------------------------------------------------------------
