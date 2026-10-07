@@ -177,7 +177,10 @@ print(f"Pagine in {cartella}")
 PAGINE
 )
 # Si apre per prima la pagina di un contratto italiano del set dimostrativo, se c'è.
-PRIMA="$(ls "$USCITA"/pagine/dimostrativo-*telepatia.html "$USCITA"/pagine/*telepatia.html 2>/dev/null | head -1 || true)"
+PRIMA=""
+for candidata in "$USCITA"/pagine/dimostrativo-*telepatia.html "$USCITA"/pagine/*telepatia.html; do
+  if [ -f "$candidata" ]; then PRIMA="$candidata"; break; fi
+done
 if [ -n "$PRIMA" ]; then
   if command -v open >/dev/null 2>&1; then open "$PRIMA"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$PRIMA"; fi
 fi
