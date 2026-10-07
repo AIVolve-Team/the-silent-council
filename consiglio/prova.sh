@@ -148,6 +148,9 @@ for giro in "${giri[@]}"; do
 done
 
 passo "8/8 Pagine del verdetto"
+if [ ! -f "$CONSIGLIO/revisione/revisione/vista.py" ]; then
+  echo "La pagina del verdetto arriva con «Pagina del verdetto e flusso Evolus» (ramo feat/63-pagina-verdetto): per ora ci sono solo i .jsonl."
+else
 (cd "$CONSIGLIO/revisione" && "$PY" - "$USCITA" "$DEMO" <<'PAGINE'
 import json, sys
 from pathlib import Path
@@ -167,14 +170,17 @@ for giro in sorted(uscita.glob("*.jsonl")):
             oggetto = next((x.split(":", 1)[1].strip() for x in righe if x.lower().startswith("oggetto:")), None)
             titolo = oggetto or righe[0]
             titolo = titolo[0].upper() + titolo[1:].lower()
-        nome = f"{r['benchmark']}-{r['contratto'][:50]}-{r['modalita']}".replace("/", "_").replace(" ", "_")
+        breve = r["contratto"][:50].rstrip("-_. ")
+        nome = f"{r['benchmark']}-{breve}-{r['modalita']}".replace("/", "_").replace(" ", "_")
         (cartella / f"{nome}.html").write_text(pagina(vista(r, BENCHMARK[r["benchmark"]], titolo)))
 print(f"Pagine in {cartella}")
 PAGINE
 )
-PRIMA="$(ls "$USCITA"/pagine/*telepatia.html 2>/dev/null | head -1 || true)"
+# Si apre per prima la pagina di un contratto italiano del set dimostrativo, se c'è.
+PRIMA="$(ls "$USCITA"/pagine/dimostrativo-*telepatia.html "$USCITA"/pagine/*telepatia.html 2>/dev/null | head -1 || true)"
 if [ -n "$PRIMA" ]; then
   if command -v open >/dev/null 2>&1; then open "$PRIMA"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$PRIMA"; fi
+fi
 fi
 
 passo "Riepilogo"

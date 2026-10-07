@@ -72,7 +72,7 @@ def main() -> None:
     parser.add_argument("--passi", type=int, nargs="+", default=[10], help="passi latenti; più valori per la taratura")
     parser.add_argument("--modello", default="Qwen/Qwen3-1.7B")
     parser.add_argument("--revisione", help="revisione del modello su Hugging Face (di default quella fissata qui)")
-    parser.add_argument("--limite", type=int, help="solo i primi N contratti")
+    parser.add_argument("--limite", type=int, help="solo i primi N contratti, fra quelli entro --max-token")
     parser.add_argument(
         "--max-token", type=int, help="salta i contratti più lunghi (su un Mac la memoria della staffetta non basta)"
     )
@@ -93,13 +93,13 @@ def main() -> None:
     modello = Modello(argomenti.modello, argomenti.revisione or MODELLI[argomenti.modello], dtype=dtype)
     motore = Motore(modello, registro=argomenti.uscita / "registro")
     voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
-    voci = voci[: argomenti.limite] if argomenti.limite else voci
     if argomenti.max_token:
         lunghezza = {cid: len(modello.tokenizer.encode(testo, add_special_tokens=False)) for cid, testo in voci}
         for cid, n in lunghezza.items():
             if n > argomenti.max_token:
                 print(f"  saltato {cid[:60]}: {n} token, oltre {argomenti.max_token}", flush=True)
         voci = [(cid, testo) for cid, testo in voci if lunghezza[cid] <= argomenti.max_token]
+    voci = voci[: argomenti.limite] if argomenti.limite else voci
     argomenti.uscita.mkdir(parents=True, exist_ok=True)
     for passi in argomenti.passi:
         consiglio = Consiglio(
