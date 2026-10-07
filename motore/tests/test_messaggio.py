@@ -132,3 +132,35 @@ def test_maschera_ammessi_da_lista_e_da_bit():
         ammessi = TokenList(use_bitmask=bit, vocab_size=70)
         ammessi.extend([0, 31, 32, 69])
         assert maschera_ammessi(ammessi).nonzero().flatten().tolist() == [0, 31, 32, 69]
+
+
+def test_ordine_dei_campi_e_spazi_rispettati_dal_vincolo():
+    """lm-format-enforcer 0.11.3 perde la configurazione del parser: il motore la rimette."""
+    from transformers import AutoTokenizer
+
+    from motore.motore import Motore
+
+    from .conftest import NOME, REVISIONE
+
+    class ModelloFinto:
+        tokenizer = AutoTokenizer.from_pretrained(NOME, revision=REVISIONE)
+
+    motore = Motore.__new__(Motore)
+    motore.modello, motore._dati_tokenizer = ModelloFinto(), None
+    schema = {
+        "type": "object",
+        "properties": {"a": {"type": "boolean"}, "b": {"type": "boolean"}, "c": {"type": "string"}},
+        "required": ["a", "b", "c"],
+    }
+    tok = ModelloFinto.tokenizer
+    vincolo = motore._vincolo(schema, ordine_campi=True, max_spazi=1)
+    sequenza = tok.encode("Rispondi:", add_special_tokens=False)
+    vincolo(sequenza)
+    # Un token alla volta, come in generazione: la libreria tiene lo stato per prefisso.
+    for t in tok.encode('{"a": true,', add_special_tokens=False):
+        assert vincolo(sequenza)[t], tok.decode([t])
+        sequenza.append(t)
+    ammessi = [tok.decode([i]) for i in vincolo(sequenza).nonzero().flatten().tolist()]
+    chiavi = {a.strip() for a in ammessi if a.strip().startswith('"')}
+    assert '"c' not in chiavi and ('"b' in chiavi or chiavi == {'"'})
+    assert not [a for a in ammessi if a.strip() == "" and len(a) > 1]

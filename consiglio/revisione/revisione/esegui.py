@@ -25,6 +25,10 @@ from .punteggio import vota
 MODELLI = {
     "Qwen/Qwen3-0.6B": "c1899de289a04d12100db370d81485cdf75e47ca",
     "Qwen/Qwen3-1.7B": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+    "Qwen/Qwen3-4B": "1cfa9a7208912126459214e8b04321603b3df60c",
+    "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218",
+    # Il modello del Consiglio, alla stessa revisione del tokenizer usato per contare i token.
+    "Qwen/Qwen3-14B": "40c069824f4251a91eefaf281ebe4c544efd3e18",
 }
 
 
@@ -69,10 +73,13 @@ def main() -> None:
     parser.add_argument("--modello", default="Qwen/Qwen3-1.7B")
     parser.add_argument("--revisione", help="revisione del modello su Hugging Face (di default quella fissata qui)")
     parser.add_argument("--limite", type=int, help="solo i primi N contratti")
+    parser.add_argument(
+        "--max-token", type=int, help="salta i contratti più lunghi (su un Mac la memoria della staffetta non basta)"
+    )
     parser.add_argument("--traduci", action="store_true", help="traduzione italiana delle citazioni")
     parser.add_argument(
         "--dtype",
-        choices=["float32", "bfloat16"],
+        choices=["float32", "bfloat16", "float16"],
         help="di default bf16 su GPU, fp32 altrove; su un Mac da 16 GB conviene bf16",
     )
     parser.add_argument("--uscita", type=Path, default=Path("risultati"))
@@ -87,6 +94,12 @@ def main() -> None:
     motore = Motore(modello, registro=argomenti.uscita / "registro")
     voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
     voci = voci[: argomenti.limite] if argomenti.limite else voci
+    if argomenti.max_token:
+        lunghezza = {cid: len(modello.tokenizer.encode(testo, add_special_tokens=False)) for cid, testo in voci}
+        for cid, n in lunghezza.items():
+            if n > argomenti.max_token:
+                print(f"  saltato {cid[:60]}: {n} token, oltre {argomenti.max_token}", flush=True)
+        voci = [(cid, testo) for cid, testo in voci if lunghezza[cid] <= argomenti.max_token]
     argomenti.uscita.mkdir(parents=True, exist_ok=True)
     for passi in argomenti.passi:
         consiglio = Consiglio(

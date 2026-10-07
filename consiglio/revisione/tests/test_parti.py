@@ -77,3 +77,20 @@ def test_voto_con_base_sempre_si():
     voto = vota(revisioni, giuste)
     assert (voto.vp, voto.fp, voto.fn, voto.vn, voto.non_valide) == (1, 0, 2, 1, 2)
     assert round(voto.f1, 1) == 50.0 and round(voto.f1_sempre_si, 1) == round(100 * 2 * 3 / 7, 1)
+
+
+def test_limite_di_token_dal_caso_peggiore_dello_schema():
+    from revisione.schemi import token_massimi
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "si": {"type": "boolean"},
+            "voci": {"type": "array", "maxItems": 2, "items": {"type": "string", "maxLength": 10}},
+            "esito": {"enum": ["firmare", "non firmare"]},
+        },
+    }
+    # 2 graffe + chiavi con virgolette e due punti + valori nel caso peggiore di un token per carattere
+    assert token_massimi(schema) == 2 + (2 + 4 + 5) + (4 + 4 + 2 * 13 + 2) + (5 + 4 + 13)
+    verdetto = token_massimi(schema_verdetto(CUAD.categorie))
+    assert verdetto > 1100 and token_massimi(schema_nota(CUAD.del_ruolo("rischio"))) > 300

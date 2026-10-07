@@ -72,21 +72,34 @@ class Modello:
     def n_layer(self) -> int:
         return self.rete.config.num_hidden_layers
 
-    def _riallineamento(self) -> tuple[torch.Tensor, torch.Tensor]:
+    @torch.no_grad()
+    def _riallineamento(self, righe_per_blocco: int = 8192) -> tuple[torch.Tensor, torch.Tensor]:
         """W_a = (W_outᵀ W_out + 1e-5·I)⁻¹ W_outᵀ W_in in fp32, e la norma media degli embedding d'ingresso.
 
         Senza riallineamento la matrice è l'identità, ma la normalizzazione della norma resta, come in LatentMAS.
+        I prodotti si accumulano a blocchi di righe sul dispositivo del modello: così non serve una copia fp32 delle
+        due matrici di embedding (3 GB per Qwen3-4B), che su un Mac da 16 GB manda il sistema in swap.
         """
-        # torch.linalg.solve non è garantito su MPS: fuori dalla GPU si calcola sulla CPU, una volta sola.
+        w_in = self.rete.get_input_embeddings().weight
+        w_out = self.rete.get_output_embeddings().weight
+        dimensione = w_in.shape[1]
+        gram = torch.zeros(dimensione, dimensione, dtype=torch.float32, device=w_in.device)
+        destra = torch.zeros_like(gram)
+        somma_norme = torch.zeros((), dtype=torch.float32, device=w_in.device)
+        for inizio in range(0, w_in.shape[0], righe_per_blocco):
+            ingresso = w_in[inizio : inizio + righe_per_blocco].to(torch.float32)
+            uscita = w_out[inizio : inizio + righe_per_blocco].to(torch.float32)
+            somma_norme += ingresso.norm(dim=1).sum()
+            if self.riallinea:
+                gram += uscita.T @ uscita
+                destra += uscita.T @ ingresso
+        norma = somma_norme / w_in.shape[0]
+        if not self.riallinea:
+            return torch.eye(dimensione, device=self.dispositivo), norma.to(self.dispositivo)
+        # torch.linalg.solve non è garantito su MPS: la soluzione D×D si calcola sulla CPU, dove è piccola.
         dove = self.dispositivo if self.dispositivo == "cuda" else "cpu"
-        w_in = self.rete.get_input_embeddings().weight.detach().to(dove, torch.float32)
-        w_out = self.rete.get_output_embeddings().weight.detach().to(dove, torch.float32)
-        norma = w_in.norm(dim=1).mean()
-        if self.riallinea:
-            gram = w_out.T @ w_out + 1e-5 * torch.eye(w_out.shape[1], device=dove)
-            matrice = torch.linalg.solve(gram, w_out.T @ w_in)
-        else:
-            matrice = torch.eye(w_in.shape[1], device=dove)
+        gram = gram.to(dove) + 1e-5 * torch.eye(dimensione, device=dove)
+        matrice = torch.linalg.solve(gram, destra.to(dove))
         return matrice.to(self.dispositivo), norma.to(self.dispositivo)
 
     def _token_di_fine(self) -> set[int]:

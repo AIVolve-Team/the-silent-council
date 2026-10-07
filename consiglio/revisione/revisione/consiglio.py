@@ -19,12 +19,8 @@ from .categorie import Benchmark
 from .citazioni import verifica
 from .confidenza import livello, probabilita_si, token_booleani
 from .istruzioni import istruzioni_esperto, istruzioni_relatore, lettura, nota, verdetto
-from .schemi import schema_nota, schema_verdetto
+from .schemi import schema_nota, schema_verdetto, token_massimi
 from .taglio import taglia
-
-# Bastano anche nel caso peggiore, perché gli schemi limitano voci e caratteri.
-MAX_TOKEN_NOTA = 300
-MAX_TOKEN_VERDETTO = 1100
 
 
 @dataclass
@@ -149,13 +145,15 @@ class Consiglio:
         staffetta = Staffetta(
             self.motore, self.esperti, self.relatore, modalita=self.modalita, passi_latenti=self.passi_latenti
         )
+        schema = schema_verdetto(self.benchmark.categorie)
         esito = staffetta.esegui(
             sessione,
             testi,
-            schema=schema_verdetto(self.benchmark.categorie),
+            schema=schema,
             ordine_campi=True,
+            max_spazi=1,
             osserva=self.veri + self.falsi,
-            max_token=MAX_TOKEN_VERDETTO,
+            max_token=token_massimi(schema),
             **opzioni,
         )
         revisione = Revisione(
@@ -180,15 +178,17 @@ class Consiglio:
         for i, esperto in enumerate(self.esperti[: len(esito.messaggi)]):
             # La nota nasce da una copia della memoria dell'esperto e non entra nella catena.
             sezione = taglio.sezioni[esperto.nome] if self.modalita == TESTO else None
+            schema_della_nota = schema_nota(self.benchmark.del_ruolo(esperto.nome))
             scritta = self.motore.scrivi(
                 esperto,
                 nota(sezione),
                 esito.messaggi[: i + 1],
                 modalita=self.modalita,
-                schema=schema_nota(self.benchmark.del_ruolo(esperto.nome)),
+                schema=schema_della_nota,
                 ordine_campi=True,
+                max_spazi=1,
                 osserva=self.veri + self.falsi,
-                max_token=MAX_TOKEN_NOTA,
+                max_token=token_massimi(schema_della_nota),
             )
             revisione.note[esperto.nome] = _scritto(scritta, self.veri, self.falsi, testo)
             letti, generati = letti + scritta.token_letti, generati + scritta.token_generati
