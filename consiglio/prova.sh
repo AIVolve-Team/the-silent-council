@@ -63,15 +63,13 @@ if [ -z "${MODELLO:-}" ]; then
   elif [ "$GPU_GB" -ge 14 ]; then MODELLO="Qwen/Qwen3-4B"
   else MODELLO="Qwen/Qwen3-1.7B"; fi
 fi
-DTYPE="bfloat16"
-case "$CHIP" in *M1*) DTYPE="float16" ;; esac  # il bf16 sulla GPU dei Mac M1 non è affidabile
 # La staffetta tiene in memoria fino a tre copie della KV del contratto: la catena, la cache di lavoro e la copia
 # che si allunga. Con Qwen3-0.6B il contratto CUAD più lungo (22.863 token) arriva a 12 GB; con il 14B si stimano
 # circa 46 GB, troppi per un Mac da 64 GB. Sotto gli 80 GB si saltano i contratti oltre 14.000 token.
 MAX_TOKEN=""
 LIMITE=""
 if [ "$GPU_GB" -lt 80 ]; then MAX_TOKEN="--max-token 14000"; LIMITE=", contratti fino a 14.000 token"; fi
-echo "Modello: $MODELLO in $DTYPE$LIMITE."
+echo "Modello: $MODELLO$LIMITE."
 [ "$DISPOSITIVO" = "cpu" ] && echo "Attenzione: senza GPU il giro è molto lento (anche ore per contratto)."
 
 passo "2/8 Python e librerie (la prima volta qualche minuto)"
@@ -89,6 +87,15 @@ fi
 uv pip install -q -p "$PY" "torch==2.14.1" "transformers==4.57.6" "safetensors==0.8.0" "huggingface-hub==0.36.2" \
   "lm-format-enforcer==0.11.3" "cryptography==50.0.2" "tokenizers==0.22.2" "pytest==9.1.1" -e "$RADICE/motore"
 "$PY" -c "import torch, transformers; print('torch', torch.__version__, '| transformers', transformers.__version__, '| GPU:', 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'nessuna'))"
+# Qwen3 è addestrato in bf16: in float16 i modelli Qwen possono andare in overflow e scrivere token senza senso,
+# senza errori. Il float16 resta solo per le GPU che il bf16 non lo fanno, e lo si scopre provandolo.
+case "$DISPOSITIVO" in rocm) DISPOSITIVO_TORCH="cuda" ;; *) DISPOSITIVO_TORCH="$DISPOSITIVO" ;; esac
+DTYPE="bfloat16"
+if ! "$PY" -c "import sys, torch; a = torch.ones(8, 8, dtype=torch.bfloat16, device=sys.argv[1]); (a @ a).sum().item()" \
+  "$DISPOSITIVO_TORCH" >/dev/null 2>&1; then
+  DTYPE="float16"
+fi
+echo "Pesi del modello in $DTYPE."
 
 passo "3/8 Test veloci, senza modello"
 (cd "$RADICE/motore" && "$PY" -m pytest -q -p no:cacheprovider -m "not modello")
