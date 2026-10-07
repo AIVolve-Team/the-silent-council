@@ -57,6 +57,7 @@ class Staffetta:
         *,
         schema: dict | None = None,
         ordine_campi: bool = False,
+        max_spazi: int | None = None,
         osserva: list[int] | None = None,
         max_token: int | None = None,
         pensieri_da: dict[str, MessaggioLatente] | None = None,
@@ -91,6 +92,7 @@ class Staffetta:
             if not consegna.esito.passa:
                 return EsitoStaffetta(catena, None, consegna.esito, time.perf_counter() - inizio)
             catena.append(consegna.copia)
+            del messaggio  # resta la copia consegnata: su un Mac la memoria dei messaggi conta
         esito = self.motore.verifica_catena(catena)
         if not esito.passa:
             return EsitoStaffetta(catena, None, esito, time.perf_counter() - inizio)
@@ -101,6 +103,7 @@ class Staffetta:
             modalita=self.modalita,
             schema=schema,
             ordine_campi=ordine_campi,
+            max_spazi=max_spazi,
             osserva=osserva,
             max_token=max_token,
         )
