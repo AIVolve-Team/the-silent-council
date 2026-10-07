@@ -1,7 +1,7 @@
 # Hackathon AMD ACT III
 
 Il linguaggio comune dei progetti del team per l'AMD Developer Hackathon ACT III.
-Contiene i termini del Consiglio silenzioso, la revisione di contratti in telepatia, e quelli del motore telepatico e della macchina della verità, condivisi con lo sportello.
+Contiene i termini del Consiglio silenzioso, la revisione di contratti in telepatia, quelli del motore telepatico e della macchina della verità, condivisi con lo sportello, e quelli dello sportello telepatico, che esamina le fatture.
 
 ## Language
 
@@ -58,3 +58,29 @@ _Avoid_: attacco, frode (quando si intende il difetto inserito)
 **Attacco**:
 Una manipolazione del sistema, non della fattura: per esempio un messaggio latente manomesso o un testo nascosto nel PDF. Lo fermano il sigillo e la coerenza.
 _Avoid_: anomalia
+
+**Fattura al limite**:
+Una fattura pulita costruita vicino a una regola senza violarla, per esempio con il prezzo sopra l'ordine entro la tolleranza. Serve a misurare i falsi allarmi.
+_Avoid_: caso limite, edge case
+
+### Sportello: esito e caso passato a una persona
+
+**Esito**:
+La decisione dello sportello su una fattura: **pagare** (nasce una proposta di pagamento), **passare a una persona** (c'è un dubbio e decide lei) o **bloccare** (una regola o una discordanza fra i tre testimoni nega il pagamento). Se ne scattano più di uno, vince il più grave.
+_Avoid_: verdetto (è del Consiglio), escalation, rifiuto
+
+**Tre testimoni**:
+Impegno, lettura e proposta di pagamento, che sui dati del pagamento devono coincidere. Se non coincidono, l'esito è bloccare.
+_Avoid_: doppio controllo, triangolazione
+
+**Caso passato a una persona**:
+Una fattura con esito passare a una persona o bloccare. La persona riceve un'email di avviso con il link alla pagina del caso, vede cosa non torna e decide: approvare, rifiutare o segnalare una frode. Un caso bloccato si approva solo con una nota di verifica fatta con i contatti in anagrafica.
+_Avoid_: escalation, ticket, pratica
+
+**Proposta di pagamento**:
+Il pagamento che lo sportello prepara quando l'esito è pagare, sempre verso l'IBAN in anagrafica, in attesa che una persona lo approvi. Lo sportello non paga mai da solo.
+_Avoid_: pagamento (finché non è approvato), bonifico
+
+**Registro del caso**:
+Il file che si scarica dalla pagina del caso: esito, controlli, firme dei messaggi e chiavi pubbliche, con il comando per verificarlo da sé.
+_Avoid_: registro dell'incidente (lo scrive il controllore quando un sigillo fallisce), log, report
