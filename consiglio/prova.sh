@@ -55,6 +55,8 @@ else
   ferma "Sistema non supportato: $SISTEMA. Su Windows lancia lo script dentro WSL2 (Ubuntu)."
 fi
 echo "Sistema $SISTEMA ($CHIP), memoria $MEMORIA_GB GB, calcolo su $DISPOSITIVO ($GPU_GB GB disponibili per il modello)."
+# Il giro dura ore: finché lo script è vivo il Mac non va in stop da solo (lo schermo invece può spegnersi).
+if [ "$SISTEMA" = "Darwin" ] && command -v caffeinate >/dev/null 2>&1; then caffeinate -i -w $$ & fi
 
 # Il modello più grande che ci sta: il 14B è quello del Consiglio; gli altri servono solo a provare.
 if [ -z "${MODELLO:-}" ]; then

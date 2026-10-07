@@ -9,6 +9,10 @@ git checkout feat/pagina-verdetto
 ./consiglio/prova.sh
 ```
 
+Meglio lanciarlo da un terminale (va bene anche quello di VS Code) che chiederlo a Claude Code: è un lavoro di ore, e quando la memoria si riempie Claude Code può fermare i comandi che ha lanciato lui.
+
+Mentre gira, il Mac non va in stop da solo: basta tenerlo collegato alla corrente e con il coperchio aperto.
+
 Il repo è privato: serve l'accesso all'organizzazione AIVolve-Team, lo stesso con cui si vedono i ticket. Se `git clone` chiede una password, basta `gh auth login` una volta e poi `gh repo clone AIVolve-Team/the-silent-council` al posto della prima riga.
 
 ## Cosa serve
