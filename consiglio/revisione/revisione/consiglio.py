@@ -154,6 +154,7 @@ class Consiglio:
             testi,
             schema=schema_verdetto(self.benchmark.categorie),
             ordine_campi=True,
+            max_spazi=1,
             osserva=self.veri + self.falsi,
             max_token=MAX_TOKEN_VERDETTO,
             **opzioni,
@@ -187,6 +188,7 @@ class Consiglio:
                 modalita=self.modalita,
                 schema=schema_nota(self.benchmark.del_ruolo(esperto.nome)),
                 ordine_campi=True,
+                max_spazi=1,
                 osserva=self.veri + self.falsi,
                 max_token=MAX_TOKEN_NOTA,
             )
