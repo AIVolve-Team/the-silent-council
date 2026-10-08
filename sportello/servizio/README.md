@@ -7,6 +7,7 @@ Il server sta sulla MI300X accanto al modello; le prove dal vivo della casa per 
 |---|---|
 | `servizio/gestore.py` | i due tool, con le loro regole, uguali per MCP e HTTP |
 | `servizio/server.py` | l'app: MCP su `/mcp`, le stesse rotte in HTTP, il segreto |
+| `servizio/prove.py` | le prove dal vivo della casa per i giudici, solo con `--demo` |
 | `servizio/__main__.py` | carica Qwen3 una volta e avvia il server |
 | `tests/` | i test, con una staffetta finta al posto del modello |
 
@@ -37,7 +38,8 @@ Regole che valgono per tutti e due i trasporti:
 | `POST /registra_decisione` | lo stesso tool in HTTP, JSON |
 | `GET /casi` | i casi con esito e ultima decisione, per l'indice della casa dei giudici |
 | `GET /casi/{id}`, `GET /casi/{id}/fattura.pdf` | la vista della pagina del caso con le decisioni, e il PDF |
-| `GET /salute` | l'unica aperta: `{"pronto": true, "esame_in_corso": false}` |
+| `POST /prove/fattura`, `/prove/attacco`, `/prove/inganna` | solo con `--demo`: le prove dal vivo della casa per i giudici |
+| `GET /salute` | l'unica aperta: `{"pronto": true, "esame_in_corso": false, "demo": false}` |
 
 Tutte le altre chiedono il segreto, in `Authorization: Bearer <segreto>` oppure in `X-Api-Key: <segreto>`.
 `pdf_url` funziona solo da https e dagli host passati con `--host-pdf`, senza redirect, fino a 10 MB: serve se il connettore di Evolus ha un limite di dimensione troppo basso.
@@ -58,10 +60,20 @@ export SPORTELLO_SEGRETO=$(openssl rand -hex 32) # lo stesso va nel connettore d
 - **Ogni caso** si salva in `--casi/<id>/` (predefinito `~/.sportello/casi`): registro firmato della pipeline, `fattura.pdf`, `vista.json`, `risposta.json`, `decisioni.jsonl`. `python -m motore.verifica <casi>/<id> --pubbliche <casi>/<id>/chiavi-pubbliche` lo controlla da solo.
 - **Le chiavi private** restano in `--chiavi` (predefinito `~/.sportello/chiavi-prova`), fuori dal repo e dai casi.
 
+## Le prove dal vivo (`--demo`)
+
+Le chiama la casa per i giudici (`casa/`,) attraverso la sua funzione, mai Evolus.
+
+- **`/prove/fattura`** `{id, modalita, livello2}`: una delle nostre fatture dell'insieme.
+- **`/prove/attacco`** `{numero, modalita, livello2}`: 1 è la manomissione in transito (F1, `--attacco-1`), 2 il testo nascosto (F4, oppure il ripiego F3 se la regola lo chiede, `--attacco-2`).
+- **`/prove/inganna`** `{id, testo, modalita, livello2}`: il testo nascosto scritto dal giudice, fino a 300 caratteri latini.
+
+L'interruttore del livello 2 esiste solo qui. Ogni prova è un caso con il suo registro, e la stessa prova due volte è lo stesso caso. Le prove non fanno la fila: se c'è un esame in corso rispondono **409**, e la pagina dice di riprovare fra un minuto. La risposta porta anche la vista della pagina del caso, PDF compreso, che la casa lascia nel browser del giudice.
+
 ## Test
 
 ```bash
-.venv/bin/python -m pytest -q # 18 test, senza modello
+.venv/bin/python -m pytest -q # 26 test, senza modello
 ```
 
 Due punti di test: il **gestore** (le regole dei due tool, con una staffetta finta) e l'**app** (segreto, stesso caso via MCP con il client dell'SDK e via HTTP, errori in HTTP).
@@ -69,4 +81,3 @@ Due punti di test: il **gestore** (le regole dei due tool, con una staffetta fin
 ## Cosa manca
 
 - **Il lato Evolus** (workflow dall'email, blocco *choice*, avviso per email, secondo workflow, agente principale su vLLM): dipende da cosa c'è nella workspace dell'evento, che si sa al kickoff del 12/10.
-- **Le prove dal vivo** della casa per i giudici (scegliere una nostra fattura, i due attacchi, "prova tu a ingannarlo") e l'interruttore del livello 2 della modalità demo:.

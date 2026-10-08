@@ -8,6 +8,8 @@ Il TLS lo fa Caddy davanti (`caddy reverse-proxy --from motore.example.org --to 
 `--ssl-certfile` e `--ssl-keyfile` e `--host 0.0.0.0`. Ogni caso si salva in `--casi/<id>/`: registro firmato della
 pipeline, PDF, vista e decisioni;
 `python -m motore.verifica <casi>/<id> --pubbliche <casi>/<id>/chiavi-pubbliche` lo controlla.
+Con `--demo` ci sono anche le prove dal vivo della casa per i giudici: `POST /prove/fattura`, `/prove/attacco`,
+`/prove/inganna`.
 """
 
 from __future__ import annotations
@@ -44,6 +46,11 @@ def main() -> None:
     parser.add_argument("--host-pdf", action="append", default=[], help="host da cui si può scaricare pdf_url")
     parser.add_argument("--ssl-certfile", default=None)
     parser.add_argument("--ssl-keyfile", default=None)
+    parser.add_argument("--demo", action="store_true", help="le prove dal vivo della casa per i giudici")
+    parser.add_argument("--attacco-1", default="sviluppo-F1-03", help="un F1: manomissione in transito")
+    parser.add_argument(
+        "--attacco-2", default="sviluppo-F4-01", help="un F4 (o il ripiego F3) scelto con la regola di «Eval pre-registrato G1-G4»"
+    )
     argomenti = parser.parse_args()
 
     segreto = os.environ.get("SPORTELLO_SEGRETO", "")
@@ -58,12 +65,22 @@ def main() -> None:
     chiavi = chiavi_di_prova(argomenti.chiavi)
     archivi = carica_archivi(argomenti.insieme)
 
-    def staffetta(pdf: bytes, email: dict, modalita: str, id_caso: str) -> dict:
+    def staffetta(pdf: bytes, email: dict, modalita: str, id_caso: str, **opzioni) -> dict:
         return esamina(modello, pdf, email, archivi, chiavi, modalita=modalita, passi_latenti=argomenti.passi,
-                       registro=argomenti.casi, id_caso=id_caso)  # fmt: skip
+                       registro=argomenti.casi, id_caso=id_caso, **opzioni)  # fmt: skip
 
     sportello = Sportello(staffetta, archivi, argomenti.casi, link=argomenti.link)
-    app = crea_app(sportello, segreto, host_pubblici=tuple(argomenti.host_pubblico), host_pdf=tuple(argomenti.host_pdf))
+    prove = None
+    if argomenti.demo:
+        from fatture.genera import genera_insieme
+
+        from .prove import Prove
+
+        # Lo stesso seme dà gli stessi byte: l'insieme in memoria è quello della cartella.
+        insieme = genera_insieme(argomenti.insieme.resolve().name)
+        prove = Prove(sportello, insieme, attacco_1=argomenti.attacco_1, attacco_2=argomenti.attacco_2)
+    app = crea_app(sportello, segreto, host_pubblici=tuple(argomenti.host_pubblico), host_pdf=tuple(argomenti.host_pdf),
+                   prove=prove)  # fmt: skip
     uvicorn.run(app, host=argomenti.host, port=argomenti.porta, ssl_certfile=argomenti.ssl_certfile,
                 ssl_keyfile=argomenti.ssl_keyfile)  # fmt: skip
 
