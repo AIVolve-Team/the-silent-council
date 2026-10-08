@@ -200,3 +200,11 @@ def test_ogni_scatto_ha_il_motivo_in_italiano_e_in_inglese():
     (scatto,) = applica_regole(con(pagamento__iban="IT99C0300203280000400162854"), archivi())
     assert "IT99C0300203280000400162854" in scatto.motivo and IBAN_ALFA in scatto.motivo
     assert "IT99C0300203280000400162854" in scatto.motivo_en
+
+
+def test_un_riferimento_che_non_e_un_numero_rende_la_riga_libera():
+    # Un estrattore vero può scrivere il codice del prodotto al posto del numero della riga d'ordine.
+    f = con(righe__0__num_item="ART-7")
+    assert codici(f) == {"A11": "da_giudicare"}
+    assert codici(f, abbinamenti={1: 1}) == {}
+    assert codici(con(righe__0__num_item=" 1 ")) == {}
