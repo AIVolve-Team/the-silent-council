@@ -5,7 +5,7 @@ Un comando prepara tutto, genera le fatture di sviluppo, fa girare lo Sportello 
 ```bash
 git clone https://github.com/AIVolve-Team/the-silent-council.git
 cd the-silent-council
-git checkout feat/pipeline # finché la pipeline non è in main
+git checkout prova/sportello # pipeline e motore insieme, finché le e non sono in main
 ./sportello/prova.sh
 ```
 
