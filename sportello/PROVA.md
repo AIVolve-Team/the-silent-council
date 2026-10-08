@@ -34,6 +34,20 @@ Il repo è privato: serve l'accesso all'organizzazione AIVolve-Team. Se `git clo
 
 Con `--tutte` esamina tutte le 100 fatture di sviluppo; con `FATTURE=3` solo le prime 3. Rilanciarlo è sicuro: le fatture già esaminate non si rifanno.
 
+### I passi in più
+
+Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni pezzo dello Sportello che fa girare il modello. Se uno si ferma, gli altri vanno avanti; alla fine lo script elenca dove guardare.
+
+| Passo | Ticket | Cosa | Come si spegne |
+|---|---|---|---|
+| `20-pagine.sh` | | Le pagine dei casi in telepatia e l'indice con le proposte da approvare, come le vedrebbe la persona: si aprono nel browser. | |
+
+### Cosa non prova
+
+- **La parte Evolus** (email, agente principale Qwen3.6 su vLLM, connettore MCP): gira solo sull'AMD Developer Cloud.
+- **G2 e l'esame veri**: il riepilogo qui sopra è l'anteprima di G2; il giro pre-registrato a 10, 20 e 40 passi latenti si fa sulla MI300X.
+- **G1**: misura la memoria e la velocità sulla MI300X.
+
 ## Cosa guardare
 
 Alla fine lo script stampa una tabella per modalità:
