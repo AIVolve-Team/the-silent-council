@@ -1,6 +1,6 @@
 """Le regole del catalogo: A01-A13 sui campi dell'impegno e sugli archivi, in modo deterministico.
 
-A11 (riga che non corrisponde a nessuna riga dell'ordine) la giudica il modello: le righe senza `num_item` si
+A11 (riga che non corrisponde a nessuna riga dell'ordine) la giudica il modello: le righe senza un `num_item` numerico si
 abbinano all'ordine con `abbinamenti` ({numero della riga: riga dell'ordine, oppure None}). Senza il giudizio la
 regola risponde "da_giudicare". Un blocco nasce sempre da una regola, mai dal giudizio del modello.
 """
@@ -152,17 +152,28 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
     return scatti
 
 
+def riferimento(riga: dict) -> int | None:
+    """La riga d'ordine indicata in fattura (`num_item`), se è un numero. Altrimenti la riga è libera: un estrattore
+    vero può scrivere lì il codice del prodotto, e allora la riga si abbina come le altre senza riferimento."""
+    valore = riga.get("num_item")
+    try:
+        return None if valore is None else int(str(valore).strip())
+    except ValueError:
+        return None
+
+
 def controlla_riga(riga: dict, ordine: Ordine, abbinamenti: dict[int, int | None] | None) -> list[Scatto]:
     n = riga["n"]
-    if riga.get("num_item") is not None:
-        voce = ordine.riga(int(riga["num_item"]))
+    numero = riferimento(riga)
+    if numero is not None:
+        voce = ordine.riga(numero)
         if voce is None:
             return [
                 Scatto(
                     "A11",
                     "persona",
-                    f"Riga {n}: la riga {riga['num_item']} dell'ordine non esiste",
-                    f"Line {n}: purchase order line {riga['num_item']} does not exist",
+                    f"Riga {n}: la riga {numero} dell'ordine non esiste",
+                    f"Line {n}: purchase order line {numero} does not exist",
                 )
             ]
     elif abbinamenti is None or n not in abbinamenti:
