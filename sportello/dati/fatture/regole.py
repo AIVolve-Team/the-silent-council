@@ -40,6 +40,9 @@ def esito_finale(scatti: list[Scatto]) -> str:
 
 def applica_regole(impegno: dict, archivi: Archivi, abbinamenti: dict[int, int | None] | None = None) -> list[Scatto]:
     scatti: list[Scatto] = []
+    if not (impegno.get("fornitore") or {}).get("id_fiscale"):
+        # Senza fornitore non si confronta niente: è un dato critico vuoto, e decide la coerenza (persona).
+        return totali(impegno)
     id_fornitore = id_fiscale(impegno["fornitore"]["id_fiscale"])
     fornitore = archivi.anagrafica.get(id_fornitore)
     scatti += totali(impegno)
@@ -115,9 +118,19 @@ def totali(impegno: dict) -> list[Scatto]:
     ]
 
 
+def giorno_di(valore) -> date | None:
+    """Una data ISO, oppure None se manca o è impossibile (un estrattore vero può scrivere 2026-15-09)."""
+    try:
+        return date.fromisoformat(valore) if valore else None
+    except (TypeError, ValueError):
+        return None
+
+
 def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto]:
     documento = impegno["documento"]
-    numero, giorno = numero_documento(documento["numero"]), date.fromisoformat(documento["data"])
+    if not documento.get("numero"):
+        return []
+    numero, giorno = numero_documento(documento["numero"]), giorno_di(documento.get("data"))
     numero_ordine = (impegno.get("ordine") or {}).get("numero")
     ordine = archivi.ordini.get(numero_ordine) if numero_ordine else None
     scatti = []
@@ -125,7 +138,8 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
         if id_fiscale(voce.fornitore) != id_fornitore:
             continue
         giorno_voce = date.fromisoformat(voce.data)
-        if numero_documento(voce.numero) == numero and giorno_voce.year == giorno.year:
+        # Con una data impossibile si confronta solo il numero: meglio un dubbio in più che un duplicato pagato.
+        if numero_documento(voce.numero) == numero and (giorno is None or giorno_voce.year == giorno.year):
             scatti.append(
                 Scatto(
                     "A01",
@@ -138,6 +152,7 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
             numero_ordine
             and voce.ordine == numero_ordine
             and stesso_importo(voce.importo, impegno["totale_documento"])
+            and giorno is not None
             and abs((giorno - giorno_voce).days) <= GIORNI_DUPLICATO
             and (ordine is None or ordine.rate <= 1)
         ):

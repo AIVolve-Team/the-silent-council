@@ -208,3 +208,19 @@ def test_un_riferimento_che_non_e_un_numero_rende_la_riga_libera():
     assert codici(f) == {"A11": "da_giudicare"}
     assert codici(f, abbinamenti={1: 1}) == {}
     assert codici(con(righe__0__num_item=" 1 ")) == {}
+
+
+def test_una_data_impossibile_non_ferma_le_regole():
+    # Un estrattore vero può scrivere una data nel formato giusto ma impossibile (visto con Qwen3-0.6B).
+    a = archivi()
+    a.storico.append(VoceStorico(ALFA, "FT-12/2026", "2026-08-01", 152.50, "PO-2026-0042"))
+    assert codici(con(documento__data="2026-15-09"), a) == {"A01": "bloccare"}  # stesso numero: duplicato
+    assert codici(con(documento__data="2026-15-09")) == {}
+
+
+def test_campi_vuoti_non_fermano_le_regole():
+    # Lo schema dell'estrattore ammette null: senza fornitore o numero non c'è niente da confrontare, e decide la
+    # coerenza (dato critico vuoto → persona).
+    assert codici(con(fornitore__id_fiscale=None)) == {}
+    assert codici(con(documento__numero=None)) == {}
+    assert codici(con(documento__data=None)) == {}
