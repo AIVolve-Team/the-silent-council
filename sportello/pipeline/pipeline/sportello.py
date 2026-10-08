@@ -26,7 +26,7 @@ from pathlib import Path
 
 from controllore.coerenza import confronta
 from controllore.motore import ControlloCoerenza
-from controllore.valuta import valuta
+from controllore.valuta import motivi_coerenza, valuta
 from fatture.archivi import Archivi
 from fatture.normalizza import id_fiscale
 from fatture.regole import applica_regole, riferimento
@@ -211,9 +211,15 @@ def fermata(esito_controllo, impegno: dict | None, lettura: dict | None) -> dict
     del_sigillo = esito_controllo.controllo in CONTROLLI_DEL_SIGILLO
     livello = "sigillo" if del_sigillo else esito_controllo.controllo
     discordanze, vuoti = confronta(impegno, lettura) if impegno and lettura else ([], [])
+    if esito_controllo.controllo == "coerenza" and discordanze:
+        # Un motivo per dato, in italiano e in inglese, con l'IBAN abbreviato: come quelli della valutazione.
+        motivi = [asdict(m) for m in motivi_coerenza(discordanze, [])]
+    else:
+        motivi = None
     return {
         "esito": "bloccare",
-        "motivi": [
+        "motivi": motivi
+        or [
             {
                 "livello": livello,
                 "esito": "bloccare",
