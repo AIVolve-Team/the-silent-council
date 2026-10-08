@@ -64,6 +64,7 @@ Una riga per fattura: `id`, `lingua`, `anomalia` (o `null`), `al_limite` (o `nul
 
 non le fissava; i test le rendono esplicite.
 
+- **A00, mai pagare senza aver potuto controllare:** se mancano o non sono validi i dati che servono alle regole (identificativo fiscale del fornitore, numero, data, IBAN), l'esito è almeno "persona". Non è nel catalogo: coincide con la regola sui campi critici vuoti, ma vale anche con la coerenza spenta. Con una data impossibile il duplicato esatto si cerca sul solo numero e il duplicato mascherato scatta su ordine e importo; senza numero, il duplicato mascherato scatta comunque. Nasce da una revisione di sicurezza: una versione precedente, robusta ma "fail-open", lasciava pagare in questi casi.
 - **A05 da solo:** con un fornitore sconosciuto non c'è niente con cui confrontare ordine, IBAN o storico, quindi le regole si fermano lì (resta solo il controllo dei totali, A13). L'ordine stampato in queste fatture non esiste.
 - **A07 e A08** fermano i controlli sulle righe: senza un ordine valido non c'è niente da confrontare.
 - **Una riga con un riferimento a una riga d'ordine che non esiste** è A11, persona, senza bisogno del modello.
