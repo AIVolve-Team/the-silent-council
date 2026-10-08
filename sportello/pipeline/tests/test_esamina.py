@@ -89,7 +89,10 @@ def test_la_coerenza_ferma_la_staffetta_prima_del_decisore(modello, insieme, cas
     assert r["esito"] == "bloccare"
     assert r["proposta"] is None  # il decisore non ha mai ricevuto la memoria
     assert r["motivi"][0]["livello"] == "coerenza"
-    assert "IT99…" in r["motivi"][0]["motivo"]
+    assert "IT99…2854" in r["motivi"][0]["motivo"]
+    # Un motivo per dato, in italiano e in inglese, come quelli della valutazione.
+    assert r["motivi"][0]["codice"] == "pagamento.iban"
+    assert r["motivi"][0]["motivo_en"].startswith("The extractor declares IBAN")
 
 
 def test_spento_il_livello_2_si_arriva_al_decisore(modello, insieme, caso, chiavi, tmp_path):
