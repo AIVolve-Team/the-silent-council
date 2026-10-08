@@ -8,6 +8,7 @@ Il server sta sulla MI300X accanto al modello; le prove dal vivo della casa per 
 | `servizio/gestore.py` | i due tool, con le loro regole, uguali per MCP e HTTP |
 | `servizio/server.py` | l'app: MCP su `/mcp`, le stesse rotte in HTTP, il segreto |
 | `servizio/__main__.py` | carica Qwen3 una volta e avvia il server |
+| `servizio/chiama.py` | chiama il server come l'agente: `esamina_fattura` via MCP e HTTP, poi `registra_decisione` |
 | `tests/` | i test, con una staffetta finta al posto del modello |
 
 ## I due tool
@@ -58,10 +59,19 @@ export SPORTELLO_SEGRETO=$(openssl rand -hex 32) # lo stesso va nel connettore d
 - **Ogni caso** si salva in `--casi/<id>/` (predefinito `~/.sportello/casi`): registro firmato della pipeline, `fattura.pdf`, `vista.json`, `risposta.json`, `decisioni.jsonl`. `python -m motore.verifica <casi>/<id> --pubbliche <casi>/<id>/chiavi-pubbliche` lo controlla da solo.
 - **Le chiavi private** restano in `--chiavi` (predefinito `~/.sportello/chiavi-prova`), fuori dal repo e dai casi.
 
+## Controllo da capo a fondo
+
+```bash
+SPORTELLO_SEGRETO=….venv/bin/python -m servizio.chiama https://motore.example.org fattura.pdf \
+    --mittente fornitore@example.com --oggetto "Fattura 12" --data 2026-10-12
+```
+
+Fa quello che farà l'agente principale: `esamina_fattura` via MCP, la stessa email via HTTP (deve tornare lo stesso caso, senza un secondo esame) e `registra_decisione`. È il passo `40-servizio.sh` della prova per i colleghi, e il primo controllo del server sulla MI300X.
+
 ## Test
 
 ```bash
-.venv/bin/python -m pytest -q # 18 test, senza modello
+.venv/bin/python -m pytest -q # 19 test, senza modello
 ```
 
 Due punti di test: il **gestore** (le regole dei due tool, con una staffetta finta) e l'**app** (segreto, stesso caso via MCP con il client dell'SDK e via HTTP, errori in HTTP).

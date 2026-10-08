@@ -41,6 +41,7 @@ Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni
 | Passo | Ticket | Cosa | Come si spegne |
 |---|---|---|---|
 | `20-pagine.sh` | | Le pagine dei casi in telepatia e l'indice con le proposte da approvare, come le vedrebbe la persona: si aprono nel browser. | |
+| `40-servizio.sh` | | Il motore chiamato come lo chiama l'agente in Evolus: il server con i due tool, una fattura esaminata con `esamina_fattura` via MCP e via HTTP (deve tornare lo stesso caso), poi `registra_decisione`. | |
 
 ### Cosa non prova
 
