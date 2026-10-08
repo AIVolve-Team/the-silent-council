@@ -18,7 +18,7 @@ def test_alla_consegna_del_verificatore_impegno_e_lettura_devono_coincidere():
     fermata = controllo(messaggio("verificatore", lettura(pagamento__iban="IT99C0300203280000400162854")), catena)
     assert not fermata.passa
     assert fermata.controllo == "coerenza"
-    assert fermata.motivo == "L'estrattore dichiara IBAN IT60…, nella memoria c'è IT99…"
+    assert fermata.motivo == "L'estrattore dichiara IBAN IT60…3456, nella memoria c'è IT99…2854"
 
 
 def test_gli_altri_messaggi_passano():

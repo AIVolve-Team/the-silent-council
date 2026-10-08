@@ -25,8 +25,8 @@ def test_impegno_e_lettura_diversi_bloccano_e_il_motivo_dice_cosa_non_torna():
     assert v.pagamento_proposto is None
     (motivo, *_) = v.motivi
     assert (motivo.livello, motivo.esito, motivo.codice) == ("coerenza", "bloccare", "pagamento.iban")
-    assert motivo.motivo == "L'estrattore dichiara IBAN IT60…, nella memoria c'è IT99…"
-    assert motivo.motivo_en == "The extractor declares IBAN IT60…, but its memory holds IT99…"
+    assert motivo.motivo == "L'estrattore dichiara IBAN IT60…3456, nella memoria c'è IT99…2854"
+    assert motivo.motivo_en == "The extractor declares IBAN IT60…3456, but its memory holds IT99…2854"
     assert ATTACCANTE not in motivo.motivo  # l'IBAN sospetto non compare mai intero
     assert [d.campo for d in v.discordanze] == ["pagamento.iban"]
 
@@ -79,3 +79,14 @@ def test_una_proposta_senza_iban_o_importo_passa_a_una_persona():
     for incompleta in (proposta(iban=None), proposta(importo=None)):
         assert valuta(IMPEGNO, lettura(), incompleta, []).esito == "persona"
         assert valuta(IMPEGNO, lettura(), incompleta, [], livello2=False).esito == "persona"
+
+
+def test_due_iban_che_differiscono_solo_al_centro_si_distinguono():
+    meta = "IT60X0542811101000000123456"
+    simile = "IT60X0542811109999990123456"  # stesse prime e ultime quattro cifre
+    v = valuta(IMPEGNO, lettura(pagamento__iban=simile), proposta(iban=simile), [])
+    assert (
+        v.motivi[0].motivo
+        == "L'estrattore dichiara IBAN IT60…3456, nella memoria c'è IT60…3456 (cifre centrali diverse)"
+    )
+    assert meta not in v.motivi[0].motivo and simile not in v.motivi[0].motivo

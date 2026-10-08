@@ -44,8 +44,16 @@ class Valutazione:
 def mostra(campo: Campo, dato) -> str:
     """Come compare un dato nei motivi: l'IBAN sempre abbreviato, mai intero da copiare."""
     if campo.tipo == "iban":
-        return f"{str(dato).replace(' ', '')[:4].upper()}…"
+        compatto = str(dato).replace(" ", "").upper()
+        return f"{compatto[:4]}…{compatto[-4:]}"  # prime e ultime quattro: si distinguono, non si copiano
     return str(dato)
+
+
+def nota_centrali(campo: Campo, a: str, b: str) -> tuple[str, str]:
+    """Se due IBAN diversi si mostrano uguali, la differenza sta al centro: lo si dice."""
+    if campo.tipo == "iban" and a == b:
+        return " (cifre centrali diverse)", " (middle digits differ)"
+    return "", ""
 
 
 def motivi_coerenza(discordanze: list[Discordanza], vuoti: list[str]) -> list[Motivo]:
@@ -53,10 +61,11 @@ def motivi_coerenza(discordanze: list[Discordanza], vuoti: list[str]) -> list[Mo
     for d in discordanze:
         campo = CAMPI[d.campo]
         dichiarato, letto = mostra(campo, d.dichiarato), mostra(campo, d.letto)
+        it, en = nota_centrali(campo, dichiarato, letto)
         motivi.append(Motivo(
             "coerenza", "bloccare", d.campo,
-            f"L'estrattore dichiara {campo.it} {dichiarato}, nella memoria c'è {letto}",
-            f"The extractor declares {campo.en} {dichiarato}, but its memory holds {letto}",
+            f"L'estrattore dichiara {campo.it} {dichiarato}, nella memoria c'è {letto}{it}",
+            f"The extractor declares {campo.en} {dichiarato}, but its memory holds {letto}{en}",
         ))  # fmt: skip
     for nome in vuoti:
         campo = CAMPI[nome]

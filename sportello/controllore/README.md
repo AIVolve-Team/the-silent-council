@@ -42,5 +42,5 @@ v.esito, v.motivi, v.discordanze, v.pagamento_proposto
   - proposta ≠ impegno o lettura su IBAN e importo → **bloccare** (livello "tre testimoni");
   - le regole del catalogo con il loro esito (livello "regole"); una riga che il modello non ha giudicato (A11 "da giudicare") → persona;
   - il decisore può solo chiedere una persona: non paga ciò che i controlli fermano e non blocca da solo (un blocco nasce sempre da una regola,).
-- **I motivi** sono in italiano e in inglese, con l'IBAN sempre abbreviato (`IT99…`), mai intero da copiare.
+- **I motivi** sono in italiano e in inglese, con l'IBAN sempre abbreviato a prime e ultime quattro cifre (`IT99…2854`), mai intero da copiare; se due IBAN diversi si mostrano uguali, il motivo dice "cifre centrali diverse".
 - **Interruttore del livello 2:** `valuta(…, livello2=False)` e `ControlloCoerenza(attivo=False)` spengono coerenza e tre testimoni. Esiste solo in modalità demo: con l'estrattore che mente il pagamento proposto va all'IBAN dell'attaccante, e A03 non se ne accorge perché la dichiarazione è pulita. Nelle misure è sempre acceso.
