@@ -30,6 +30,7 @@ non le fissava; valgono da questo commit, e ogni cambiamento dopo la misura è u
 | File | Cosa fa |
 |---|---|
 | `g1/esegui.py` | i tre giri: ogni problema finito si scrive subito, e rilanciando si riparte da dove ci si era fermati |
+| `g1/agente.py` | controllo dell'endpoint vLLM dell'agente principale: chiamata a `esamina_fattura`, niente pensiero |
 | `g1/misure.py` | memoria con i due modelli insieme, impronta, ricalcolo dei pensieri, confronto fp32 contro bf16 |
 | `g1/riepilogo.py` | il verdetto e il rapporto da incollare |
 | `g1/gsm8k.py` | i 100 problemi e l'estrazione delle risposte |
@@ -145,11 +146,21 @@ docker run -d --name vllm --network=host --ipc=host --shm-size 16G \
   -v "$HF_HOME":/root/hf -e HF_HOME=/root/hf --entrypoint vllm vllm/vllm-openai-rocm:v0.30.0 \
   serve Qwen/Qwen3.6-35B-A3B --revision 995ad96eacd98c81ed38be0c5b274b04031597b0 --port 8000 \
   --api-key "$VLLM_API_KEY" --gpu-memory-utilization 0.5 --max-model-len 32768 \
-  --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3
+  --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 \
+  --default-chat-template-kwargs '{"enable_thinking": false}' \
+  --override-generation-config '{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0, "presence_penalty": 1.5, "repetition_penalty": 1.0}'
 docker logs -f vllm 2>&1 | grep -m2 -E "Model loading took|startup complete" # annota i GB del primo
+python -m g1.agente --url http://127.0.0.1:8000 --chiave "$VLLM_API_KEY" # deve finire con ✓
 ```
 
 I parametri dell'agente principale sono quelli di Building block Evolus (non `hermes`).
+Evolus non passa parametri di richiesta, quindi "pensiero" e campionamento si fissano qui, lato server:
+
+- **Niente pensiero** (`enable_thinking: false`): l'agente sceglie il percorso e scrive un avviso breve, il ragionamento sulla fattura lo fa il motore; così è più veloce e prevedibile, e il timeout di Evolus non lo conosciamo ancora.
+- **Campionamento** della scheda di Qwen3.6 per la modalità senza pensiero: temperature 0.7, top_p 0.80, top_k 20, min_p 0, presence_penalty 1.5.
+- Se `vllm serve --help` della v0.30.0 non ha uno dei due flag, si cerca il nome nuovo nell'aiuto: il controllo `g1.agente` dice se il pensiero è spento davvero.
+
+`g1.agente` manda la richiesta come la manderebbe Evolus, con lo strumento `esamina_fattura` e senza parametri, e controlla che torni una vera chiamata allo strumento (non XML nel testo, quindi parser giusto), con argomenti JSON e senza pensiero.
 
 ### 6. Memoria con i due modelli insieme
 
