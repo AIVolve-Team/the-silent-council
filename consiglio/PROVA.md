@@ -70,7 +70,10 @@ Se la prova la chiedi a Claude Code, queste sono le regole per lui:
   ```
 
   Il giro dura ore e usa molta memoria: un comando lanciato dentro Claude Code può essere fermato quando la memoria si riempie. La prima volta macOS può chiedere il permesso di far aprire la cartella al Terminale: va accettato.
-- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log`, che cresce mentre la prova va avanti. Alla fine c'è il riepilogo di ogni giro: va spiegato in parole semplici, mettendo a confronto telepatia e testo (F1, token, secondi). Le pagine del verdetto sono in `consiglio/risultati-prova/pagine/`.
+- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log`, che cresce mentre la prova va avanti.
+  - È finita quando in fondo al log compare la riga che comincia con `Fatto.`.
+  - Si è fermata se `pgrep -f consiglio/prova.sh` non trova più niente e quella riga non c'è.
+- **Alla fine** il log ha il riepilogo di ogni giro: va spiegato in parole semplici, mettendo a confronto telepatia e testo (F1, token, secondi). Le pagine del verdetto sono in `consiglio/risultati-prova/pagine/`.
 - **Se si ferma, niente correzioni:** si riportano il messaggio d'errore e le ultime righe di `prova.log`.
 
 ## Il set dimostrativo
