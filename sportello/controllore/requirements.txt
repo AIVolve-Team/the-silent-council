@@ -1,0 +1,6 @@
+# Verificato l'8/10/2026 su Mac (Apple M4) con Python 3.12.
+# Il motore (../../motore) arriva in main con la PR «Motore telepatico»; fino ad allora si installa dal suo ramo.
+-e ../dati
+-e ../../motore
+pytest==9.1.1
+ruff==0.16.10
