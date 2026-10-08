@@ -9,7 +9,7 @@ git checkout feat/pagina-verdetto
 ./consiglio/prova.sh
 ```
 
-Meglio lanciarlo da un terminale (va bene anche quello di VS Code) che chiederlo a Claude Code: è un lavoro di ore, e quando la memoria si riempie Claude Code può fermare i comandi che ha lanciato lui.
+Su Mac c'è anche `consiglio/prova.command`: con un doppio clic nel Finder la prova parte in una finestra del Terminale tutta sua, che alla fine resta aperta con il riepilogo. Per farla partire da Claude Code vedi [Con Claude Code](#con-claude-code).
 
 Mentre gira, il Mac non va in stop da solo: basta tenerlo collegato alla corrente e con il coperchio aperto.
 
@@ -56,6 +56,22 @@ Alla fine lo script stampa un riepilogo per ogni giro e apre la pagina del primo
 - **Le revisioni complete** (`consiglio/risultati-prova/*.jsonl`): tutto quello che hanno scritto esperti e relatore, con confidenze, dissensi, token e tempi.
 
 Sono numeri del **set di sviluppo**, per capire come va. I numeri per la giuria vengono dall'eval pre-registrato, sul set di test e sulla MI300X.
+
+## Con Claude Code
+
+Se la prova la chiedi a Claude Code, queste sono le regole per lui:
+
+- **Non si modifica niente.** Niente file cambiati, niente pacchetti installati a mano, niente modello diverso: fa tutto `prova.sh`.
+- **Il modello lo scarica lo script:** Qwen3-14B da Hugging Face, a una revisione fissata. Un Qwen già installato con Ollama o LM Studio non si può usare: il Consiglio passa da un agente all'altro la memoria interna del modello (la cache KV), e quei programmi non la danno.
+- **La prova parte fuori da Claude Code**, in una finestra del Terminale tutta sua:
+
+  ```bash
+  open consiglio/prova.command
+  ```
+
+  Il giro dura ore e usa molta memoria: un comando lanciato dentro Claude Code può essere fermato quando la memoria si riempie. La prima volta macOS può chiedere il permesso di far aprire la cartella al Terminale: va accettato.
+- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log`, che cresce mentre la prova va avanti. Alla fine c'è il riepilogo di ogni giro: va spiegato in parole semplici, mettendo a confronto telepatia e testo (F1, token, secondi). Le pagine del verdetto sono in `consiglio/risultati-prova/pagine/`.
+- **Se si ferma, niente correzioni:** si riportano il messaggio d'errore e le ultime righe di `prova.log`.
 
 ## Il set dimostrativo
 
