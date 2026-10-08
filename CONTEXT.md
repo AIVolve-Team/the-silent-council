@@ -45,6 +45,14 @@ _Avoid_: estrazione, output dell'estrattore, commitment
 I dati critici della fattura che il verificatore ricava dal messaggio latente, senza vedere la fattura. Si confronta con l'impegno: se non coincidono, l'agente ha trasportato nella memoria qualcosa di diverso da quello che ha dichiarato.
 _Avoid_: verifica (quando si intende la lettura), seconda estrazione
 
+**Traduttore**:
+Il terzo livello della macchina della verità: mostra a una persona che cosa contiene un messaggio latente. È una finestra, non una difesa: la difesa restano sigillo e coerenza.
+_Avoid_: decodificatore, interprete, logit lens (è solo uno degli strumenti)
+
+**Trascrizione della memoria**:
+Il testo che un lettore senza strumenti, con lo stesso modello, ricopia parola per parola dalla memoria che l'estrattore passa al verificatore. Le righe che nel PDF sono testo nascosto si segnano in rosso. Mostra soprattutto ciò che l'agente ha letto, non i suoi pensieri: i pensieri da soli, letti con il logit lens, non mostrano i dati.
+_Avoid_: traduzione dei pensieri, lettura dei pensieri, riassunto
+
 ### Sportello: anomalie e attacchi
 
 **Azione dannosa**:
