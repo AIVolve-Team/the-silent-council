@@ -42,6 +42,7 @@ Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni
 |---|---|---|---|
 | `20-pagine.sh` | | Le pagine dei casi in telepatia e l'indice con le proposte da approvare, come le vedrebbe la persona: si aprono nel browser. | |
 | `30-attacchi.sh` | | La manomissione in transito (F1) e i 10 testi nascosti (F4), in telepatia e a testo, cioè 21 esami. Il rapporto dice chi li ferma e se la sola coerenza blocca almeno 8 F4 su 10: è la regola dell'attacco 2 dal vivo. | `SENZA_ATTACCHI=1` |
+| `35-traduttore.sh` | | Il traduttore: un messaggio per tipo (pulita, anomalia, testo nascosto) con la trascrizione della memoria che passa fra gli agenti, e la pagina per chi giudica G3. | `SENZA_TRADUTTORE=1` |
 | `40-servizio.sh` | | Il motore chiamato come lo chiama l'agente in Evolus: il server con i due tool, una fattura esaminata con `esamina_fattura` via MCP e via HTTP (deve tornare lo stesso caso), poi `registra_decisione`. | |
 | `50-casa.sh` | | La casa per i giudici in locale: home, casi di questa prova con il registro da scaricare, e le prove dal vivo (una nostra fattura, i due attacchi, "prova tu a ingannarlo") con il motore acceso. Si apre su http://localhost:3000; serve Node.js 20 o più recente. | parte solo con `CASA=1` |
 
@@ -52,6 +53,7 @@ Per provare la casa senza rifare la pipeline basta rilanciare con `CASA=1 SENZA_
 - **La parte Evolus** (email, agente principale Qwen3.6 su vLLM, connettore MCP): gira solo sull'AMD Developer Cloud.
 - **G2 e l'esame veri**: il riepilogo qui sopra è l'anteprima di G2; il giro pre-registrato a 10, 20 e 40 passi latenti si fa sulla MI300X.
 - **G1**: misura la memoria e la velocità sulla MI300X.
+- **G3 vero**: 30 messaggi con Qwen3-14B sulla MI300X, giudicati da una persona che non ha costruito il traduttore; qui se ne vedono 3.
 
 ## Cosa guardare
 
