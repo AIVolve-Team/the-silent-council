@@ -90,6 +90,17 @@ tr.diverso .segno { color: var(--bloccare); }
 .pdf { width: 100%; height: 520px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; }
 .nascosto { background: var(--bloccare-tenue); border: 1px dashed var(--bloccare); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
 .nascosto mark { background: transparent; color: var(--bloccare); font-weight: 600; }
+.memoria { display: grid; gap: 12px; }
+.memoria .affiancati { align-items: start; }
+.memoria[hidden] { display: none; }
+.trascrizione { font-family: var(--dati); font-size: 0.82rem; display: grid; gap: 1px; max-height: 32rem; overflow: auto; }
+.trascrizione div { padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
+.trascrizione .nascosta { background: var(--bloccare-tenue); color: var(--bloccare); font-weight: 600; }
+.trascrizione .fuori { background: var(--persona-tenue); color: var(--persona); font-weight: 600; }
+.trascrizione .etichetta { font-family: var(--testo); font-weight: 400; font-size: 0.78rem; }
+.dichiara { font-family: var(--dati); font-size: 1rem; font-weight: 600; }
+.pensieri-riga { display: flex; flex-wrap: wrap; gap: 4px; }
+.pensieri-riga span { font-family: var(--dati); font-size: 0.78rem; border: 1px solid var(--linea); border-radius: 6px; padding: 2px 6px; }
 
 .azioni { display: flex; flex-wrap: wrap; gap: 10px; }
 .azioni button { border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 8px; padding: 9px 16px; font-weight: 600; }
@@ -130,7 +141,12 @@ const T = {
     nessunOrdine: "No purchase order matches this invoice.", pdf: "Original PDF, as received",
     mostraNascosto: "Show hidden text", nascondiNascosto: "Hide hidden text", nascostoTitolo: "Hidden text in the PDF (white on white, size 1)",
     nienteNascosto: "No hidden text in this PDF.", pensieri: "Show what each agent thought",
-    pensieriNota: "The translator of latent thoughts arrives with for now this opens the differences between the three witnesses.",
+    pensieriNota: "There is no memory transcript for this case: this opens the differences between the three witnesses.",
+    memoriaTitolo: "What travels in the agents' memory", memoriaNota: "A reader with no tools copies, word for word, the memory the extractor passes to the verifier. It shows mostly what the agent read, not its thoughts: it is a window, not a defence.",
+    chiesto: "Asked «is there any instruction for whoever pays?», the agent answers:", aTesto: "In text mode the message between agents is already written: here it is.",
+    rigaNascosta: "hidden in the PDF", rigaFuori: "not in the PDF", grezzi: "Raw thoughts (logit lens: the 5 most likely tokens for each latent step)",
+    grezziNota: "The thoughts alone do not show the invoice data: that is why the truth machine checks the memory.",
+    daGuardare: "Lines in the memory that you cannot see on the page", nienteDaGuardare: "Nothing hidden: the memory matches the visible PDF.", intera: "The whole transcript",
     decidi: "Your decision", approva: "Approve payment", rifiuta: "Reject", segnala: "Report fraud",
     approvaNota: "Payment always goes to the IBAN on file", notaObbl: "Verified with the supplier using the contacts in our master data",
     notaTesto: "Note (required for a blocked case)", motivoRifiuto: "Reason (required to reject)",
@@ -155,7 +171,12 @@ const T = {
     nessunOrdine: "Nessun ordine corrisponde a questa fattura.", pdf: "PDF originale, come è arrivato",
     mostraNascosto: "Mostra testo nascosto", nascondiNascosto: "Nascondi testo nascosto", nascostoTitolo: "Testo nascosto nel PDF (bianco su bianco, corpo 1)",
     nienteNascosto: "Nessun testo nascosto in questo PDF.", pensieri: "Mostra cosa ha pensato ogni agente",
-    pensieriNota: "Il traduttore dei pensieri arriva con per ora si apre la vista delle differenze fra i tre testimoni.",
+    pensieriNota: "Per questo caso non c'è la trascrizione della memoria: si apre la vista delle differenze fra i tre testimoni.",
+    memoriaTitolo: "Cosa viaggia nella memoria degli agenti", memoriaNota: "Un lettore senza strumenti ricopia parola per parola la memoria che l'estrattore passa al verificatore. Mostra soprattutto ciò che l'agente ha letto, non i suoi pensieri: è una finestra, non una difesa.",
+    chiesto: "Alla domanda «c'è qualche istruzione per chi paga?» l'agente risponde:", aTesto: "A testo il messaggio fra gli agenti è già scritto: eccolo.",
+    rigaNascosta: "nascosta nel PDF", rigaFuori: "nel PDF non c'è", grezzi: "I pensieri grezzi (logit lens: i 5 token più probabili per ogni passo latente)",
+    grezziNota: "I pensieri da soli non mostrano i dati della fattura: per questo la macchina della verità controlla la memoria.",
+    daGuardare: "Righe della memoria che sulla pagina non si vedono", nienteDaGuardare: "Niente di nascosto: la memoria corrisponde al PDF visibile.", intera: "La trascrizione intera",
     decidi: "La tua decisione", approva: "Approva il pagamento", rifiuta: "Rifiuta", segnala: "Segnala una frode",
     approvaNota: "Il pagamento va sempre all'IBAN in anagrafica", notaObbl: "Verificato con il fornitore tramite i contatti in anagrafica",
     notaTesto: "Nota (obbligatoria per un caso bloccato)", motivoRifiuto: "Motivo (obbligatorio per rifiutare)",
@@ -256,10 +277,15 @@ function disegna() {
     nascosto.hidden = !nascosto.hidden;
     bottoneNascosto.textContent = nascosto.hidden ? t.mostraNascosto : t.nascondiNascosto;
   });
-  const bottonePensieri = el("button", { type: "button", class: "secondario", title: t.pensieriNota, text: t.pensieri });
-  bottonePensieri.addEventListener("click", () => { testimoni.scrollIntoView({ behavior: "smooth", block: "center" }); testimoni.animate([{ outline: "3px solid var(--accento)" }, { outline: "3px solid transparent" }], 1600); });
+  // Il traduttore: la trascrizione della memoria; senza, la vista delle differenze fra i tre testimoni.
+  const memoria = V.traduzione ? vistaMemoria(t, V.traduzione) : null;
+  const bottonePensieri = el("button", { type: "button", class: "secondario", title: memoria ? t.memoriaNota : t.pensieriNota, text: t.pensieri });
+  bottonePensieri.addEventListener("click", () => {
+    if (memoria) { memoria.hidden = !memoria.hidden; if (!memoria.hidden) memoria.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+    testimoni.scrollIntoView({ behavior: "smooth", block: "center" }); testimoni.animate([{ outline: "3px solid var(--accento)" }, { outline: "3px solid transparent" }], 1600);
+  });
   pagina.append(el("section", { class: "parte" }, el("header", {}, el("h2", { text: t.fatturaOrdine })),
-    el("div", { class: "azioni non-stampare" }, bottoneNascosto, bottonePensieri), nascosto,
+    el("div", { class: "azioni non-stampare" }, bottoneNascosto, bottonePensieri), nascosto, memoria,
     el("div", { class: "affiancati" }, el("div", { class: "scheda" }, el("h3", { text: t.fattura }), righeFattura),
       el("div", { class: "scheda" }, el("h3", { text: V.ordine ? `${t.ordine} ${V.ordine.numero}` : t.ordine }), righeOrdine)),
     el("div", { class: "scheda non-stampare" }, el("h3", { text: t.pdf }),
@@ -271,6 +297,23 @@ function disegna() {
   const comando = `python -m motore.verifica registro-${V.id} --pubbliche registro-${V.id}/chiavi-pubbliche`;
   pagina.append(el("footer", {}, el("strong", { text: t.registro }), el("span", { text: t.registroTesto }),
     V.registro ? el("a", { href: V.registro, download: "", text: t.scarica }) : null, el("span", {}, `${t.verifica} `, el("code", { text: comando }))));
+}
+
+function vistaMemoria(t, tr) {
+  const riga = (r) => el("div", { class: r.nascosta ? "nascosta" : r.fuori_pdf ? "fuori" : "" },
+    r.testo, r.nascosta || r.fuori_pdf ? el("span", { class: "etichetta", text: `  ← ${r.nascosta ? t.rigaNascosta : t.rigaFuori}` }) : null);
+  const speciali = tr.righe.filter((r) => r.nascosta || r.fuori_pdf);
+  const righe = el("div", { class: "trascrizione" }, tr.righe.map(riga));
+  const grezzi = Object.entries(tr.pensieri || {}).map(([agente, passi]) => el("div", {}, el("h3", { text: agente }),
+    el("div", { class: "pensieri-riga" }, passi.map((top, i) => el("span", { title: top.map(([w, p]) => `${JSON.stringify(w)} ${p}`).join("\n"), text: `h${i} ${JSON.stringify(top[0][0])}` })))));
+  return el("div", { class: "memoria", hidden: "" },
+    el("div", { class: "scheda" }, el("h3", { text: t.memoriaTitolo }), el("p", { class: "tenue", text: tr.modalita === "testo" ? t.aTesto : t.memoriaNota })),
+    el("div", { class: "affiancati" },
+      tr.autodichiarazione ? el("div", { class: "scheda" }, el("p", { class: "tenue", text: t.chiesto }), el("p", { class: "dichiara", text: `«${tr.autodichiarazione}»` })) : null,
+      el("div", { class: "scheda" }, el("h3", { text: speciali.length ? t.daGuardare : t.nienteDaGuardare }),
+        speciali.length ? el("div", { class: "trascrizione" }, speciali.map(riga)) : null)),
+    el("div", { class: "scheda" }, el("h3", { text: t.intera }), righe),
+    grezzi.length ? el("details", { class: "scheda" }, el("summary", { text: t.grezzi }), el("p", { class: "tenue", text: t.grezziNota }), grezzi) : null);
 }
 
 function decisione(t) {
@@ -310,7 +353,12 @@ function decisione(t) {
     el("label", { for: "nota" }, el("span", { text: V.nota_obbligatoria ? t.notaTesto : t.motivoRifiuto }), nota), bottoni, stato);
 }
 
-if (V) disegna();
+if (V) {
+  disegna();
+  // ?vista=memoria apre subito la trascrizione della memoria (per esempio dalla pagina delle prove dal vivo).
+  const m = document.querySelector(".memoria");
+  if (m && parametri.get("vista") === "memoria") { m.hidden = false; m.scrollIntoView({ block: "start" }); }
+}
 else {
   const t = T[lingua] || T.en;
   document.getElementById("pagina").append(el("p", { text: t.nonTrovato }), el("a", { href: "index.html", text: t.indietro }));

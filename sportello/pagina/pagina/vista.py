@@ -72,6 +72,24 @@ def testimoni(impegno: dict | None, lettura: dict | None, proposta: dict | None)
     return righe
 
 
+def traduzione(risultato: dict, pdf: bytes) -> dict | None:
+    """Il traduttore: la trascrizione della memoria riga per riga, con il testo nascosto e le righe che nel
+    PDF non ci sono, l'autodichiarazione dell'agente e i pensieri grezzi. Gli IBAN si abbreviano come ovunque."""
+    t = risultato.get("traduzione")
+    if not t:
+        return None
+    from pipeline.testo import estrai_testo
+    from traduttore.segna import segna
+
+    righe = segna(t["trascrizione"], estrai_testo(pdf), righe_nascoste(pdf))
+    return {
+        "modalita": t["modalita"],
+        "righe": [r | {"testo": maschera(r["testo"])} for r in righe],
+        "autodichiarazione": maschera(t["autodichiarazione"]) if t.get("autodichiarazione") else None,
+        "pensieri": t.get("pensieri") or {},
+    }
+
+
 def vista_caso(risultato: dict, archivi: Archivi, *, pdf: bytes) -> dict:
     impegno = risultato.get("impegno") or {}
     motivi = risultato.get("motivi") or []
@@ -115,6 +133,7 @@ def vista_caso(risultato: dict, archivi: Archivi, *, pdf: bytes) -> dict:
         },
         "righe": impegno.get("righe") or [],
         "nascosto": [maschera(riga) for riga in righe_nascoste(pdf)],
+        "traduzione": traduzione(risultato, pdf),
         "contatti": None
         if fornitore is None
         else {

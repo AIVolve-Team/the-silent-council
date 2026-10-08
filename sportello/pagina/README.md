@@ -29,7 +29,7 @@ Accanto all'indice c'è `dal-vivo.html`: la pagina dei casi nati dalle prove dal
 1. **Esito e motivo in una frase**: il motivo è quello del controllo che ha deciso, per esempio *"L'estrattore dichiara IBAN IT38…9938, nella memoria c'è IT99…2854"*.
 2. **Cosa non torna**: i motivi della macchina della verità (sigillo, coerenza, tre testimoni, decisore), la **tabella dei tre testimoni** sugli 8 dati critici con le differenze evidenziate, le regole del catalogo scattate.
 3. **La fattura accanto all'ordine**, il PDF originale e il pulsante **"mostra testo nascosto"**.
-4. **"Mostra cosa ha pensato ogni agente"**: finché il traduttore non c'è, porta alla tabella dei tre testimoni, cioè alla vista delle differenze.
+4. **"Mostra cosa ha pensato ogni agente"**: apre la trascrizione della memoria del traduttore, con il testo nascosto in rosso e i pensieri grezzi; `?vista=memoria` la apre subito. Se il caso non ha la trascrizione, porta alla tabella dei tre testimoni, cioè alla vista delle differenze.
 5. **Sospetta frode**: *"non rispondere all'email"* e i contatti del fornitore **dall'anagrafica**, mai quelli della fattura.
 6. **La decisione**: approvare (sempre all'IBAN in anagrafica; su un caso bloccato con la nota obbligatoria di verifica), rifiutare (con il motivo), segnalare una frode (l'IBAN sospetto, abbreviato, va nell'elenco da tenere d'occhio).
 7. **Il registro del caso** e il comando per verificarlo.
@@ -45,6 +45,3 @@ Accanto all'indice c'è `dal-vivo.html`: la pagina dei casi nati dalle prove dal
 
 In cima le **proposte in attesa di approvazione**, con ✓ per i tre testimoni e per il sigillo, da approvare una alla volta o tutte insieme (nella demo lo stato diventa "approvato": nessuna banca vera); sotto, tutti i casi con l'esito.
 
-## Cosa manca
-
-- Il **traduttore** dietro "mostra cosa ha pensato".
