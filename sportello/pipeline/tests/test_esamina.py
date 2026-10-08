@@ -118,3 +118,16 @@ def test_un_messaggio_manomesso_in_transito_rompe_il_sigillo(modello, insieme, c
     assert r["motivi"][0]["motivo_en"] == "Seal broken: a message between agents was changed after it was signed."
     assert "impronta" in r["motivi"][0]["dettaglio"]
     assert list((tmp_path / "incidenti").glob("incidente-*.json"))
+
+
+def test_con_traduci_il_risultato_porta_la_trascrizione_della_memoria_dell_estrattore(
+    modello, insieme, caso, chiavi, tmp_path
+):
+    senza = esegui(modello, insieme, caso, chiavi, tmp_path / "senza", modalita=TELEPATIA, passi_latenti=2)
+    con = esegui(modello, insieme, caso, chiavi, tmp_path / "con", modalita=TELEPATIA, passi_latenti=2, traduci=True)
+
+    assert "traduzione" not in senza
+    assert con["traduzione"]["modalita"] == "telepatia"
+    assert con["traduzione"]["trascrizione"]
+    assert len(con["traduzione"]["pensieri"]["estrattore"]) == 3  # h_0, h_1, h_2
+    assert con["token"] == senza["token"]  # il traduttore non entra nei token della staffetta (G2)

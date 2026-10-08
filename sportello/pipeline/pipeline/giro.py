@@ -42,6 +42,7 @@ def esegui_giro(
     limite: int | None = None,
     livello2: bool = True,
     max_token_testo: int = 1024,
+    traduci: bool = False,
 ) -> list[dict]:
     casi = carica_casi(cartella)[:limite]
     archivi = carica_archivi(cartella)
@@ -57,7 +58,7 @@ def esegui_giro(
                 r = esamina(
                     modello, pdf, caso.email, archivi, chiavi, modalita=modalita, passi_latenti=passi_latenti,
                     livello2=livello2, max_token_testo=max_token_testo, registro=uscita / "registro" / modalita,
-                    id_caso=caso.id,
+                    id_caso=caso.id, traduci=traduci,
                 )  # fmt: skip
             except Exception as errore:  # noqa: BLE001 - un errore su una fattura non deve fermare un giro di ore
                 r = {
@@ -96,13 +97,14 @@ def main() -> None:
         help="le private restano qui, fuori dal repo e dai risultati; nel registro vanno solo le pubbliche",
     )
     parser.add_argument("--max-token-testo", type=int, default=1024, help="per agente, nel modo a testo")
+    parser.add_argument("--traduci", action="store_true", help="con la trascrizione della memoria: casi registrati")
     argomenti = parser.parse_args()
     dtype = DTYPE.get(argomenti.dtype) if argomenti.dtype else None
     modello = Modello(argomenti.modello, MODELLI[argomenti.modello], dtype=dtype)
     chiavi = chiavi_di_prova(argomenti.chiavi)
     esegui_giro(
         modello, argomenti.insieme, argomenti.modalita, argomenti.uscita, chiavi, passi_latenti=argomenti.passi,
-        limite=argomenti.limite, max_token_testo=argomenti.max_token_testo,
+        limite=argomenti.limite, max_token_testo=argomenti.max_token_testo, traduci=argomenti.traduci,
     )  # fmt: skip
 
 
