@@ -9,6 +9,6 @@ passo "Il traduttore: la memoria che passa fra gli agenti, ricopiata"
 uv pip install -q -p "$PY" -e "$SPORTELLO/attacchi" -e "$SPORTELLO/pagina" -e "$SPORTELLO/traduttore"
 (cd "$SPORTELLO/traduttore" && "$PY" -m pytest -q -p no:cacheprovider -m "not modello")
 (cd "$SPORTELLO/traduttore" && "$PY" -u -m traduttore.g3 esegui "$INSIEME" --per-tipo 1 --passi 10 --modello "$MODELLO" \
-  --dtype "$DTYPE" --uscita "$USCITA/g3" 2>&1 | grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint")
+  --dtype "$DTYPE" --uscita "$USCITA/g3" 2>&1 | filtra)
 (cd "$SPORTELLO/traduttore" && "$PY" -m traduttore.g3 pagina "$USCITA/g3")
 guarda "g3/giudizio.html" "la vista del traduttore su 3 messaggi, come la vedrà chi giudica G3: si apre nel browser"
