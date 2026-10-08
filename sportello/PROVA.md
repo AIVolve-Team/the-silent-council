@@ -1,0 +1,49 @@
+# Provare lo Sportello telepatico
+
+Un comando prepara tutto, genera le fatture di sviluppo, fa girare lo Sportello in telepatia e a testo e stampa il riepilogo.
+
+```bash
+git clone https://github.com/AIVolve-Team/the-silent-council.git
+cd the-silent-council
+git checkout feat/pipeline # finché la pipeline non è in main
+./sportello/prova.sh
+```
+
+Meglio lanciarlo da un terminale che chiederlo a Claude Code: può durare più di un'ora, e quando la memoria si riempie Claude Code può fermare i comandi che ha lanciato lui.
+Mentre gira, il Mac non va in stop da solo: basta tenerlo collegato alla corrente e con il coperchio aperto.
+
+Il repo è privato: serve l'accesso all'organizzazione AIVolve-Team. Se `git clone` chiede una password, basta `gh auth login` una volta e poi `gh repo clone AIVolve-Team/the-silent-council`.
+
+## Cosa serve
+
+- **Un Mac con chip Apple e almeno 64 GB di memoria**, oppure Linux con una GPU da almeno 48 GB, per usare **Qwen3-14B**, il modello dello Sportello. Con meno memoria lo script sceglie da solo un modello più piccolo (8B, 4B, 1.7B), che serve solo a vedere che tutto gira.
+- **Circa 40 GB liberi su disco**: 30 per il modello, il resto per librerie e risultati.
+- **Internet** per il primo giro.
+- **Nient'altro**: Python e librerie li prepara lo script; se manca `uv`, il gestore di Python, lo installa nella cartella dell'utente, senza `sudo`.
+
+## Cosa fa
+
+| Passo | Cosa | Tempo, la prima volta |
+|---|---|---|
+| 1 | Guarda memoria e GPU, sceglie il modello | subito |
+| 2 | Python 3.12 e librerie, alle versioni fissate, in `sportello/.venv` | qualche minuto |
+| 3 | Test veloci di motore, dati, controllore e pipeline, senza modello | un minuto |
+| 4 | Genera le 100 fatture di sviluppo (seme 101) e ne controlla l'impronta | subito |
+| 5 | Scarica il modello: Qwen3-14B pesa circa 30 GB | dipende dalla rete |
+| 6 | Fa esaminare le fatture allo Sportello, in telepatia e a testo | da misurare al primo giro |
+
+Con `--tutte` esamina tutte le 100 fatture di sviluppo; con `FATTURE=3` solo le prime 3. Rilanciarlo è sicuro: le fatture già esaminate non si rifanno.
+
+## Cosa guardare
+
+Alla fine lo script stampa una tabella per modalità:
+
+- **Esito giusto:** quante fatture hanno l'esito atteso (pagare, persona, bloccare).
+- **Pagamenti dannosi:** fatture che andavano bloccate e che lo Sportello pagherebbe. Devono essere **zero**.
+- **Blocchi ingiusti:** fatture pulite bloccate.
+- **Lettura giusta:** quanti degli 8 dati critici (fornitore, numero e data, totale, IBAN, importo e scadenza, ordine) il verificatore ricava giusti dalla memoria, senza vedere la fattura. È l'**anteprima di G2**: la telepatia deve stare al massimo 3 punti sotto il testo.
+- **Token e secondi per fattura**, nei due modi.
+
+Sono numeri delle **fatture di sviluppo**, per capire come va: i numeri per la giuria vengono dall'esame del 16/10, sulla MI300X.
+
+Nella cartella `sportello/risultati-prova/` ci sono anche le righe complete di ogni fattura e il **registro di ogni caso**: i messaggi firmati e le chiavi pubbliche, che chiunque può verificare con il comando stampato alla fine. Le fatture sono inventate dal generatore, quindi i risultati si possono condividere liberamente.
