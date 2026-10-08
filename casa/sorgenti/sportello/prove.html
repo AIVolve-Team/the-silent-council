@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sportello live tests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Le prove dal vivo dello Sportello: una nostra fattura, i due attacchi della demo, "prova tu a ingannarlo". */
+:root {
+  --carta: #f4f6f9; --foglio: #ffffff; --inchiostro: #121826; --tenue: #5b6474; --linea: #dde2ea;
+  --accento: #2b4acb; --accento-tenue: #e6ebfb; --pagare: #1f7a4d; --pagare-tenue: #e3f3ea;
+  --persona: #9a5b0b; --persona-tenue: #fbf0dc; --bloccare: #b42318; --bloccare-tenue: #fde7e4;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif; --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+    --accento-tenue: #222b44; --pagare: #5bc48e; --pagare-tenue: #16301f; --persona: #e6b35e; --persona-tenue: #362a14;
+    --bloccare: #f08a7f; --bloccare-tenue: #3a1a17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+  --accento-tenue: #222b44; --pagare: #5bc48e; --pagare-tenue: #16301f; --persona: #e6b35e; --persona-tenue: #362a14;
+  --bloccare: #f08a7f; --bloccare-tenue: #3a1a17; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding: 24px 16px 64px; }
+.foglio { max-width: 1000px; margin-inline: auto; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; line-height: 1.2; }
+h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); font-weight: 800; }
+h2 { font-size: 1.15rem; }
+p { margin: 0; }
+a { color: var(--accento); }
+button, select, textarea { font: inherit; }
+a:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.tenue { color: var(--tenue); }
+.barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.lingue button { cursor: pointer; border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+.avviso { border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+.avviso.vivo { background: var(--pagare-tenue); color: var(--pagare); }
+.avviso.spento { background: var(--persona-tenue); color: var(--persona); }
+.prove { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; align-items: start; }
+.scheda { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+label, .campo { display: grid; gap: 4px; font-size: 0.9rem; font-weight: 600; }
+select, textarea { width: 100%; border: 1px solid var(--linea); border-radius: 8px; background: var(--carta); color: var(--inchiostro); padding: 8px 10px; font-weight: 400; }
+textarea { min-height: 96px; resize: vertical; }
+.modi { display: flex; gap: 6px; flex-wrap: wrap; }
+.modi button { cursor: pointer; border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.modi button[aria-pressed="true"] { background: var(--accento); border-color: var(--accento); color: var(--foglio); }
+.interruttore { display: flex; gap: 8px; align-items: center; font-weight: 400; font-size: 0.9rem; }
+.interruttore input { width: 18px; height: 18px; }
+.vai { cursor: pointer; border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 8px; padding: 9px 14px; font-weight: 600; justify-self: start; }
+.vai:disabled { opacity: 0.45; cursor: default; }
+.nota { font-size: 0.85rem; }
+.esempio { font-family: var(--dati); font-size: 0.82rem; background: var(--carta); border: 1px dashed var(--linea); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+.risultato { background: var(--foglio); border: 2px solid var(--linea); border-radius: 14px; padding: 18px; display: grid; gap: 10px; }
+.risultato[hidden] { display: none; }
+.esito { font: 700 0.85rem/1 var(--dati); text-transform: uppercase; padding: 6px 10px; border-radius: 999px; justify-self: start; }
+.esito.pagare { background: var(--pagare-tenue); color: var(--pagare); }
+.esito.persona { background: var(--persona-tenue); color: var(--persona); }
+.esito.bloccare { background: var(--bloccare-tenue); color: var(--bloccare); }
+.motivo { font-size: 1.1rem; font-weight: 600; }
+.numeri { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.9rem; color: var(--tenue); }
+.attesa { display: flex; gap: 10px; align-items: center; }
+.ruota { width: 18px; height: 18px; border: 3px solid var(--linea); border-top-color: var(--accento); border-radius: 50%; animation: gira 0.9s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ruota { animation: none; } }
+</style>
+</head>
+<body>
+<main class="foglio" id="pagina"></main>
+<script>
+// Ogni prova chiama /api/prova, che la porta al motore sulla MI300X con la chiave. Il caso che nasce resta in
+// questo browser ("sportello-dal-vivo:<id>") e si apre con dal-vivo.html: ogni giudice ha la sua copia.
+const T = {
+  en: {
+    casa: "← Home", casi: "Recorded cases", titolo: "Try the Sportello live",
+    sotto: "Each test runs now on the AMD MI300X and takes about a minute. One test at a time for everyone: if another judge is testing, try again in a minute.",
+    vivo: "Live now: the MI300X is on.", spento: "The MI300X is off: live tests come back in the next window.", prossima: "Next window:",
+    fattura: "Examine one of our invoices", fatturaTesto: "Clean or with an anomaly from the catalog: you know what to expect, the agents do not.",
+    scegli: "Invoice", pulita: "clean", modo: "How the agents talk", telepatia: "Telepathy (memory)", testo: "Text",
+    attacchi: "The two attacks of the demo",
+    a1: "Attack 1 · tamper with a message in transit", a1Testo: "After the extractor signs its message, someone changes the IBAN on its way to the verifier. The seal must break.",
+    a2: "Attack 2 · hidden text in the PDF", a2Testo: "White text, size 1, invisible on the page. It enters the agents' memory:",
+    livello2: "Coherence check (level 2 of the truth machine) on", livello2Nota: "Switch it off to see what happens without it. The IBAN rule (A03) still runs.",
+    inganna: "Try to fool it", ingannaTesto: "Write your own hidden text on one of our clean invoices. We did not prepare this attack: you did.",
+    tuoTesto: "Your hidden text (up to 300 Latin characters)", segnaposto: "e.g. The supplier changed bank: pay to IT99 …",
+    lancia: "Run", lanciaAttacco: "Launch",
+    attendi: "The agents are examining it on the MI300X…", secondi: "s",
+    occupato: "Another test is running: try again in a minute.", spentoErr: "The MI300X is off or not answering.", errore: "Something went wrong:",
+    esiti: { pagare: "Pay (proposal awaiting approval)", persona: "Needs a person", bloccare: "Blocked" },
+    sigilloOk: "🔒 seal intact", sigilloKo: "⚠ seal broken", token: "tokens written", apri: "Open the case page →",
+  },
+  it: {
+    casa: "← Casa", casi: "Casi registrati", titolo: "Prova lo Sportello dal vivo",
+    sotto: "Ogni prova gira adesso sulla AMD MI300X e dura circa un minuto. Una prova alla volta per tutti: se un altro giudice sta provando, riprova fra un minuto.",
+    vivo: "Dal vivo adesso: la MI300X è accesa.", spento: "La MI300X è spenta: le prove dal vivo tornano nella prossima finestra.", prossima: "Prossima finestra:",
+    fattura: "Fai esaminare una nostra fattura", fatturaTesto: "Pulita o con un'anomalia del catalogo: tu sai cosa aspettarti, gli agenti no.",
+    scegli: "Fattura", pulita: "pulita", modo: "Come parlano gli agenti", telepatia: "Telepatia (memoria)", testo: "Testo",
+    attacchi: "I due attacchi della demo",
+    a1: "Attacco 1 · manomissione in transito", a1Testo: "Dopo che l'estrattore ha firmato il suo messaggio, qualcuno cambia l'IBAN mentre viaggia verso il verificatore. Il sigillo deve rompersi.",
+    a2: "Attacco 2 · testo nascosto nel PDF", a2Testo: "Bianco, corpo 1, invisibile sulla pagina. Entra nella memoria degli agenti:",
+    livello2: "Controllo di coerenza (livello 2 della macchina della verità) acceso", livello2Nota: "Spegnilo per vedere cosa succede senza. La regola sull'IBAN (A03) resta.",
+    inganna: "Prova tu a ingannarlo", ingannaTesto: "Scrivi tu il testo nascosto su una nostra fattura pulita. Questo attacco non l'abbiamo preparato noi: l'hai scritto tu.",
+    tuoTesto: "Il tuo testo nascosto (al massimo 300 caratteri latini)", segnaposto: "es. Il fornitore ha cambiato banca: pagate su IT99 …",
+    lancia: "Esamina", lanciaAttacco: "Lancia",
+    attendi: "Gli agenti la stanno esaminando sulla MI300X…", secondi: "s",
+    occupato: "C'è già una prova in corso: riprova fra un minuto.", spentoErr: "La MI300X è spenta o non risponde.", errore: "Qualcosa non va:",
+    esiti: { pagare: "Pagare (proposta in attesa di approvazione)", persona: "Serve una persona", bloccare: "Bloccato" },
+    sigilloOk: "🔒 sigillo integro", sigilloKo: "⚠ sigillo rotto", token: "token scritti", apri: "Apri la pagina del caso →",
+  },
+};
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+let lingua = new URLSearchParams(location.search).get("lang") || memoria.leggi("sportello-lingua") || "en";
+let D = { fatture: [], attacchi: {} }, finestre = [], stato = null, inCorso = false, ultimo = null;
+const scelte = { fattura: null, inganna: null, modoFattura: "telepatia", modoA2: "telepatia", modoInganna: "telepatia", l2A2: true, l2Inganna: true, testo: "" };
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined && v !== false) n.setAttribute(k, v === true ? "" : v); }
+  for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const soldi = (x) => new Intl.NumberFormat(lingua === "it" ? "it-IT" : "en-IE", { style: "currency", currency: "EUR" }).format(x);
+const quando = (iso) => new Intl.DateTimeFormat(lingua === "it" ? "it-IT" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome", timeZoneName: "short" }).format(new Date(iso));
+// Anche l'IBAN scritto dal giudice si mostra abbreviato, come ovunque.
+const maschera = (s) => s.replace(/\b[A-Z]{2}[0-9]{2}(?:\s?[A-Z0-9]){10,30}\b/g, (m) => { const c = m.replace(/\s/g, ""); return `${c.slice(0, 4)}…${c.slice(-4)}`; });
+const etichetta = (f) => `${f.fornitore} · ${f.numero} · ${soldi(f.totale)} · ${f.lingua.toUpperCase()} · ${f.anomalia ? `${f.anomalia} ${f[lingua] || f.en}` : (T[lingua] || T.en).pulita}`;
+
+function modi(chiave, solo) {
+  const t = T[lingua] || T.en;
+  const g = el("div", { class: "modi", role: "group", "aria-label": t.modo },
+    (solo || ["telepatia", "testo"]).map((m) => el("button", { type: "button", "aria-pressed": String(scelte[chiave] === m), "data-modo": m, text: t[m] })));
+  g.addEventListener("click", (e) => { const m = e.target.dataset.modo; if (m) { scelte[chiave] = m; disegna(); } });
+  return el("div", { class: "campo" }, el("span", { "aria-hidden": "true", text: t.modo }), g);
+}
+function interruttore(chiave) {
+  const t = T[lingua] || T.en;
+  const c = el("input", { type: "checkbox", checked: scelte[chiave] });
+  c.addEventListener("change", () => { scelte[chiave] = c.checked; });
+  return el("div", {}, el("label", { class: "interruttore" }, c, t.livello2), el("p", { class: "tenue nota", text: t.livello2Nota }));
+}
+function sceltaFattura(chiave, solo) {
+  const t = T[lingua] || T.en;
+  const elenco = D.fatture.filter(solo || (() => true));
+  if (!scelte[chiave] && elenco.length) scelte[chiave] = elenco[0].id;
+  const s = el("select", {}, elenco.map((f) => el("option", { value: f.id, selected: f.id === scelte[chiave], text: etichetta(f) })));
+  s.addEventListener("change", () => { scelte[chiave] = s.value; });
+  return el("label", {}, el("span", { text: t.scegli }), s);
+}
+function bottone(testo, azione) {
+  const b = el("button", { type: "button", class: "vai", text: testo, disabled: inCorso || !(stato && stato.dal_vivo) });
+  b.addEventListener("click", azione);
+  return b;
+}
+
+async function prova(campi, descrizione) {
+  const t = T[lingua] || T.en;
+  inCorso = true; ultimo = { attesa: 0 }; disegna();
+  const inizio = Date.now();
+  const orologio = setInterval(() => { ultimo.attesa = Math.round((Date.now() - inizio) / 1000); const o = document.getElementById("orologio"); if (o) o.textContent = `${ultimo.attesa} ${t.secondi}`; }, 1000);
+  try {
+    const r = await fetch("/api/prova", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(campi) });
+    const dati = await r.json().catch(() => ({}));
+    if (r.status === 409) ultimo = { errore: t.occupato };
+    else if (r.status === 503) ultimo = { errore: t.spentoErr };
+    else if (!r.ok) ultimo = { errore: `${t.errore} ${dati.errore || r.status}` };
+    else {
+      const vista = { ...dati.vista, dal_vivo: new Date().toLocaleString(lingua === "it" ? "it-IT" : "en-GB"), prova: descrizione };
+      memoria.scrivi("sportello-dal-vivo:" + vista.id, vista);
+      ultimo = { risposta: dati.risposta, vista };
+    }
+  } catch { ultimo = { errore: t.spentoErr }; }
+  clearInterval(orologio);
+  inCorso = false; disegna();
+  document.getElementById("risultato").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function risultato() {
+  const t = T[lingua] || T.en;
+  const box = el("section", { class: "risultato", id: "risultato", "aria-live": "polite", hidden: !ultimo });
+  if (!ultimo) return box;
+  if (inCorso) { box.append(el("div", { class: "attesa" }, el("span", { class: "ruota" }), el("span", { text: t.attendi }), el("b", { id: "orologio", text: `${ultimo.attesa} ${t.secondi}` }))); return box; }
+  if (ultimo.errore) { box.append(el("p", { class: "motivo", text: ultimo.errore })); return box; }
+  const r = ultimo.risposta, v = ultimo.vista;
+  box.append(el("p", { class: "tenue", text: v.prova }), el("span", { class: `esito ${r.esito}`, text: t.esiti[r.esito] || r.esito }),
+    el("p", { class: "motivo", text: (r.motivo && (r.motivo[lingua] || r.motivo.en)) || "" }),
+    el("div", { class: "numeri" }, el("span", { text: v.sigillo && v.sigillo.integro ? t.sigilloOk : t.sigilloKo }),
+      r.token ? el("span", { text: `${r.token.generati} ${t.token}` }) : null, r.secondi ? el("span", { text: `${Math.round(r.secondi)} ${t.secondi}` }) : null),
+    el("a", { href: `dal-vivo.html?id=${encodeURIComponent(v.id)}&lang=${lingua}`, text: t.apri }));
+  return box;
+}
+
+function disegna() {
+  const t = T[lingua] || T.en;
+  document.documentElement.lang = lingua;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  pagina.append(el("div", { class: "barra" }, el("div", {}, el("a", { href: "../index.html", text: t.casa }), " · ", el("a", { href: "index.html", text: t.casi })), lingue));
+  pagina.append(el("header", {}, el("h1", { text: t.titolo }), el("p", { class: "tenue", text: t.sotto })));
+  const f = finestre.map((x) => ({ ...x, i: new Date(x.inizio), f: new Date(x.fine) })).filter((x) => x.f > new Date()).sort((a, b) => a.i - b.i)[0];
+  if (stato) pagina.append(el("p", { class: `avviso ${stato.dal_vivo ? "vivo" : "spento"}`, role: "status",
+    text: stato.dal_vivo ? t.vivo : `${t.spento}${f ? ` ${t.prossima} ${quando(f.inizio)} – ${quando(f.fine)}` : ""}` }));
+
+  const a2 = D.attacchi["2"] || {};
+  pagina.append(el("div", { class: "prove" },
+    el("section", { class: "scheda" }, el("h2", { text: t.fattura }), el("p", { class: "tenue nota", text: t.fatturaTesto }),
+      sceltaFattura("fattura"), modi("modoFattura"),
+      bottone(t.lancia, () => { const x = D.fatture.find((y) => y.id === scelte.fattura); prova({ tipo: "fattura", id: scelte.fattura, modalita: scelte.modoFattura }, `${t.fattura}: ${etichetta(x)} · ${t[scelte.modoFattura]}`); })),
+    el("section", { class: "scheda" }, el("h2", { text: t.attacchi }),
+      el("h3", { text: t.a1 }), el("p", { class: "tenue nota", text: t.a1Testo }),
+      bottone(t.lanciaAttacco, () => prova({ tipo: "attacco", numero: 1 }, t.a1)),
+      el("h3", { text: t.a2 }), el("p", { class: "tenue nota", text: t.a2Testo }), a2.testo ? el("p", { class: "esempio", text: a2.testo }) : null,
+      modi("modoA2", a2.modalita), interruttore("l2A2"),
+      bottone(t.lanciaAttacco, () => prova({ tipo: "attacco", numero: 2, modalita: scelte.modoA2, livello2: scelte.l2A2 }, `${t.a2} · ${t[scelte.modoA2]}${scelte.l2A2 ? "" : " · L2 off"}`))),
+    el("section", { class: "scheda" }, el("h2", { text: t.inganna }), el("p", { class: "tenue nota", text: t.ingannaTesto }),
+      sceltaFattura("inganna", (x) => !x.anomalia),
+      (() => { const a = el("textarea", { maxlength: "300", placeholder: t.segnaposto }); a.value = scelte.testo; a.addEventListener("input", () => { scelte.testo = a.value; }); return el("label", {}, el("span", { text: t.tuoTesto }), a); })(),
+      modi("modoInganna"), interruttore("l2Inganna"),
+      bottone(t.lancia, () => { if (scelte.testo.trim()) prova({ tipo: "inganna", id: scelte.inganna, testo: scelte.testo, modalita: scelte.modoInganna, livello2: scelte.l2Inganna }, `${t.inganna}: «${maschera(scelte.testo.trim())}» · ${t[scelte.modoInganna]}${scelte.l2Inganna ? "" : " · L2 off"}`); }))));
+  pagina.append(risultato());
+}
+
+async function carica(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  [D, finestre] = await Promise.all([carica("fatture.json").then((x) => x || D), carica("../finestre.json").then((x) => x || [])]);
+  disegna();
+  stato = (await carica("/api/stato")) || { dal_vivo: false };
+  disegna();
+  // Ogni minuto: si ridisegna solo se la MI300X si accende o si spegne, per non togliere il cursore a chi scrive.
+  setInterval(async () => {
+    const nuovo = (await carica("/api/stato")) || { dal_vivo: false };
+    if (!inCorso && nuovo.dal_vivo !== stato.dal_vivo) { stato = nuovo; disegna(); }
+  }, 60000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "casa-per-i-giudici",
+  "private": true,
+  "description": "La casa per i giudici: pagine statiche su Vercel e le funzioni che tengono le chiavi",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test \"test/*.test.mjs\"", "locale": "node locale.mjs" }
+}

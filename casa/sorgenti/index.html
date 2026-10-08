@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIVolve · AMD Developer Hackathon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* La casa per i giudici: un link sempre acceso, i casi registrati e le prove quando la MI300X è accesa. */
+:root {
+  --carta: #f4f6f9; --foglio: #ffffff; --inchiostro: #121826; --tenue: #5b6474; --linea: #dde2ea;
+  --accento: #2b4acb; --accento-tenue: #e6ebfb; --vivo: #1f7a4d; --vivo-tenue: #e3f3ea; --attesa: #9a5b0b; --attesa-tenue: #fbf0dc;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif; --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+    --accento-tenue: #222b44; --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+  --accento-tenue: #222b44; --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding: 24px 16px 64px; }
+.foglio { max-width: 960px; margin-inline: auto; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.7rem, 5vw, 2.6rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.3rem; }
+p { margin: 0; }
+a { color: var(--accento); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.tenue { color: var(--tenue); }
+.barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.lingue button { font: inherit; cursor: pointer; border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+.stato { display: inline-flex; gap: 8px; align-items: center; border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 0.92rem; }
+.stato.vivo { background: var(--vivo-tenue); color: var(--vivo); }
+.stato.attesa { background: var(--attesa-tenue); color: var(--attesa); }
+.stato .punto { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
+.stato.vivo .punto { animation: pulsa 1.6s ease-in-out infinite; }
+@keyframes pulsa { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .stato.vivo .punto { animation: none; } }
+.testa { display: grid; gap: 12px; }
+.testa .sotto { font-size: 1.08rem; color: var(--tenue); max-width: 60ch; }
+.progetti { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.progetto { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 20px; display: grid; gap: 12px; align-content: start; }
+.progetto .azioni { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.bottone { display: inline-block; text-decoration: none; font-weight: 600; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--inchiostro); }
+.bottone.pieno { background: var(--inchiostro); color: var(--foglio); }
+.bottone.vuoto { color: var(--inchiostro); }
+.bottone[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+.scheda { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 18px 20px; display: grid; gap: 10px; }
+code { font-family: var(--dati); font-size: 0.86rem; background: var(--carta); border: 1px solid var(--linea); border-radius: 6px; padding: 2px 6px; overflow-wrap: anywhere; }
+footer { font-size: 0.88rem; }
+</style>
+</head>
+<body>
+<main class="foglio" id="pagina"></main>
+<script>
+// I progetti e le finestre arrivano da file accanto (progetti.json, finestre.json, scritti da costruisci.py); lo stato
+// della MI300X dalla funzione /api/stato. Tutto il testo entra con textContent.
+const T = {
+  en: {
+    titolo: "Agents that think in silence, checked by a truth machine", sotto: "Two projects for the AMD Developer Hackathon ACT III, on one telepathic engine: agents that pass each other their memory instead of text, on an AMD Instinct MI300X.",
+    vivo: "Live now: the AMD MI300X is on", prossima: "Next live window:", annunciate: "Live windows will be announced here", controllo: "Checking the MI300X…",
+    sempre: "Recorded cases work any time; live tests need the MI300X on.",
+    registrati: "Recorded cases", provaVivo: "Try it live", apri: "Open",
+    verifica: "Check it yourself", verificaTesto: "Every recorded case comes with its signed log. Download it from the case page and check the signatures on any computer:",
+    codice: "Source code", piede: "Invented data, no real bank: nothing is ever paid. Your choices stay in your browser.",
+  },
+  it: {
+    titolo: "Agenti che pensano in silenzio, controllati da una macchina della verità", sotto: "Due progetti per l'AMD Developer Hackathon ACT III, su un solo motore telepatico: agenti che si passano la memoria invece del testo, su una AMD Instinct MI300X.",
+    vivo: "Dal vivo adesso: la MI300X è accesa", prossima: "Prossima finestra dal vivo:", annunciate: "Le finestre dal vivo saranno annunciate qui", controllo: "Controllo la MI300X…",
+    sempre: "I casi registrati funzionano sempre; le prove dal vivo vogliono la MI300X accesa.",
+    registrati: "Casi registrati", provaVivo: "Prova dal vivo", apri: "Apri",
+    verifica: "Verifica da te", verificaTesto: "Ogni caso registrato ha il suo registro firmato. Scaricalo dalla pagina del caso e controlla le firme su qualsiasi computer:",
+    codice: "Codice sorgente", piede: "Dati inventati, nessuna banca vera: non si paga mai niente. Le tue scelte restano nel tuo browser.",
+  },
+};
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
+};
+let lingua = new URLSearchParams(location.search).get("lang") || memoria.leggi("sportello-lingua") || "en";
+let progetti = [], repo = null, finestre = [], stato = null;
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined) n.setAttribute(k, v); }
+  for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const quando = (iso) => new Intl.DateTimeFormat(lingua === "it" ? "it-IT" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome", timeZoneName: "short" }).format(new Date(iso));
+const prossima = () => finestre.map((f) => ({ ...f, i: new Date(f.inizio), f: new Date(f.fine) })).filter((f) => f.f > new Date()).sort((a, b) => a.i - b.i)[0];
+
+function disegna() {
+  const t = T[lingua] || T.en;
+  document.documentElement.lang = lingua;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  const f = prossima();
+  const pill = stato === null ? el("span", { class: "stato attesa", role: "status" }, el("span", { class: "punto" }), t.controllo)
+    : stato.dal_vivo ? el("span", { class: "stato vivo", role: "status" }, el("span", { class: "punto" }), t.vivo)
+    : el("span", { class: "stato attesa", role: "status" }, el("span", { class: "punto" }), f ? `${t.prossima} ${quando(f.inizio)} – ${quando(f.fine)}` : t.annunciate);
+  pagina.append(el("div", { class: "barra" }, pill, lingue));
+
+  const uno = progetti.length === 1 ? progetti[0] : null;
+  pagina.append(el("header", { class: "testa" }, el("h1", { text: uno ? uno.nome : t.titolo }), el("p", { class: "sotto", text: uno ? uno[lingua] || uno.en : t.sotto }),
+    el("p", { class: "tenue", text: t.sempre })));
+
+  pagina.append(el("section", { class: "progetti" }, progetti.map((p) => el("article", { class: "progetto" },
+    uno ? null : el("h2", { text: p.nome }), uno ? null : el("p", { class: "tenue", text: p[lingua] || p.en }),
+    el("div", { class: "azioni" },
+      el("a", { class: "bottone pieno", href: p.casi, text: p.prova ? t.registrati : t.apri }),
+      p.prova ? el("a", { class: "bottone vuoto", href: p.prova, "aria-disabled": String(!(stato && stato.dal_vivo)), text: t.provaVivo }) : null)))));
+
+  pagina.append(el("section", { class: "scheda" }, el("h2", { text: t.verifica }), el("p", { class: "tenue", text: t.verificaTesto }),
+    el("code", { text: "python -m motore.verifica registro-<case> --pubbliche registro-<case>/chiavi-pubbliche" }),
+    repo ? el("a", { href: repo, text: t.codice }) : null));
+  pagina.append(el("footer", { class: "tenue", text: t.piede }));
+}
+
+async function carica(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  const [casa, f] = await Promise.all([carica("progetti.json"), carica("finestre.json")]);
+  ({ progetti = [], repo = null } = casa || {});
+  finestre = f || [];
+  disegna();
+  stato = (await carica("/api/stato")) || { dal_vivo: false };
+  disegna();
+})();
+</script>
+</body>
+</html>
