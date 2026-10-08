@@ -40,6 +40,7 @@ Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni
 
 | Passo | Ticket | Cosa | Come si spegne |
 |---|---|---|---|
+| `20-pagine.sh` | | Le pagine dei casi in telepatia e l'indice con le proposte da approvare, come le vedrebbe la persona: si aprono nel browser. | |
 
 ### Cosa non prova
 
