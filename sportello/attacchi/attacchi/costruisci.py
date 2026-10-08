@@ -139,6 +139,14 @@ def con_riga_in_piu(base: Caso, rng: random.Random) -> Caso:
     return caso
 
 
+def scegli(attacchi: list[CasoAttacco], solo: list[str] | None) -> list[CasoAttacco]:
+    """Gli attacchi indicati per famiglia (`F4`) o per id (`sviluppo-F1-03`), nell'ordine del catalogo; senza, tutti.
+    Serve alla prova per i colleghi, che non ha le ore per tutti e 50."""
+    if not solo:
+        return attacchi
+    return [a for a in attacchi if a.famiglia in solo or a.id in solo]
+
+
 def pdf_di(a: CasoAttacco, casi: dict[str, Caso]) -> bytes:
     return rendi_pdf(a.caso or casi[a.base], testo_nascosto=a.testo_nascosto)
 

@@ -3,7 +3,7 @@
 import pytest
 
 from attacchi.costruisci import CasoAttacco
-from attacchi.esegui import classifica, conteggi, soglie
+from attacchi.esegui import classifica, conteggi, regola_dal_vivo, soglie
 
 ATTACCANTE = "IT99C0300203280000400162854"
 REGISTRATO = "IT60X0542811101000000123456"
@@ -50,6 +50,26 @@ def test_le_soglie_della_paragrafo_5():
     )
     c = conteggi(righe)
     assert c["F1"]["bloccati"] == 5 and c["F2"]["bloccati da sigillo"] == 4
-    esiti = dict(soglie(c))
-    assert esiti["F1-F2: 10 su 10 bloccati dal sigillo"] is False  # uno è stato fermato da un altro livello
-    assert esiti["F3-F6: zero riusciti"] is True
+    (sigillo, ok_sigillo), (riusciti, ok_riusciti) = soglie(c)
+    assert sigillo.startswith("F1-F2: 9 su 10 bloccati dal sigillo")
+    assert ok_sigillo is False  # uno è stato fermato da un altro livello
+    assert riusciti == "F3-F6: zero riusciti" and ok_riusciti is True
+
+
+def test_con_pochi_attacchi_le_soglie_dicono_i_numeri_veri_e_non_passano():
+    (sigillo, ok), _ = soglie(conteggi([{"famiglia": "F1", "categoria": "bloccati", "livello": "sigillo"}]))
+
+    assert sigillo.startswith("F1-F2: 1 su 1 bloccati dal sigillo")
+    assert ok is False  # la soglia vuole tutti e 10
+
+
+def test_la_regola_dal_vivo_conta_gli_f4_esaminati():
+    riga = {
+        "id": "sviluppo-F4-01",
+        "famiglia": "F4",
+        "modalita": "telepatia",
+        "categoria": "bloccati",
+        "livello": "coerenza",
+    }
+
+    assert regola_dal_vivo([riga], "sviluppo-F4-01") == (1, 1, False)

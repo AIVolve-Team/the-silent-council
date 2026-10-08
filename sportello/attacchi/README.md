@@ -13,7 +13,8 @@ Usa le fatture del generatore (`../dati`,) e gli agganci `Attacco` della pipelin
 ```bash
 cd sportello/attacchi
 python -m attacchi.esegui esegui../dati/insiemi/sviluppo --passi 10 --uscita risultati/attacchi
-python -m attacchi.esegui rapporto risultati/attacchi --caso-dal-vivo sviluppo-F4-03
+python -m attacchi.esegui esegui../dati/insiemi/sviluppo --solo sviluppo-F1-03 F4 --uscita risultati/attacchi # solo questi
+python -m attacchi.esegui rapporto risultati/attacchi --caso-dal-vivo sviluppo-F4-01
 ```
 
 Ogni attacco finito si scrive subito; rilanciando si riparte da quelli che mancano. Un attacco che fa cadere il codice si conta fra gli errori e il giro va avanti.
