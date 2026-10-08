@@ -10,8 +10,7 @@ passo "Gli attacchi della demo: manomissione in transito e testo nascosto"
 uv pip install -q -p "$PY" -e "$SPORTELLO/attacchi"
 (cd "$SPORTELLO/attacchi" && "$PY" -m pytest -q -p no:cacheprovider -m "not modello")
 (cd "$SPORTELLO/attacchi" && "$PY" -u -m attacchi.esegui esegui "$INSIEME" --solo sviluppo-F1-03 F4 --passi 10 \
-  --modello "$MODELLO" --dtype "$DTYPE" --uscita "$USCITA/attacchi" 2>&1 |
-  grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint")
+  --modello "$MODELLO" --dtype "$DTYPE" --uscita "$USCITA/attacchi" 2>&1 | filtra)
 (cd "$SPORTELLO/attacchi" && "$PY" -m attacchi.esegui rapporto "$USCITA/attacchi" --caso-dal-vivo sviluppo-F4-01) |
   tee "$USCITA/attacchi/rapporto.md"
 guarda "attacchi/rapporto.md" "gli attacchi per famiglia e modalità, e se la coerenza ferma almeno 8 F4 su 10"
