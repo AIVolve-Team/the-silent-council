@@ -7,7 +7,7 @@ import pytest
 from fatture.genera import genera_insieme
 from pipeline.testo import estrai_testo
 
-from attacchi.costruisci import FAMIGLIE, costruisci, impronta_attacchi, pdf_di, pdf_memoria_di
+from attacchi.costruisci import FAMIGLIE, costruisci, impronta_attacchi, pdf_di, pdf_memoria_di, scegli
 
 
 @pytest.fixture(scope="module")
@@ -73,3 +73,10 @@ def test_f7_aggiunge_una_riga_che_nessun_ordine_prevede(sviluppo, attacchi):
 def test_lo_stesso_insieme_da_gli_stessi_attacchi(sviluppo, attacchi):
     assert impronta_attacchi(costruisci(sviluppo)) == impronta_attacchi(attacchi)
     assert impronta_attacchi(costruisci(genera_insieme("esame"))) != impronta_attacchi(attacchi)
+
+
+def test_si_sceglie_per_famiglia_o_per_id_e_l_ordine_resta_quello_del_catalogo(attacchi):
+    scelti = scegli(attacchi, ["sviluppo-F4-01", "F1"])
+
+    assert [a.id for a in scelti] == [*(f"sviluppo-F1-{k:02d}" for k in range(1, 6)), "sviluppo-F4-01"]
+    assert scegli(attacchi, None) == attacchi
