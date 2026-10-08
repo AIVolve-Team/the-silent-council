@@ -103,6 +103,17 @@ def valuta(
         # Una riga che il modello non ha giudicato (A11) non si può pagare da sola: decide una persona.
         esito = "persona" if s.esito == "da_giudicare" else s.esito
         v.motivi.append(Motivo("regole", esito, s.codice, s.motivo, s.motivo_en))
+    if proposta.get("iban") is None or proposta.get("importo") is None:
+        # Mai "pagare" verso un IBAN o un importo che non ci sono, neanche con la coerenza spenta.
+        v.motivi.append(
+            Motivo(
+                "decisore",
+                "persona",
+                "proposta incompleta",
+                "La proposta di pagamento non indica IBAN o importo",
+                "The payment proposal has no IBAN or amount",
+            )
+        )
     if proposta.get("esito", "pagare") != "pagare":
         testo = proposta.get("motivazione") or "Il decisore chiede una persona"
         v.motivi.append(Motivo("decisore", "persona", "decisore", testo, testo))

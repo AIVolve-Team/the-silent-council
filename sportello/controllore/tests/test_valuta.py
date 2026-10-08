@@ -72,3 +72,10 @@ def test_l_interruttore_del_livello_2_per_la_demo():
     )  # "senza la macchina della verità, i soldi andavano all'attaccante"
     accesa = valuta(IMPEGNO, letta, proposta_attaccante, [])
     assert accesa.esito == "bloccare"
+
+
+def test_una_proposta_senza_iban_o_importo_passa_a_una_persona():
+    # Mai "pagare" verso un IBAN che non c'è, neanche con la coerenza spenta.
+    for incompleta in (proposta(iban=None), proposta(importo=None)):
+        assert valuta(IMPEGNO, lettura(), incompleta, []).esito == "persona"
+        assert valuta(IMPEGNO, lettura(), incompleta, [], livello2=False).esito == "persona"
