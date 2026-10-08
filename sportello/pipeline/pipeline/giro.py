@@ -74,7 +74,8 @@ def esegui_giro(
             f.flush()
             fatte[caso.id] = riga
             segno = "✓" if riga["esito"] == caso.esito_atteso else "✗"
-            print(f"{modalita} {caso.id}: {riga['esito']} (atteso {caso.esito_atteso}) {segno} "
+            giro = f"{modalita}, {passi_latenti} passi" if modalita == TELEPATIA else modalita
+            print(f"{giro} {caso.id}: {riga['esito']} (atteso {caso.esito_atteso}) {segno} "
                   f"{riga['token']['generati']} token, {riga['secondi']} s", flush=True)  # fmt: skip
     return [fatte[c.id] for c in casi]
 
