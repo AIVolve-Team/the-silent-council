@@ -38,11 +38,37 @@ def esito_finale(scatti: list[Scatto]) -> str:
     return max((s.esito for s in scatti), key=GRAVITA.__getitem__, default="pagare")
 
 
+def dati_mancanti(impegno: dict) -> list[tuple[str, str]]:
+    """I dati senza i quali le regole non possono controllare: (italiano, inglese)."""
+    documento, pagamento = impegno.get("documento") or {}, impegno.get("pagamento") or {}
+    mancanti = []
+    if not (impegno.get("fornitore") or {}).get("id_fiscale"):
+        mancanti.append(("identificativo fiscale del fornitore", "supplier tax ID"))
+    if not documento.get("numero"):
+        mancanti.append(("numero del documento", "invoice number"))
+    if giorno_di(documento.get("data")) is None:
+        mancanti.append(("data del documento", "invoice date"))
+    if not pagamento.get("iban"):
+        mancanti.append(("IBAN", "IBAN"))
+    return mancanti
+
+
 def applica_regole(impegno: dict, archivi: Archivi, abbinamenti: dict[int, int | None] | None = None) -> list[Scatto]:
     scatti: list[Scatto] = []
+    if mancanti := dati_mancanti(impegno):
+        # A00 non è nel catalogo di mai "pagare" senza aver potuto controllare. Coincide con la regola di «Regole di coerenza» sui
+        # campi critici vuoti, ma vale anche da sola, per esempio con la coerenza spenta nella demo.
+        it, en = ", ".join(m[0] for m in mancanti), ", ".join(m[1] for m in mancanti)
+        scatti.append(
+            Scatto(
+                "A00",
+                "persona",
+                f"Dati mancanti o non validi, le regole non possono controllarli: {it}",
+                f"Missing or invalid data the rules cannot check: {en}",
+            )
+        )
     if not (impegno.get("fornitore") or {}).get("id_fiscale"):
-        # Senza fornitore non si confronta niente: è un dato critico vuoto, e decide la coerenza (persona).
-        return totali(impegno)
+        return [*scatti, *totali(impegno)]  # senza fornitore non c'è niente con cui confrontare
     id_fornitore = id_fiscale(impegno["fornitore"]["id_fiscale"])
     fornitore = archivi.anagrafica.get(id_fornitore)
     scatti += totali(impegno)
@@ -128,9 +154,8 @@ def giorno_di(valore) -> date | None:
 
 def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto]:
     documento = impegno["documento"]
-    if not documento.get("numero"):
-        return []
-    numero, giorno = numero_documento(documento["numero"]), giorno_di(documento.get("data"))
+    numero = numero_documento(documento["numero"]) if documento.get("numero") else None
+    giorno = giorno_di(documento.get("data"))
     numero_ordine = (impegno.get("ordine") or {}).get("numero")
     ordine = archivi.ordini.get(numero_ordine) if numero_ordine else None
     scatti = []
@@ -138,8 +163,13 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
         if id_fiscale(voce.fornitore) != id_fornitore:
             continue
         giorno_voce = date.fromisoformat(voce.data)
-        # Con una data impossibile si confronta solo il numero: meglio un dubbio in più che un duplicato pagato.
-        if numero_documento(voce.numero) == numero and (giorno is None or giorno_voce.year == giorno.year):
+        # Con una data impossibile si confronta solo il numero, e senza numero solo ordine, importo e data: meglio un
+        # dubbio in più che un duplicato pagato.
+        if (
+            numero is not None
+            and numero_documento(voce.numero) == numero
+            and (giorno is None or giorno_voce.year == giorno.year)
+        ):
             scatti.append(
                 Scatto(
                     "A01",
@@ -152,8 +182,7 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
             numero_ordine
             and voce.ordine == numero_ordine
             and stesso_importo(voce.importo, impegno["totale_documento"])
-            and giorno is not None
-            and abs((giorno - giorno_voce).days) <= GIORNI_DUPLICATO
+            and (giorno is None or abs((giorno - giorno_voce).days) <= GIORNI_DUPLICATO)
             and (ordine is None or ordine.rate <= 1)
         ):
             scatti.append(

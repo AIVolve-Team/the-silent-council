@@ -210,17 +210,30 @@ def test_un_riferimento_che_non_e_un_numero_rende_la_riga_libera():
     assert codici(con(righe__0__num_item=" 1 ")) == {}
 
 
-def test_una_data_impossibile_non_ferma_le_regole():
+def test_una_data_impossibile_non_ferma_le_regole_e_passa_a_una_persona():
     # Un estrattore vero può scrivere una data nel formato giusto ma impossibile (visto con Qwen3-0.6B).
     a = archivi()
     a.storico.append(VoceStorico(ALFA, "FT-12/2026", "2026-08-01", 152.50, "PO-2026-0042"))
-    assert codici(con(documento__data="2026-15-09"), a) == {"A01": "bloccare"}  # stesso numero: duplicato
-    assert codici(con(documento__data="2026-15-09")) == {}
+    assert codici(con(documento__data="2026-15-09"), a) == {"A01": "bloccare", "A00": "persona"}
+    assert codici(con(documento__data="2026-02-30")) == {"A00": "persona"}
 
 
-def test_campi_vuoti_non_fermano_le_regole():
-    # Lo schema dell'estrattore ammette null: senza fornitore o numero non c'è niente da confrontare, e decide la
-    # coerenza (dato critico vuoto → persona).
-    assert codici(con(fornitore__id_fiscale=None)) == {}
-    assert codici(con(documento__numero=None)) == {}
-    assert codici(con(documento__data=None)) == {}
+def test_con_una_data_impossibile_il_duplicato_mascherato_scatta_comunque():
+    # Se la data non si può confrontare, stesso ordine e stesso importo bastano per chiedere a una persona: altrimenti
+    # una data illeggibile basterebbe per farsi pagare due volte.
+    a = archivi()
+    a.storico.append(VoceStorico(ALFA, "FT/0013/2026", "2026-09-01", 152.50, "PO-2026-0042"))
+    assert codici(con(documento__data="2026-02-30"), a) == {"A02": "persona", "A00": "persona"}
+
+
+@pytest.mark.parametrize("campo", ["fornitore__id_fiscale", "documento__numero", "documento__data", "pagamento__iban"])
+def test_senza_un_dato_che_serve_alle_regole_decide_una_persona(campo):
+    # Mai "pagare" senza aver potuto controllare: A00 non è nel catalogo di «Catalogo delle anomalie», coincide con la regola di «Regole di coerenza» sui
+    # campi critici vuoti e vale anche se la coerenza è spenta.
+    assert codici(con(**{campo: None})) == {"A00": "persona"}
+
+
+def test_senza_numero_il_duplicato_mascherato_scatta_comunque():
+    a = archivi()
+    a.storico.append(VoceStorico(ALFA, "FT/0013/2026", "2026-09-01", 152.50, "PO-2026-0042"))
+    assert codici(con(documento__numero=None), a) == {"A02": "persona", "A00": "persona"}
