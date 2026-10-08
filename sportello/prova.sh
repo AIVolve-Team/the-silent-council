@@ -32,6 +32,9 @@ mkdir -p "$USCITA"
 exec > >(tee -a "$USCITA/prova.log") 2>&1
 
 passo() { printf '\n== %s\n' "$*"; }
+# Toglie gli avvisi delle librerie. Non fallisce se non resta niente da stampare (un giro già fatto, rilanciato): con
+# pipefail un grep vuoto farebbe sembrare fermo un passo che è andato bene; un errore di Python resta visibile.
+filtra() { grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint" || true; }
 ferma() { printf '\n!! %s\n' "$*"; exit 1; }
 
 [ -d "$RADICE/motore" ] || ferma "Manca la cartella motore/: serve un ramo che contenga il motore telepatico."
@@ -125,7 +128,7 @@ for modalita in telepatia testo; do
   echo "-- $modalita ($(date +%H:%M))"
   (cd "$SPORTELLO/pipeline" && "$PY" -u -m pipeline.giro "$INSIEME" --modalita "$modalita" --passi 10 \
     --limite "$FATTURE" --modello "$MODELLO" --dtype "$DTYPE" --uscita "$USCITA" 2>&1 |
-    grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint") ||
+    filtra) ||
     echo "!! Il giro '$modalita' si è fermato: il resto continua (dettagli in $USCITA/prova.log)."
 done
 
