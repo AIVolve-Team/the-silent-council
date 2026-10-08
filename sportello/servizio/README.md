@@ -78,7 +78,7 @@ Le chiama la casa per i giudici (`casa/`,) attraverso la sua funzione, mai Evolu
 - **`/prove/attacco`** `{numero, modalita, livello2}`: 1 è la manomissione in transito (F1, `--attacco-1`), 2 il testo nascosto (F4, oppure il ripiego F3 se la regola lo chiede, `--attacco-2`).
 - **`/prove/inganna`** `{id, testo, modalita, livello2}`: il testo nascosto scritto dal giudice, fino a 300 caratteri latini.
 
-L'interruttore del livello 2 esiste solo qui. Ogni prova è un caso con il suo registro, e la stessa prova due volte è lo stesso caso. Le prove non fanno la fila: se c'è un esame in corso rispondono **409**, e la pagina dice di riprovare fra un minuto. La risposta porta anche la vista della pagina del caso, PDF compreso, che la casa lascia nel browser del giudice.
+L'attacco 2 e "prova tu a ingannarlo" portano anche la trascrizione della memoria del traduttore, che mostra il testo nascosto. L'interruttore del livello 2 esiste solo qui. Ogni prova è un caso con il suo registro, e la stessa prova due volte è lo stesso caso. Le prove non fanno la fila: se c'è un esame in corso rispondono **409**, e la pagina dice di riprovare fra un minuto. La risposta porta anche la vista della pagina del caso, PDF compreso, che la casa lascia nel browser del giudice.
 
 ## Test
 

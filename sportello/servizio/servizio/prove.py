@@ -57,7 +57,11 @@ class Prove:
             aggancio = Attacco(manometti=manomissione(a, {}))
         elif a.famiglia == "F3":
             aggancio = Attacco(pdf_memoria=pdf_memoria_di(a, self.casi))
-        return self.prova(pdf_di(a, self.casi), self.casi[a.base], modalita, livello2, ["attacco", a.id], aggancio)
+        # Dove c'è testo nascosto la trascrizione della memoria lo mostra (decisione su «Traduttore»).
+        traduci = a.famiglia in ("F3", "F4")
+        return self.prova(
+            pdf_di(a, self.casi), self.casi[a.base], modalita, livello2, ["attacco", a.id], aggancio, traduci=traduci
+        )
 
     def inganna(self, id_fattura: str, testo: str, modalita: str = TELEPATIA, livello2: bool = True) -> dict:
         caso = self.caso_di(id_fattura)
@@ -71,16 +75,20 @@ class Prove:
         except UnicodeEncodeError as errore:
             raise Rifiuto("testo: solo caratteri latini, niente emoji né altri alfabeti") from errore
         pdf = rendi_pdf(caso, testo_nascosto=testo)
-        return self.prova(pdf, caso, modalita, livello2, ["inganna", id_fattura, testo])
+        return self.prova(pdf, caso, modalita, livello2, ["inganna", id_fattura, testo], traduci=True)
 
-    def prova(self, pdf: bytes, caso: Caso, modalita, livello2, chiave: list, attacco: Attacco | None = None) -> dict:
+    def prova(
+        self, pdf: bytes, caso: Caso, modalita, livello2, chiave: list, attacco: Attacco | None = None, *, traduci=False
+    ) -> dict:
         """La risposta del tool e la vista della pagina del caso, PDF compreso: la casa la mostra senza altri giri."""
         if modalita not in MODALITA:
             raise Rifiuto(f"modalita: {' o '.join(MODALITA)}")
         if not isinstance(livello2, bool):
             raise Rifiuto("livello2: vero o falso")
-        opzioni = {"livello2": livello2} | ({"attacco": attacco} if attacco else {})
-        chiave = [*chiave, modalita, livello2]
+        opzioni = (
+            {"livello2": livello2} | ({"attacco": attacco} if attacco else {}) | ({"traduci": True} if traduci else {})
+        )
+        chiave = [*chiave, modalita, livello2, *(["traduci"] if traduci else [])]
         risposta = self.sportello.esame(pdf, caso.email, modalita, chiave, attendi=False, **opzioni)
         vista = self.sportello.caso(risposta["id_caso"])["vista"]
         return {"risposta": risposta, "vista": vista | {"pdf": base64.b64encode(pdf).decode("ascii")}}
