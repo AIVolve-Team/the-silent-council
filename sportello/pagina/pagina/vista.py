@@ -61,7 +61,10 @@ def testimoni(impegno: dict | None, lettura: dict | None, proposta: dict | None)
         a, b = valore(impegno, campo.percorso), valore(lettura, campo.percorso)
         p = valore(proposta_annidata, campo.percorso) if campo.nome in ("pagamento.iban", "pagamento.importo") else None
         valori = [x for x in (a, b, p) if x is not None]
-        diverso = any(not uguali(campo.tipo, valori[0], x) for x in valori[1:]) or (a is None) != (b is None)
+        # Se il verificatore non ha letto (la staffetta si è fermata prima), le righe vuote non sono differenze.
+        diverso = any(not uguali(campo.tipo, valori[0], x) for x in valori[1:]) or (
+            lettura is not None and (a is None) != (b is None)
+        )
         righe.append({
             "campo": campo.nome, "it": campo.it, "en": campo.en, "impegno": mostra(campo, a), "lettura": mostra(campo, b),
             "proposta": mostra(campo, p), "diverso": diverso,
@@ -91,6 +94,7 @@ def vista_caso(risultato: dict, archivi: Archivi, *, pdf: bytes) -> dict:
         },
         "sigillo": {"integro": risultato.get("sigillo") == "integro", "dettaglio": risultato.get("sigillo")},
         "testimoni": testimoni(risultato.get("impegno"), risultato.get("lettura"), risultato.get("proposta")),
+        "verificatore_ha_letto": risultato.get("lettura") is not None,
         "regole": [m for m in motivi if m.get("livello") == "regole"],
         "altri_motivi": [m for m in motivi if m.get("livello") != "regole"],
         "ordine": None

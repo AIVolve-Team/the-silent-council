@@ -1,7 +1,9 @@
+import io
 import json
 import re
+import zipfile
 
-from pagina.pagina import elenco, pagina_caso
+from pagina.pagina import elenco, pagina_caso, pagina_dal_vivo, zip_registro
 
 
 def vista(id_="sviluppo-0006", esito="pagare", descrizione="Toner nero"):
@@ -44,3 +46,28 @@ def test_con_il_pdf_accanto_la_pagina_non_lo_incorpora():
     dati = dati_di(pagina_caso(vista(), pdf_url="sviluppo-0006.pdf"))
     assert dati["pdf_url"] == "sviluppo-0006.pdf"
     assert "pdf" not in dati
+
+
+def test_la_pagina_dal_vivo_non_ha_dati_e_li_prende_dal_browser():
+    html = pagina_dal_vivo(api="/api/decisione")
+
+    assert dati_di(html) is None
+    assert "sportello-dal-vivo:" in html
+    assert 'data-api="/api/decisione"' in html
+
+
+def test_il_registro_si_scarica_in_un_file_solo_sempre_uguale(tmp_path):
+    registro = tmp_path / "sviluppo-0006"
+    (registro / "chiavi-pubbliche").mkdir(parents=True)
+    (registro / "caso.json").write_text("{}")
+    (registro / "01-estrattore.safetensors").write_bytes(b"\x00\x01")
+    (registro / "chiavi-pubbliche" / "estrattore.pub").write_bytes(b"chiave")
+
+    uno, due = zip_registro(registro, "sviluppo-0006"), zip_registro(registro, "sviluppo-0006")
+
+    assert uno == due
+    assert sorted(zipfile.ZipFile(io.BytesIO(uno)).namelist()) == [
+        "registro-sviluppo-0006/01-estrattore.safetensors",
+        "registro-sviluppo-0006/caso.json",
+        "registro-sviluppo-0006/chiavi-pubbliche/estrattore.pub",
+    ]

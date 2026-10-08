@@ -115,7 +115,8 @@ code { font-family: var(--dati); font-size: 0.85em; overflow-wrap: anywhere; }
 <script>
 // La pagina si costruisce dai dati incorporati sopra (pagina/pagina.py). Le scelte della persona restano in questo
 // browser (ogni giudice ha la sua copia); se la pagina ha un indirizzo per Evolus (data-api), partono anche lì.
-const V = JSON.parse(document.getElementById("dati").textContent);
+// Un caso nato dal vivo non ha dati incorporati: la casa lo lascia in questo browser, in "sportello-dal-vivo:<id>".
+const incorporati = JSON.parse(document.getElementById("dati").textContent);
 const T = {
   en: {
     caso: "Sportello · case", pagare: "Pay", persona: "Needs a person", bloccare: "Blocked",
@@ -139,6 +140,8 @@ const T = {
     scarica: "Download the case log", verifica: "Check it yourself:", righe: "Line", descrizione: "Description",
     quantita: "Qty", prezzo: "Unit price", iva: "VAT %", importo: "Amount", totale: "Total", scadenza: "Due",
     numero: "Invoice", data: "Date", regAuto: "Recorded case", indietro: "← All cases",
+    nonLetto: "The relay stopped before the verifier: it never read the memory, so there is nothing to compare.",
+    dalVivo: "Live case", nonTrovato: "This live case is not in this browser: run it again from the live page.",
   },
   it: {
     caso: "Sportello · caso", pagare: "Pagare", persona: "Serve una persona", bloccare: "Bloccato",
@@ -162,6 +165,8 @@ const T = {
     scarica: "Scarica il registro del caso", verifica: "Verificalo da te:", righe: "Riga", descrizione: "Descrizione",
     quantita: "Q.tà", prezzo: "Prezzo unit.", iva: "IVA %", importo: "Importo", totale: "Totale", scadenza: "Scadenza",
     numero: "Fattura", data: "Data", regAuto: "Caso registrato", indietro: "← Tutti i casi",
+    nonLetto: "La staffetta si è fermata prima del verificatore: non ha mai letto la memoria, quindi non c'è niente da confrontare.",
+    dalVivo: "Caso dal vivo", nonTrovato: "Questo caso dal vivo non è in questo browser: rifallo dalla pagina delle prove.",
   },
 };
 const memoria = {
@@ -170,6 +175,9 @@ const memoria = {
 };
 const parametri = new URLSearchParams(location.search);
 let lingua = parametri.get("lang") || memoria.leggi("sportello-lingua") || "en";
+const V = incorporati || memoria.leggi("sportello-dal-vivo:" + parametri.get("id"));
+// Il PDF come blob: Chrome spesso non apre un PDF incorporato come data:.
+const pdfUrl = !V ? null : V.pdf_url || (V.pdf ? URL.createObjectURL(new Blob([Uint8Array.from(atob(V.pdf), (c) => c.charCodeAt(0))], { type: "application/pdf" })) : null);
 const el = (tag, attr = {}, ...figli) => {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attr)) {
@@ -185,7 +193,7 @@ const giorno = (iso) => {
   return isNaN(d) ? iso : new Intl.DateTimeFormat(lingua === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(d);
 };
 const valore = (campo, x) => x === null || x === undefined ? "—" : campo.endsWith("importo") || campo === "totale_documento" ? soldi(x) : campo.endsWith("data") || campo.endsWith("scadenza") ? giorno(x) : x;
-const chiave = "sportello-scelta:" + V.id;
+const chiave = "sportello-scelta:" + (V && V.id);
 
 function disegna() {
   const t = T[lingua] || T.en;
@@ -199,6 +207,7 @@ function disegna() {
   lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
   const barra = el("div", { class: "barra" }, el("a", { href: "index.html", class: "tenue non-stampare", text: t.indietro }), lingue);
   if (V.registrato) barra.prepend(el("span", { class: "registrato", text: `${t.regAuto} · ${V.registrato}` }));
+  if (V.dal_vivo) barra.prepend(el("span", { class: "registrato", text: `${t.dalVivo} · ${V.dal_vivo}` }));
   pagina.append(barra);
 
   const f = V.fattura;
@@ -229,7 +238,8 @@ function disegna() {
       el("td", { class: "segno", text: r.diverso ? "✗" : "✓" })))));
   const elenco = (motivi) => motivi.length ? el("ul", { class: "motivi" }, motivi.map((m) => el("li", { class: m.esito },
     el("span", { class: "codice", text: `${m.livello} · ${m.codice}` }), el("span", { text: lingua === "en" ? (m.motivo_en || m.motivo) : m.motivo })))) : el("p", { class: "tenue", text: t.nessuno });
-  const testimoni = el("div", { class: "scheda", id: "testimoni" }, el("h3", { text: t.testimoni }), el("p", { class: "tenue", text: t.testimoniNota }), tabella);
+  const testimoni = el("div", { class: "scheda", id: "testimoni" }, el("h3", { text: t.testimoni }), el("p", { class: "tenue", text: t.testimoniNota }),
+    V.verificatore_ha_letto === false ? el("p", { text: t.nonLetto }) : null, tabella);
   pagina.append(el("section", { class: "parte" }, el("header", {}, el("h2", { text: t.nonTorna })),
     el("h3", { text: t.altri }), elenco(V.altri_motivi), testimoni, el("h3", { text: t.regole }), elenco(V.regole)));
 
@@ -253,8 +263,8 @@ function disegna() {
     el("div", { class: "affiancati" }, el("div", { class: "scheda" }, el("h3", { text: t.fattura }), righeFattura),
       el("div", { class: "scheda" }, el("h3", { text: V.ordine ? `${t.ordine} ${V.ordine.numero}` : t.ordine }), righeOrdine)),
     el("div", { class: "scheda non-stampare" }, el("h3", { text: t.pdf }),
-      el("object", { class: "pdf", type: "application/pdf", data: V.pdf_url || "data:application/pdf;base64," + V.pdf, "aria-label": t.pdf },
-        el("a", { href: V.pdf_url || "data:application/pdf;base64," + V.pdf, target: "_blank", rel: "noopener", text: t.pdf })))));
+      el("object", { class: "pdf", type: "application/pdf", data: pdfUrl, "aria-label": t.pdf },
+        el("a", { href: pdfUrl, target: "_blank", rel: "noopener", text: t.pdf })))));
 
   pagina.append(decisione(t));
 
@@ -300,7 +310,11 @@ function decisione(t) {
     el("label", { for: "nota" }, el("span", { text: V.nota_obbligatoria ? t.notaTesto : t.motivoRifiuto }), nota), bottoni, stato);
 }
 
-disegna();
+if (V) disegna();
+else {
+  const t = T[lingua] || T.en;
+  document.getElementById("pagina").append(el("p", { text: t.nonTrovato }), el("a", { href: "index.html", text: t.indietro }));
+}
 </script>
 </body>
 </html>

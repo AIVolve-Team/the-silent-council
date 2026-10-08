@@ -60,28 +60,37 @@ td button:disabled { opacity: 0.45; cursor: default; }
 </head>
 <body>
 <script id="dati" type="application/json">@@DATI@@</script>
-<main class="foglio" id="pagina" data-registrato="@@REGISTRATO@@"></main>
+<main class="foglio" id="pagina" data-registrato="@@REGISTRATO@@" data-casa="@@CASA@@"></main>
 <script>
 // Le approvazioni restano in questo browser, con la stessa chiave della pagina del caso: ogni giudice ha la sua copia
 //. Nella demo lo stato diventa "approvato": nessuna banca vera.
-const CASI = JSON.parse(document.getElementById("dati").textContent);
+const REGISTRATI = JSON.parse(document.getElementById("dati").textContent);
 const T = {
   en: { titolo: "Sportello telepatico", sottotitolo: "Invoices examined by agents that pass each other their memory, checked by a truth machine.",
         attesa: "Payment proposals awaiting approval", attesaNota: "Payment always goes to the IBAN on file. Nothing is paid automatically.",
         tutti: "All cases", fornitore: "Supplier", fattura: "Invoice", importo: "Amount", testimoni: "3 witnesses", sigillo: "Seal",
         esito: "Outcome", approva: "Approve", approvaTutte: "Approve all", approvato: "approved", nessuna: "No proposal awaiting approval.",
-        pagare: "pay", persona: "person", bloccare: "blocked", regAuto: "Recorded cases" },
+        pagare: "pay", persona: "person", bloccare: "blocked", regAuto: "Recorded cases", dalVivo: "live", casa: "← Home", prove: "Try it live" },
   it: { titolo: "Sportello telepatico", sottotitolo: "Fatture esaminate da agenti che si passano la memoria, controllati da una macchina della verità.",
         attesa: "Proposte di pagamento in attesa di approvazione", attesaNota: "Il pagamento va sempre all'IBAN in anagrafica. Niente si paga da solo.",
         tutti: "Tutti i casi", fornitore: "Fornitore", fattura: "Fattura", importo: "Importo", testimoni: "3 testimoni", sigillo: "Sigillo",
         esito: "Esito", approva: "Approva", approvaTutte: "Approva tutte", approvato: "approvato", nessuna: "Nessuna proposta in attesa.",
-        pagare: "pagare", persona: "persona", bloccare: "bloccato", regAuto: "Casi registrati" },
+        pagare: "pagare", persona: "persona", bloccare: "bloccato", regAuto: "Casi registrati", dalVivo: "dal vivo", casa: "← Casa", prove: "Prova dal vivo" },
 };
 const memoria = {
   leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
 };
 let lingua = new URLSearchParams(location.search).get("lang") || memoria.leggi("sportello-lingua") || "en";
+// I casi nati dal vivo in questo browser, prima dei registrati: anche le loro proposte vanno approvate.
+const dalVivo = (() => {
+  try {
+    return Object.keys(localStorage).filter((k) => k.startsWith("sportello-dal-vivo:")).map((k) => memoria.leggi(k)).filter(Boolean)
+      .sort((a, b) => String(b.dal_vivo).localeCompare(String(a.dal_vivo))).map((v) => ({ ...v, href: `dal-vivo.html?id=${encodeURIComponent(v.id)}` }));
+  } catch { return []; }
+})();
+const CASI = [...dalVivo, ...REGISTRATI];
+const indirizzo = (c) => c.href || `${c.id}.html`;
 const el = (tag, attr = {}, ...figli) => {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attr)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined) n.setAttribute(k, v); }
@@ -102,7 +111,10 @@ function disegna() {
     ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
   lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
   const registrato = pagina.dataset.registrato;
-  pagina.append(el("div", { class: "barra" }, registrato ? el("span", { class: "registrato", text: `${t.regAuto} · ${registrato}` }) : el("span"), lingue));
+  // Dentro la casa per i giudici l'indice porta alla home e alle prove dal vivo.
+  const casa = pagina.dataset.casa ? el("span", {}, el("a", { href: "../index.html", text: t.casa }), " · ", el("a", { href: "prove.html", text: t.prove })) : null;
+  pagina.append(el("div", { class: "barra" }, el("span", {}, casa, casa && registrato ? " · " : null,
+    registrato ? el("span", { class: "registrato", text: `${t.regAuto} · ${registrato}` }) : null), lingue));
   pagina.append(el("header", {}, el("h1", { text: t.titolo }), el("p", { class: "tenue", text: t.sottotitolo })));
 
   const proposte = CASI.filter((c) => c.esito === "pagare");
@@ -110,7 +122,7 @@ function disegna() {
     const bottone = el("button", { type: "button", text: approvato(c.id) ? t.approvato : t.approva });
     bottone.disabled = approvato(c.id);
     bottone.addEventListener("click", () => { approva(c.id); disegna(); });
-    return el("tr", {}, el("td", {}, el("a", { href: `${c.id}.html`, text: c.fattura.fornitore || c.id })), el("td", { text: c.fattura.numero }),
+    return el("tr", {}, el("td", {}, el("a", { href: indirizzo(c), text: c.fattura.fornitore || c.id }), c.href ? el("span", { class: "tenue", text: ` · ${t.dalVivo}` }) : null), el("td", { text: c.fattura.numero }),
       el("td", { class: "num", text: soldi((c.proposta || {}).importo ?? c.fattura.totale) }),
       el("td", { class: testimoniOk(c) ? "ok" : "ko", text: testimoniOk(c) ? "✓ ✓ ✓" : "✗" }),
       el("td", { class: c.sigillo.integro ? "ok" : "ko", text: c.sigillo.integro ? "🔒 ✓" : "✗" }), el("td", {}, bottone));
@@ -123,7 +135,7 @@ function disegna() {
 
   pagina.append(el("section", { class: "scheda" }, el("h2", { text: t.tutti }),
     el("table", {}, el("thead", {}, el("tr", {}, [t.fornitore, t.fattura, t.importo, t.esito].map((h) => el("th", { text: h })))),
-      el("tbody", {}, CASI.map((c) => el("tr", {}, el("td", {}, el("a", { href: `${c.id}.html`, text: c.fattura.fornitore || c.id })),
+      el("tbody", {}, CASI.map((c) => el("tr", {}, el("td", {}, el("a", { href: indirizzo(c), text: c.fattura.fornitore || c.id }), c.href ? el("span", { class: "tenue", text: ` · ${t.dalVivo}` }) : null),
         el("td", { text: c.fattura.numero }), el("td", { class: "num", text: soldi(c.fattura.totale) }),
         el("td", {}, el("span", { class: `esito ${c.esito}`, text: t[c.esito] }))))))));
 }

@@ -15,11 +15,14 @@ Come la pagina del verdetto del Consiglio: HTML statico con i dati incorporati, 
 
 ```bash
 cd sportello/pagina
-python -m pagina.pagina <giro>/telepatia.jsonl../dati/insiemi/sviluppo --uscita pagine/ --registrato "15/10/2026 · MI300X"
+python -m pagina.pagina <giro>/telepatia.jsonl../dati/insiemi/sviluppo --uscita pagine/ --registrato "15/10/2026 · MI300X" \
+    --registri <giro>/registro/telepatia
 open pagine/index.html
 ```
 
 `--api <indirizzo>` fa partire le scelte della persona anche verso Evolus, attraverso la funzione Vercel del secondo workflow.
+`--registri` mette accanto a ogni pagina il **registro del caso in un file solo**, `registro-<id>.zip`: scompattato, `python -m motore.verifica registro-<id> --pubbliche registro-<id>/chiavi-pubbliche` lo controlla, ed è sempre lo stesso file per lo stesso registro.
+Accanto all'indice c'è `dal-vivo.html`: la pagina dei casi nati dalle prove dal vivo della casa per i giudici, che prende i dati dal browser del giudice.
 
 ## La pagina del caso 
 
@@ -44,5 +47,4 @@ In cima le **proposte in attesa di approvazione**, con ✓ per i tre testimoni e
 
 ## Cosa manca
 
-- Il **registro del caso da scaricare** come file unico: lo prepara la casa per i giudici dai registri della pipeline; la pagina ha già il collegamento (`registro`).
 - Il **traduttore** dietro "mostra cosa ha pensato".

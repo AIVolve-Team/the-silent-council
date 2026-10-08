@@ -114,4 +114,7 @@ def test_un_messaggio_manomesso_in_transito_rompe_il_sigillo(modello, insieme, c
     assert r["esito"] == "bloccare"
     assert r["sigillo"].startswith("rotto")
     assert r["motivi"][0]["livello"] == "sigillo"
+    # Per la persona una frase che si capisce, in due lingue; le impronte restano nel dettaglio.
+    assert r["motivi"][0]["motivo_en"] == "Seal broken: a message between agents was changed after it was signed."
+    assert "impronta" in r["motivi"][0]["dettaglio"]
     assert list((tmp_path / "incidenti").glob("incidente-*.json"))

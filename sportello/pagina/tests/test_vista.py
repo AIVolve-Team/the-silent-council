@@ -94,3 +94,14 @@ def test_una_proposta_da_approvare(insieme):
     assert vista["proposta"]["importo"] == caso.impegno["totale_documento"]
     assert vista["nota_obbligatoria"] is False and vista["frode_sospetta"] is False
     assert all(not r["diverso"] for r in vista["testimoni"])
+
+
+def test_se_la_staffetta_si_ferma_prima_del_verificatore_i_testimoni_non_sono_differenze(insieme):
+    caso = next(c for c in insieme.casi if c.anomalia is None and c.lingua == "en")
+    r = {"id_caso": caso.id, "esito": "bloccare", "motivi": [], "impegno": caso.impegno, "lettura": None,
+         "proposta": None, "pagamento_proposto": None, "sigillo": "rotto: etichetta cambiata", "email": caso.email}  # fmt: skip
+
+    vista = vista_caso(r, insieme.archivi, pdf=rendi_pdf(caso))
+
+    assert all(t["lettura"] is None and t["diverso"] is False for t in vista["testimoni"])
+    assert vista["verificatore_ha_letto"] is False
