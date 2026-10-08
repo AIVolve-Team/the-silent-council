@@ -7,6 +7,9 @@
 #   MODELLO=Qwen/Qwen3-8B ./sportello/prova.sh    sceglie il modello invece di lasciarlo decidere allo script
 #   FATTURE=3 ./sportello/prova.sh                solo le prime 3 fatture
 #
+# Dopo la pipeline lo script esegue i passi in più di sportello/prova.d/, in ordine di nome: ogni ticket di build che
+# fa girare un modello aggiunge lì il suo file, che può leggere le variabili di questo script.
+#
 # Funziona su macOS (Apple Silicon) e su Linux con una GPU; su Windows va lanciato dentro WSL2.
 # Rilanciarlo è sicuro: le fatture già esaminate non si rifanno.
 set -euo pipefail
@@ -21,7 +24,7 @@ FATTURE="${FATTURE:-10}"
 for argomento in "$@"; do
   case "$argomento" in
     --tutte) FATTURE=100 ;;
-    -h | --help) sed -n '2,11p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "Opzione sconosciuta: $argomento (vedi --help)"; exit 2 ;;
   esac
 done
@@ -33,7 +36,7 @@ ferma() { printf '\n!! %s\n' "$*"; exit 1; }
 
 [ -d "$RADICE/motore" ] || ferma "Manca la cartella motore/: serve un ramo che contenga il motore telepatico."
 
-passo "1/6 Il computer"
+passo "Il computer"
 SISTEMA="$(uname -s)"
 if [ "$SISTEMA" = "Darwin" ]; then
   [ "$(uname -m)" = "arm64" ] || ferma "Serve un Mac con chip Apple (M1 o successivi)."
@@ -69,7 +72,7 @@ fi
 echo "Modello: $MODELLO, $FATTURE fatture di sviluppo."
 [ "$DISPOSITIVO" = "cpu" ] && echo "Attenzione: senza GPU il giro è molto lento."
 
-passo "2/6 Python e librerie (la prima volta qualche minuto)"
+passo "Python e librerie (la prima volta qualche minuto)"
 if ! command -v uv >/dev/null 2>&1; then
   echo "Installo uv, il gestore di Python, nella cartella dell'utente (niente sudo)."
   curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -95,13 +98,13 @@ if ! "$PY" -c "import sys, torch; a = torch.ones(8, 8, dtype=torch.bfloat16, dev
 fi
 echo "Pesi del modello in $DTYPE."
 
-passo "3/6 Test veloci, senza modello"
+passo "Test veloci, senza modello"
 (cd "$RADICE/motore" && "$PY" -m pytest -q -p no:cacheprovider -m "not modello")
 for cartella in dati controllore pipeline; do
   (cd "$SPORTELLO/$cartella" && "$PY" -m pytest -q -p no:cacheprovider -m "not modello")
 done
 
-passo "4/6 Fatture di sviluppo (seme 101), con l'impronta controllata"
+passo "Fatture di sviluppo (seme 101), con l'impronta controllata"
 if [ ! -f "$INSIEME/impronta.txt" ]; then
   (cd "$SPORTELLO/dati" && "$PY" -c 'from pathlib import Path; from fatture.genera import genera_insieme; from fatture.insiemi import salva_insieme
 print(salva_insieme(genera_insieme("sviluppo"), Path("insiemi/sviluppo")))')
@@ -112,12 +115,12 @@ else
   echo "Attenzione: l'impronta delle fatture di sviluppo è diversa da quella su «Eval pre-registrato G1-G4» (generatore cambiato?)."
 fi
 
-passo "5/6 Modello $MODELLO (la prima volta può volerci molto: il 14B pesa circa 30 GB)"
+passo "Modello $MODELLO (la prima volta può volerci molto: il 14B pesa circa 30 GB)"
 # Dalla cartella della pipeline: dalla radice del repo Python prenderebbe la cartella motore/ al posto del pacchetto.
 REVISIONE="$(cd "$SPORTELLO/pipeline" && "$PY" -c "from pipeline.giro import MODELLI; print(MODELLI['$MODELLO'])")"
 "$PY" -c "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1], revision=sys.argv[2])" "$MODELLO" "$REVISIONE"
 
-passo "6/6 Lo Sportello, in telepatia e a testo"
+passo "Lo Sportello, in telepatia e a testo"
 for modalita in telepatia testo; do
   echo "-- $modalita ($(date +%H:%M))"
   (cd "$SPORTELLO/pipeline" && "$PY" -u -m pipeline.giro "$INSIEME" --modalita "$modalita" --passi 10 \
@@ -128,12 +131,25 @@ done
 
 passo "Riepilogo"
 (cd "$SPORTELLO/pipeline" && "$PY" -m pipeline.riepilogo "$USCITA" "$INSIEME")
-cat <<FINE
+# Dove guardare alla fine: ogni passo in più aggiunge le sue righe con `guarda`.
+DOVE="$USCITA/dove-guardare.txt"
+guarda() { printf -- '- %-30s %s\n' "$1" "$2" >>"$DOVE"; }
+: >"$DOVE"
+guarda "telepatia.jsonl, testo.jsonl" "una riga per fattura: esito, motivi, impegno, lettura, proposta, token e tempi"
+guarda "registro/" "il registro di ogni caso, verificabile con python -m motore.verifica registro/<modalità>/<caso> --pubbliche registro/<modalità>/<caso>/chiavi-pubbliche"
 
-Fatto. Risultati in $USCITA:
-- telepatia.jsonl, testo.jsonl   una riga per fattura: esito, motivi, impegno, lettura, proposta, token e tempi
-- registro/                      il registro di ogni caso: messaggi firmati e chiavi pubbliche, verificabile con
-                                 python -m motore.verifica registro/<modalità>/<caso> --pubbliche registro/<modalità>/<caso>/chiavi-pubbliche
-- prova.log                      tutto quello che è successo
-Le fatture sono inventate dal generatore: i risultati si possono condividere liberamente.
-FINE
+# I passi in più, uno per ticket. Uno che si ferma non ferma gli altri.
+# Il passo gira come comando semplice, non dentro `|| …`: lì bash ignorerebbe `set -e` e un errore non lo fermerebbe.
+for pezzo in "$SPORTELLO"/prova.d/*.sh; do
+  [ -e "$pezzo" ] || continue
+  set +e
+  (set -euo pipefail; source "$pezzo")
+  stato=$?
+  set -e
+  [ "$stato" -eq 0 ] || echo "!! Il passo $(basename "$pezzo") si è fermato: il resto continua (dettagli in prova.log)."
+done
+
+guarda "prova.log" "tutto quello che è successo"
+printf '\nFatto. Risultati in %s:\n' "$USCITA"
+cat "$DOVE"
+echo "Le fatture sono inventate dal generatore: i risultati si possono condividere liberamente."
