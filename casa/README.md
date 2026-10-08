@@ -54,6 +54,8 @@ Il caso che nasce resta nel browser del giudice e si apre con `sportello/dal-viv
 
 ## Provare in locale
 
+Il modo più semplice: `CASA=1./sportello/prova.sh` (passo `50-casa.sh` della prova per i colleghi), che costruisce la casa con i casi della prova e accende motore e funzioni su http://localhost:3000. A mano:
+
 ```bash
 export SPORTELLO_SEGRETO=$(openssl rand -hex 32)
 cd sportello/servizio &&.venv/bin/python -m servizio../dati/insiemi/sviluppo --modello Qwen/Qwen3-0.6B --demo --porta 8766 \
