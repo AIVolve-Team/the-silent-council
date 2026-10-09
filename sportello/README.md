@@ -8,5 +8,6 @@ Codice dell': agenti che esaminano le fatture arrivate per email passandosi la m
 | `controllore/` | | livello 2 della macchina della verità: coerenza, tre testimoni, esito della fattura |
 | `pipeline/` | | la staffetta estrattore → verificatore → decisore, in telepatia e a testo, e il registro del caso |
 | `harness/` | | le misure pre-registrate: G2, esame del 16/10, prove anti-trucco, lista di G4 |
+| `attacchi/` | | i 50 attacchi sulla pipeline, contati per famiglia, con le soglie |
 
-Il motore telepatico condiviso con il Consiglio sta in `../motore`. Per provarlo in un comando: `prova.sh`, con la guida `PROVA.md`. Le altre cartelle arrivano con la pagina del caso, gli attacchi e la casa per i giudici.
+Il motore telepatico condiviso con il Consiglio sta in `../motore`. Per provarlo in un comando: `prova.sh`, con la guida `PROVA.md`. Le altre cartelle arrivano con la pagina del caso e la casa per i giudici.
