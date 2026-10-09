@@ -97,7 +97,11 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 
 - Lo fa una persona del team **che non ha scritto né rivisto le risposte attese**, alla cieca: non sa quale verdetto viene dal testo e quale dalla telepatia.
 - Giudica: raccomandazione giusta sì/no, dissenso atteso trovato sì/no, importi giusti.
-- Procedura per l'alla cieca: **da fissare**.
+- **Procedura** (proposta, da rivedere): chi organizza lancia `python -m revisione.cieca prepara <cartella dell'eval>`.
+  - Ne escono un foglio per verdetto, con nomi neutri (`verdetto-01` …) e ordine mescolato con seme 31. Ogni foglio ha raccomandazione, clausole segnalate con citazione, obiezioni e dissensi, senza modalità, token, tempi o pensieri.
+  - Ne esce anche una scheda da compilare.
+  - Chi controlla riceve fogli, scheda e contratti, ma non i `.json` delle risposte attese.
+  - La chiave (`chiave.json`) resta a chi organizza, che alla fine conta con `python -m revisione.cieca conta`.
 
 ## Come si fa girare
 

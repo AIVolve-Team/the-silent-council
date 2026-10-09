@@ -26,6 +26,7 @@ Per un contratto:
 | `revisione/configurazioni.py` | le configurazioni di confronto dell'eval: agente solo e voto fra 4 agenti indipendenti |
 | `revisione/misure.py` | le misure dell'eval: F1 severa, bootstrap appaiato, costi, G4, sabotaggi, dissensi, taratura, importi e date, grafico |
 | `revisione/esame.py` | fa girare l'eval e ne scrive il rapporto; sul test parte solo con la pre-registrazione congelata |
+| `revisione/cieca.py` | il controllo a mano alla cieca: fogli neutri e mescolati, scheda da compilare e conti con la chiave |
 | `revisione/taratura.py` | sceglie i passi latenti e propone le soglie di confidenza dai giri di sviluppo |
 
 ## Uso
@@ -33,8 +34,8 @@ Per un contratto:
 ```bash
 cd consiglio/revisione
 uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/requirements.txt
-.venv/bin/python -m pytest -q -m "not modello" # 26 test veloci
-.venv/bin/python -m pytest -q # 30 test, con Qwen3-0.6B
+.venv/bin/python -m pytest -q -m "not modello" # 27 test veloci
+.venv/bin/python -m pytest -q # 31 test, con Qwen3-0.6B
 
 # I contratti del set di misura vengono da consiglio/dati/cache (prepara.py li scarica).
 .venv/bin/python -m revisione.esegui --benchmark cuad --modalita telepatia --passi 10 --modello Qwen/Qwen3-1.7B
