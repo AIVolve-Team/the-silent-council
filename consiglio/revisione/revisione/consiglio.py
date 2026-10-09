@@ -57,6 +57,8 @@ class Revisione:
     passi_latenti: int
     modello: str
     taglio: dict
+    # Il riallineamento W_a dei passi latenti: spento solo nella prova di diagnosi.
+    riallineamento: bool = True
     note: dict[str, Scritto] = field(default_factory=dict)
     verdetto: Scritto | None = None
     dissensi: list[Dissenso] = field(default_factory=list)
@@ -167,6 +169,7 @@ class Consiglio:
                 "clausole": len(taglio.clausole),
                 "caratteri": {r: len(s) for r, s in taglio.sezioni.items()},
             },
+            riallineamento=self.motore.modello.riallinea,
             impronte=[m.impronta for m in esito.messaggi],
             posizioni_latenti=esito.posizioni_latenti,
         )

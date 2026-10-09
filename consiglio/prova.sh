@@ -5,6 +5,9 @@
 #   ./consiglio/prova.sh                          giro completo: set dimostrativo (se c'è) e CUAD di sviluppo,
 #                                                 in telepatia e a testo
 #   ./consiglio/prova.sh --veloce                 solo telepatia, solo il set dimostrativo (o 2 contratti CUAD)
+#   ./consiglio/prova.sh --diagnosi               dove si rompe la telepatia: solo telepatia sul set
+#                                                 dimostrativo, senza riallineamento, con 0, 10 e 40 passi latenti;
+#                                                 i risultati vanno in consiglio/risultati-prova/diagnosi
 #   MODELLO=Qwen/Qwen3-8B ./consiglio/prova.sh    sceglie il modello invece di lasciarlo decidere allo script
 #
 # Funziona su macOS (Apple Silicon) e su Linux con una GPU NVIDIA; su Windows va lanciato dentro WSL2.
@@ -13,16 +16,19 @@ set -euo pipefail
 
 RADICE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONSIGLIO="$RADICE/consiglio"
-USCITA="$CONSIGLIO/risultati-prova"
 VENV="$CONSIGLIO/.venv"
 VELOCE=0
+DIAGNOSI=0
 for argomento in "$@"; do
   case "$argomento" in
     --veloce) VELOCE=1 ;;
-    -h | --help) sed -n '2,12p' "$0"; exit 0 ;;
+    --diagnosi) DIAGNOSI=1 ;;
+    -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
     *) echo "Opzione sconosciuta: $argomento (vedi --help)"; exit 2 ;;
   esac
 done
+USCITA="$CONSIGLIO/risultati-prova"
+[ "$DIAGNOSI" = 1 ] && USCITA="$USCITA/diagnosi"
 mkdir -p "$USCITA"
 exec > >(tee -a "$USCITA/prova.log") 2>&1
 
@@ -72,6 +78,13 @@ MAX_TOKEN=""
 LIMITE=""
 if [ "$GPU_GB" -lt 80 ]; then MAX_TOKEN="--max-token 14000"; LIMITE=", contratti fino a 14.000 token"; fi
 echo "Modello: $MODELLO$LIMITE."
+if [ "$DIAGNOSI" = 1 ]; then
+  case "$MODELLO" in
+    *Qwen3-0.6B | *Qwen3-1.7B | *Qwen3-4B)
+      echo "Attenzione: con $MODELLO il riallineamento non cambia quasi niente (embedding d'ingresso e d'uscita"
+      echo "sono gli stessi): la diagnosi dice qualcosa solo con Qwen3-8B o 14B, qui serve a vedere che tutto va." ;;
+  esac
+fi
 [ "$DISPOSITIVO" = "cpu" ] && echo "Attenzione: senza GPU il giro è molto lento (anche ore per contratto)."
 
 passo "2/8 Python e librerie (la prima volta qualche minuto)"
@@ -132,6 +145,9 @@ sys.exit("Il set dimostrativo non coincide con le impronte del repo: " + ", ".jo
 else
   echo "Set dimostrativo non trovato: il giro usa solo CUAD (vedi PROVA.md per averlo)."
 fi
+if [ "$DIAGNOSI" = 1 ] && [ "$CON_DEMO" = 0 ]; then
+  ferma "La diagnosi gira sul set dimostrativo verificato, che qui manca (vedi PROVA.md per averlo)."
+fi
 
 passo "6/8 Modello $MODELLO (la prima volta può volerci molto: il 14B pesa circa 30 GB)"
 REVISIONE="$(cd "$CONSIGLIO/revisione" && "$PY" -c "from revisione.esegui import MODELLI; print(MODELLI['$MODELLO'])")"
@@ -139,25 +155,35 @@ REVISIONE="$(cd "$CONSIGLIO/revisione" && "$PY" -c "from revisione.esegui import
 
 passo "7/8 Il Consiglio"
 giri=()
-if [ "$CON_DEMO" = 1 ]; then
-  giri+=("--benchmark dimostrativo --modalita telepatia")
-  [ "$VELOCE" = 1 ] || giri+=("--benchmark dimostrativo --modalita testo")
-fi
-if [ "$VELOCE" = 1 ]; then
-  [ "$CON_DEMO" = 1 ] || giri+=("--benchmark cuad --modalita telepatia --limite 2")
+PASSI=(10)
+if [ "$DIAGNOSI" = 1 ]; then
+  # Un giro solo, così il modello si carica una volta per i tre valori dei passi. Con 0 passi il relatore riceve solo
+  # la memoria di quello che gli esperti hanno letto: se resta rotto, il problema non sono i passi latenti.
+  giri+=("--benchmark dimostrativo --modalita telepatia --senza-riallineamento")
+  PASSI=(0 10 40)
 else
-  giri+=("--benchmark cuad --modalita telepatia" "--benchmark cuad --modalita testo")
+  if [ "$CON_DEMO" = 1 ]; then
+    giri+=("--benchmark dimostrativo --modalita telepatia")
+    [ "$VELOCE" = 1 ] || giri+=("--benchmark dimostrativo --modalita testo")
+  fi
+  if [ "$VELOCE" = 1 ]; then
+    [ "$CON_DEMO" = 1 ] || giri+=("--benchmark cuad --modalita telepatia --limite 2")
+  else
+    giri+=("--benchmark cuad --modalita telepatia" "--benchmark cuad --modalita testo")
+  fi
 fi
 for giro in "${giri[@]}"; do
   echo "-- $giro ($(date +%H:%M))"
   # shellcheck disable=SC2086
-  (cd "$CONSIGLIO/revisione" && "$PY" -u -m revisione.esegui $giro --passi 10 --modello "$MODELLO" --dtype "$DTYPE" \
-    $MAX_TOKEN --uscita "$USCITA" 2>&1 | grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint") ||
+  (cd "$CONSIGLIO/revisione" && "$PY" -u -m revisione.esegui $giro --passi "${PASSI[@]}" --modello "$MODELLO" \
+    --dtype "$DTYPE" $MAX_TOKEN --uscita "$USCITA" 2>&1 | grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint") ||
     echo "!! Il giro '$giro' si è fermato: il resto continua (dettagli in $USCITA/prova.log)."
 done
 
 passo "8/8 Pagine del verdetto"
-if [ ! -f "$CONSIGLIO/revisione/revisione/vista.py" ]; then
+if [ "$DIAGNOSI" = 1 ]; then
+  echo "Nella diagnosi le pagine non servono: contano i numeri del riepilogo."
+elif [ ! -f "$CONSIGLIO/revisione/revisione/vista.py" ]; then
   echo "La pagina del verdetto arriva con «Pagina del verdetto e flusso Evolus» (ramo feat/63-pagina-verdetto): per ora ci sono solo i .jsonl."
 else
 (cd "$CONSIGLIO/revisione" && "$PY" - "$USCITA" "$DEMO" <<'PAGINE'
@@ -196,7 +222,25 @@ fi
 fi
 
 passo "Riepilogo"
-grep -h " contratti | " "$USCITA/prova.log" | tail -n "${#giri[@]}" || true
+grep -h " contratti | " "$USCITA/prova.log" | tail -n $((${#giri[@]} * ${#PASSI[@]})) || true
+if [ "$DIAGNOSI" = 1 ]; then
+  MANDA="Comprimi la cartella $USCITA e manda lo zip."
+  if command -v zip >/dev/null 2>&1; then
+    rm -f "$USCITA.zip"
+    # Senza le copie intere dei messaggi che il motore salva solo se il sigillo si rompe: pesano GB.
+    (cd "$(dirname "$USCITA")" && zip -qr diagnosi.zip diagnosi -x "diagnosi/registro/*.safetensors") &&
+      MANDA="Lo zip da mandare è $USCITA.zip."
+  fi
+  cat <<FINE
+
+Fatto. Risultati della diagnosi in $USCITA:
+- *.jsonl          le revisioni complete, un file per numero di passi latenti (0, 10, 40)
+- prova.log        tutto quello che è successo
+$MANDA
+Mandalo solo in privato a chi te l'ha chiesto, non su GitHub: contiene frasi del set dimostrativo.
+FINE
+  exit 0
+fi
 cat <<FINE
 
 Fatto. Risultati in $USCITA:

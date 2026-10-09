@@ -43,4 +43,4 @@ def test_note_e_verdetto_validi(motore, modalita):
     assert verdetto.dati["raccomandazione"] in ("firmare", "negoziare", "non firmare")
     assert set(verdetto.probabilita_si) == set(verdetto.dati["segnalare"])
     assert revisione.token_generati > verdetto.token_generati
-    assert (revisione.posizioni_latenti == 6) == (modalita == TELEPATIA)
+    assert (revisione.posizioni_latenti == 6) == (modalita == TELEPATIA) and revisione.riallineamento
