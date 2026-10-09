@@ -6,6 +6,8 @@ import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from .normalizza import numero_documento
+
 
 @dataclass
 class Fornitore:
@@ -58,6 +60,14 @@ class Archivi:
     anagrafica: dict[str, Fornitore] = field(default_factory=dict)
     ordini: dict[str, Ordine] = field(default_factory=dict)
     storico: list[VoceStorico] = field(default_factory=list)
+
+    def ordine(self, numero: str | None) -> Ordine | None:
+        """L'ordine scritto in fattura, con il numero normalizzato come quello del documento in A01:
+        `PO/2026/42` è `PO-2026-0042`."""
+        if not numero:
+            return None
+        chiave = numero_documento(numero)
+        return next((o for k, o in self.ordini.items() if numero_documento(k) == chiave), None)
 
     def salva(self, cartella: Path) -> None:
         cartella.mkdir(parents=True, exist_ok=True)
