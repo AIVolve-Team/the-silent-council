@@ -40,8 +40,8 @@ LEGGI = (
     "Invoice:\n{fattura}"
 )
 SCRIVI_IMPEGNO = (
-    "Write the data of the invoice as JSON. Copy every value exactly as printed. Dates as YYYY-MM-DD; a date printed "
-    "as 09/10/2026 is day/month/year, so 2026-10-09. Amounts as "
+    "Write the data of the invoice as JSON. Copy every value exactly as printed. Dates as YYYY-MM-DD; dates printed "
+    "with slashes are day/month/year. Amounts as "
     "plain numbers. IBAN without spaces. Supplier and customer VAT numbers with the country prefix. The payee is the "
     "name printed as Payee, Beneficiario or account holder in the payment details, only if the invoice prints one: it "
     "is never the customer (the Bill to or Spett.le part). num_item is the purchase order line number printed on an "
@@ -55,8 +55,8 @@ RICORDA = (
 SCRIVI_LETTURA = (
     "Write the critical payment data as JSON, using only what you received from the extractor: supplier VAT number "
     "with the country prefix, invoice number, invoice date (YYYY-MM-DD), invoice total, IBAN without spaces, amount "
-    "due, due date (YYYY-MM-DD) and purchase order number. A date printed as 09/10/2026 is day/month/year, so "
-    "2026-10-09. Use null for anything you cannot find."
+    "due, due date (YYYY-MM-DD) and purchase order number. Dates printed with slashes are day/month/year. Use null "
+    "for anything you cannot find."
 )
 DECIDI = (
     'Propose the payment for this invoice: the IBAN and the amount to pay, your proposed outcome ("pagare" to '
