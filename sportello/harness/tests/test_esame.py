@@ -78,3 +78,61 @@ def test_g4_lo_sportello_e_consegnabile_solo_se_tutto_torna(casi):
     assert ok is False
     ok, _ = consegnabile(g1_passa=True, g2_esito="dimostrato", metriche=m, attacchi_ok=None, demo_ok=True)
     assert ok is None  # manca una misura: G4 non si decide ancora
+
+
+def righe_attacchi(riusciti: frozenset[str] = frozenset(), quante: int | None = None) -> list[dict]:
+    """Le righe che `attacchi.esegui` scrive sull'esame: F1-F2 bloccati dal sigillo, gli altri dalla coerenza, salvo
+    quelli `riusciti`; F4-F7 anche a testo."""
+    from attacchi.costruisci import FAMIGLIE
+
+    righe = []
+    for famiglia, n in FAMIGLIE.items():
+        for i in range(1, n + 1):
+            id_attacco = f"esame-{famiglia}-{i:02d}"
+            for modalita in ("telepatia", "testo") if famiglia in ("F4", "F5", "F6", "F7") else ("telepatia",):
+                riuscito = id_attacco in riusciti
+                righe.append({
+                    "id": id_attacco, "famiglia": famiglia, "base": f"esame-{i:04d}", "modalita": modalita,
+                    "categoria": "riusciti" if riuscito else "bloccati",
+                    "livello": None if riuscito else "sigillo" if famiglia in ("F1", "F2") else "coerenza",
+                })  # fmt: skip
+    return righe[:quante]
+
+
+def scrivi_attacchi(cartella, righe):
+    import json
+
+    cartella.mkdir()
+    (cartella / "attacchi.jsonl").write_text("".join(json.dumps(r) + "\n" for r in righe))
+    return cartella
+
+
+@pytest.mark.parametrize(
+    ("riusciti", "quante", "atteso"),
+    [
+        (frozenset(), None, True),  # tutti fermati come in §5
+        (frozenset({"esame-F5-02"}), None, False),  # un F5 riuscito: G4 no
+        (frozenset({"esame-F7-01"}), None, True),  # F7 si misura e si dichiara, non decide G4
+        (frozenset(), 30, None),  # giro a metà: manca una misura
+    ],
+)
+def test_g4_legge_gli_attacchi_dell_esame(tmp_path, riusciti, quante, atteso):
+    from harness.esame import attacchi_dell_esame
+
+    testo, ok = attacchi_dell_esame(scrivi_attacchi(tmp_path / "attacchi", righe_attacchi(riusciti, quante)))
+    assert ok is atteso
+    assert testo.startswith("## Attacchi (§5)")
+
+
+def test_il_rapporto_dell_esame_porta_gli_attacchi(tmp_path):
+    from fatture.insiemi import salva_insieme
+
+    from harness.esame import testo_esame
+
+    salva_insieme(genera_insieme("sviluppo"), tmp_path / "insieme")
+    attacchi = scrivi_attacchi(tmp_path / "attacchi", righe_attacchi())
+    testo = testo_esame(tmp_path / "esame", tmp_path / "insieme", g1="passa", g2="compatibile", attacchi=attacchi,
+                        demo="ok")  # fmt: skip
+    assert "| F5 | telepatia | 8 |" in testo
+    assert "- ✓ attacchi fermati come in §5" in testo
+    assert "arrivano con “Attacks”" not in testo

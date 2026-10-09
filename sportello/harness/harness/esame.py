@@ -1,7 +1,9 @@
 """L'esame del 16/10 e la lista di G4 (§6-§9).
 
     python -m harness.esame esegui ../dati/insiemi/esame --passi 10 --modello Qwen/Qwen3-14B --uscita risultati/esame
-    python -m harness.esame rapporto risultati/esame ../dati/insiemi/esame --g1 passa --g2 compatibile
+    python -m attacchi.esegui esegui ../dati/insiemi/esame --passi 10 --uscita risultati/esame/attacchi
+    python -m harness.esame rapporto risultati/esame ../dati/insiemi/esame --g1 passa --g2 compatibile \
+        --attacchi risultati/esame/attacchi --demo ok
 
 L'esame si apre **una volta sola**, la notte fra il 15 e il 16/10, sulla versione scelta con lo sviluppo; prima di
 partire si controlla che la sua impronta sia quella scritta su «Eval pre-registrato G1-G4».
@@ -142,6 +144,21 @@ def leggi_righe(file: Path) -> list[dict]:
     return [json.loads(r) for r in file.read_text().splitlines()] if file.exists() else []
 
 
+def attacchi_dell_esame(cartella: Path) -> tuple[str, bool | None]:
+    """Gli attacchi dell'esame (§5), dal giro di `attacchi.esegui`: il rapporto per famiglia e se le soglie tornano.
+    Le soglie si leggono in telepatia, come nel rapporto degli attacchi. Senza tutti e 50 la misura manca."""
+    from attacchi.costruisci import FAMIGLIE
+    from attacchi.esegui import conteggi, rapporto, soglie
+
+    righe = leggi_righe(cartella / "attacchi.jsonl")
+    if not righe:
+        return f"## Attacchi (§5)\n\nNessun attacco esaminato in {cartella}.\n", None
+    telepatia = [r for r in righe if r["modalita"] == "telepatia"]
+    if len({r["id"] for r in telepatia}) < sum(FAMIGLIE.values()):
+        return rapporto(cartella, None), None
+    return rapporto(cartella, None), all(ok for _, ok in soglie(conteggi(telepatia)))
+
+
 def partner_di(casi: list[Caso]) -> dict[str, str]:
     """Per la prova della memoria: ogni fattura pulita prende la memoria della pulita successiva, in cerchio."""
     pulite = [c.id for c in casi if c.anomalia is None]
@@ -201,7 +218,7 @@ def stato(valore: str | None) -> bool | None:
     return {"passa": True, "ok": True, "no": False, "non-passa": False}.get(valore or "", None)
 
 
-def testo_esame(cartella: Path, esame: Path, *, g1: str | None, g2: str | None, attacchi: str | None,
+def testo_esame(cartella: Path, esame: Path, *, g1: str | None, g2: str | None, attacchi: Path | None,
                 demo: str | None) -> str:  # fmt: skip
     casi = {c.id: c for c in carica_casi(esame)}
     tel, txt = leggi_righe(cartella / "giri" / "telepatia.jsonl"), leggi_righe(cartella / "giri" / "testo.jsonl")
@@ -235,10 +252,13 @@ def testo_esame(cartella: Path, esame: Path, *, g1: str | None, g2: str | None, 
         righe.append(
             f"- **Senza pensieri**: {frase_pensieri(accuratezza_lettura(pulite, casi), accuratezza_lettura(senza, casi))}"
         )
-    righe.append("- **Attacchi** (§5): arrivano con “Attacks”.")
-    ok, voci = consegnabile(
-        g1_passa=stato(g1), g2_esito=g2, metriche=mt, attacchi_ok=stato(attacchi), demo_ok=stato(demo)
-    )
+    attacchi_ok = None
+    if attacchi is None:
+        righe.append("- **Attacchi** (§5): manca il giro degli attacchi dell'esame (`--attacchi`).")
+    else:
+        testo_attacchi, attacchi_ok = attacchi_dell_esame(attacchi)
+        righe += ["", testo_attacchi.rstrip()]
+    ok, voci = consegnabile(g1_passa=stato(g1), g2_esito=g2, metriche=mt, attacchi_ok=attacchi_ok, demo_ok=stato(demo))
     righe += ["", "## G4: lo Sportello è consegnabile?", ""]
     righe += [f"- {s} {nome}" for nome, s in voci]
     righe += ["", {True: "**Sì**", False: "**No**", None: "**Non ancora: manca una misura**"}[ok]]
@@ -270,7 +290,7 @@ def main() -> None:
     r.add_argument("esame", type=Path)
     r.add_argument("--g1", choices=["passa", "non-passa"], default=None)
     r.add_argument("--g2", choices=["dimostrato", "compatibile", "no"], default=None)
-    r.add_argument("--attacchi", choices=["ok", "no"], default=None)
+    r.add_argument("--attacchi", type=Path, default=None, help="il giro degli attacchi sull'esame (attacchi.esegui)")
     r.add_argument("--demo", choices=["ok", "no"], default=None)
     a = parser.parse_args()
     if a.comando == "esegui":

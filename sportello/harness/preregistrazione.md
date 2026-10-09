@@ -4,6 +4,8 @@ Questo file è la copia nel repo delle regole decise l'8/10/2026 in Eval pre-reg
 
 - **Impronta dell'esame** (seme 102, 200 fatture): `b6c4fb1490adc76290ab4589350a9c459d2a8c49a3bcc3cc401546b35eed82a5`, scritta l'8/10, prima di qualunque misura. `harness.esame` la ricontrolla prima di partire.
 - **Impronta dello sviluppo** (seme 101, 100 fatture): `160d6c45285a88075e9cfe0c27377b04dd3b434cbcac3a25da0cc9e18340cc4e`.
+- **Impronta dei 50 attacchi dell'esame** (§5): `06b6548aee2bc253ca13da6917570662868f07aa23a70cb967f1302deea127bb`, scritta l'8/10, prima di qualunque misura. `attacchi.esegui` la ricontrolla prima di partire. Per riferimento, i 50 dello sviluppo: `afb84cd9a976c8560e4e28bfd6aff3f5223cbc085a27073bdb59986cc48bb458`.
+- **Ricontrollate il 9/10** con il codice di quel giorno, dopo le regole nuove contro F7: le quattro impronte sono ancora quelle scritte.
 - **Conferma di un'altra persona del team** (§10): da @portapulito, attesa entro l'11/10.
 
 Il testo qui sotto è quello del commento, senza modifiche.
