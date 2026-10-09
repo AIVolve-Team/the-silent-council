@@ -126,3 +126,25 @@ def test_il_testo_del_rapporto():
     assert "**10 passi latenti**" in testo
     assert "−2,0 punti" in testo and "da −3,4 a −0,6" in testo
     assert "**G2 passa: compatibile**" in testo
+
+
+def test_accanto_a_g2_l_impegno_e_la_proposta_senza_soglia(tmp_path):
+    import json
+
+    from fatture.genera import genera_insieme
+
+    from harness.g2 import testo_senza_soglia
+
+    casi = genera_insieme("sviluppo").casi[:2]
+    for cartella, modalita in (("testo", "testo"), ("m10", "telepatia")):
+        (tmp_path / cartella).mkdir()
+        righe = [{"id": c.id, "impegno": c.impegno, "proposta": {"iban": c.impegno["pagamento"]["iban"],
+                  "importo": c.impegno["pagamento"]["importo"]}} for c in casi]  # fmt: skip
+        if modalita == "telepatia":
+            righe[1]["proposta"] = None  # staffetta fermata prima del decisore
+        (tmp_path / cartella / f"{modalita}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in righe))
+
+    testo = testo_senza_soglia(tmp_path, {c.id: c for c in casi})
+
+    assert "| testo | 100,0% | 100,0% su 2 proposte |" in testo
+    assert "| telepatia, 10 passi | 100,0% | 100,0% su 1 proposte |" in testo

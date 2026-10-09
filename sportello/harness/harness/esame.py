@@ -21,6 +21,8 @@ from fatture.insiemi import carica_archivi, carica_casi, impronta
 from pipeline.riepilogo import dati_giusti
 from pipeline.schemi import lettura_da
 
+from .impegno import accuratezza_impegno, accuratezza_proposta
+
 IMPRONTA_ESAME = "b6c4fb1490adc76290ab4589350a9c459d2a8c49a3bcc3cc401546b35eed82a5"  # scritta su “Pre-registered eval G1-G4” l'8/10
 # Per provare i comandi senza aprire l'esame: le fatture di sviluppo, con la loro impronta (anche questa su «Eval pre-registrato G1-G4»).
 IMPRONTA_SVILUPPO = "160d6c45285a88075e9cfe0c27377b04dd3b434cbcac3a25da0cc9e18340cc4e"
@@ -234,6 +236,9 @@ def testo_esame(cartella: Path, esame: Path, *, g1: str | None, g2: str | None, 
         f"| Persona su pulite al limite / altre | {mt.persona_pulite_limite} / {mt.persona_pulite_altre} | {mx.persona_pulite_limite} / {mx.persona_pulite_altre} |",
         f"| Dubbi pagati senza persona | {mt.dubbi_pagati} | {mx.dubbi_pagati} |",
         f"| Lettura giusta (8 dati critici) | {it(accuratezza_lettura(tel, casi))}% | {it(accuratezza_lettura(txt, casi))}% |",
+        f"| Impegno giusto, tutti i campi (senza soglia) | {it(accuratezza_impegno(tel, casi))}% | {it(accuratezza_impegno(txt, casi))}% |",
+        "| Proposta giusta, IBAN e importo (senza soglia) | {} | {} |".format(
+            *(f"{it(a)}% su {n}" for a, n in (accuratezza_proposta(tel, casi), accuratezza_proposta(txt, casi)))),
         f"| Token generati per fattura | {it(mt.token_generati / max(mt.fatture, 1), 0)} | {it(mx.token_generati / max(mx.fatture, 1), 0)} |",
         f"| Secondi per fattura | {it(mt.secondi_per_fattura)} | {it(mx.secondi_per_fattura)} |",
         f"| Fatture all'ora, una alla volta | {it(mt.fatture_all_ora, 0)} | {it(mx.fatture_all_ora, 0)} |",

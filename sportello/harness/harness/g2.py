@@ -9,6 +9,7 @@
   anche il limite inferiore sta entro i −3 punti, altrimenti "compatibile". Sotto i −3 punti G2 non passa.
 - **Passi latenti:** 10, 20 e 40; vince l'accuratezza più alta, e sotto 1 punto di differenza vince il valore con meno
   passi. `m=0` si misura nella stessa prova, ma non è un candidato.
+- **Accanto, senza soglia:** l'impegno su tutti i campi e la proposta (`impegno.py`), sulle stesse fatture.
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from fatture.genera import Caso
 from fatture.insiemi import carica_casi
 from pipeline.riepilogo import dati_giusti
 from pipeline.schemi import lettura_da
+
+from .impegno import accuratezza_impegno, accuratezza_proposta
 
 SOGLIA = -3.0
 CANDIDATI = (10, 20, 40)
@@ -85,9 +88,13 @@ def giusti_per_fattura(file: Path, casi: dict[str, Caso]) -> dict[str, int]:
     return {r["id"]: dati_giusti(lettura_da(casi[r["id"]].impegno), r.get("lettura")) for r in righe}
 
 
-def risultato_g2(cartella: Path, casi: dict[str, Caso]) -> RisultatoG2:
+def file_dei_giri(cartella: Path) -> dict:
     giri = {"testo": cartella / "testo" / "testo.jsonl"}
-    giri |= {m: cartella / f"m{m}" / "telepatia.jsonl" for m in (0, *CANDIDATI)}
+    return giri | {m: cartella / f"m{m}" / "telepatia.jsonl" for m in (0, *CANDIDATI)}
+
+
+def risultato_g2(cartella: Path, casi: dict[str, Caso]) -> RisultatoG2:
+    giri = file_dei_giri(cartella)
     giusti = {chiave: giusti_per_fattura(file, casi) for chiave, file in giri.items() if file.exists()}
     giusti = {chiave: v for chiave, v in giusti.items() if v}
     # Se il tempo finisce a metà di una fattura, si confronta solo sulle fatture finite in tutti i giri.
@@ -130,6 +137,28 @@ def testo_g2(r: RisultatoG2) -> str:
     return "\n".join(righe) + "\n"
 
 
+def testo_senza_soglia(cartella: Path, casi: dict[str, Caso]) -> str:
+    """Accanto a G2, senza soglia: l'impegno su tutti i campi e la proposta, giro per giro, sulle stesse
+    fatture di G2 (quelle finite in tutti i giri)."""
+    giri = {k: [json.loads(r) for r in f.read_text().splitlines()] for k, f in file_dei_giri(cartella).items()
+            if f.exists()}  # fmt: skip
+    giri = {k: v for k, v in giri.items() if v}
+    if not giri:
+        return ""
+    comuni = set.intersection(*({r["id"] for r in v} for v in giri.values()))
+    intestazione = "| Giro | Impegno giusto, tutti i campi | Proposta giusta, IBAN e importo |"
+    righe = ["### Accanto a G2, senza soglia", "", intestazione, "|---|---|---|"]
+    for chiave in ("testo", 0, *CANDIDATI):
+        if chiave not in giri:
+            continue
+        mie = [r for r in giri[chiave] if r["id"] in comuni]
+        proposta, quante = accuratezza_proposta(mie, casi)
+        nome = "testo" if chiave == "testo" else f"telepatia, {chiave} passi"
+        righe.append(f"| {nome} | {accuratezza_impegno(mie, casi):.1f}% | {proposta:.1f}% su {quante} proposte |"
+                     .replace(".", ","))  # fmt: skip
+    return "\n".join(righe) + "\n"
+
+
 def esegui(argomenti) -> None:
     """I cinque giri sullo sviluppo, una fattura alla volta in tutti: se il tempo finisce, i confronti restano."""
     from motore import Modello
@@ -169,6 +198,7 @@ def main() -> None:
     else:
         casi = {c.id: c for c in carica_casi(argomenti.insieme)}
         print(testo_g2(risultato_g2(argomenti.cartella, casi)))
+        print(testo_senza_soglia(argomenti.cartella, casi))
 
 
 if __name__ == "__main__":

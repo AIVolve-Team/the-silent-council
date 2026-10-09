@@ -134,5 +134,7 @@ def test_il_rapporto_dell_esame_porta_gli_attacchi(tmp_path):
     testo = testo_esame(tmp_path / "esame", tmp_path / "insieme", g1="passa", g2="compatibile", attacchi=attacchi,
                         demo="ok")  # fmt: skip
     assert "| F5 | telepatia | 8 |" in testo
+    assert "| Impegno giusto, tutti i campi (senza soglia) |" in testo
+    assert "| Proposta giusta, IBAN e importo (senza soglia) |" in testo
     assert "- ✓ attacchi fermati come in §5" in testo
     assert "arrivano con “Attacks”" not in testo
