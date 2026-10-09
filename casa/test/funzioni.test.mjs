@@ -26,7 +26,9 @@ beforeEach(() => {
   process.env.MOTORE_URL = "https://motore.example";
   process.env.MOTORE_SEGRETO = "segreto-del-motore";
   delete process.env.EVOLUS_ATTIVO;
-  Object.assign(process.env, { EVOLUS_URL: "https://evolus.example", EVOLUS_WORKFLOW: "wf-2", EVOLUS_API_KEY: "chiave-evolus" });
+  Object.assign(process.env, {
+    EVOLUS_URL: "https://evolus.example", EVOLUS_WORKFLOW: "wf-2", EVOLUS_API_KEY: "chiave-evolus", EVOLUS_SPAZIO: "spazio-1",
+  }); // prettier-ignore
 });
 afterEach(() => {
   globalThis.fetch = veroFetch;
@@ -94,6 +96,14 @@ test("accesa, la decisione parte verso Evolus solo per un caso che il motore con
   const aEvolus = chiamate.filter((c) => c.url.host === "evolus.example");
   assert.equal(aEvolus.length, 1);
   assert.equal(aEvolus[0].url.pathname, "/api/v1/workflows/wf-2/execute");
-  assert.equal(aEvolus[0].opzioni.headers.Authorization, "Bearer chiave-evolus");
+  // Come nella pagina per sviluppatori di Evolus: multipart, X-ApiKey e X-Application-Id, i parametri dichiarati
+  // nel workflow come JSON piatto in "parameters", e niente callbackUrl (sposterebbe il «Call an endpoint»).
+  const { headers, body } = aEvolus[0].opzioni;
+  assert.deepEqual(headers, { "X-ApiKey": "chiave-evolus", "X-Application-Id": "spazio-1" });
+  assert.ok(body instanceof FormData);
+  assert.deepEqual(JSON.parse(body.get("parameters")), {
+    id_caso: "sportello-0123456789ab", decisione: "approvato", chi: "persona sulla pagina del caso", nota: "",
+  }); // prettier-ignore
+  assert.equal(body.get("callbackUrl"), null);
   assert.doesNotMatch(await nuova.text(), /chiave-evolus/);
 });

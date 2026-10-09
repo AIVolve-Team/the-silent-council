@@ -37,8 +37,8 @@ cd casa && vercel deploy --prod # la CLI: il piano gratuito non collega i repo d
 | `MOTORE_URL` | stato, prove, decisione | l'indirizzo pubblico del server del motore, con TLS |
 | `MOTORE_SEGRETO` | stato, prove, decisione | lo stesso `SPORTELLO_SEGRETO` del server |
 | `EVOLUS_ATTIVO` | decisione | `1` solo per le riprese del video e per il palco: ogni giro Evolus costa crediti |
-| `EVOLUS_URL`, `EVOLUS_WORKFLOW`, `EVOLUS_API_KEY` | decisione | il secondo workflow (`POST /api/v1/workflows/{id}/execute`) |
-| `EVOLUS_INTESTAZIONE` | decisione | se la chiave non va in `Authorization: Bearer`; **da verificare al kickoff**, come il formato dell'ingresso |
+| `EVOLUS_WORKFLOW`, `EVOLUS_API_KEY`, `EVOLUS_SPAZIO` | decisione | il secondo workflow, `POST https://api.evolus.ai/api/v1/workflows/{id}/execute` in multipart con `X-ApiKey` e `X-Application-Id`, come nella [pagina per sviluppatori](https://evolus.ai/en/developers). Id e chiave da «When it starts» › «Trigger via webhook», lo "Space ID" da «Your company» › «API keys». I parametri `id_caso`, `decisione`, `chi`, `nota` vanno dichiarati nel workflow (`sportello/servizio/EVOLUS.md`, passo 5) |
+| `EVOLUS_URL` | decisione | solo se l'indirizzo dell'API non è `https://api.evolus.ai` |
 
 Le chiavi stanno solo qui: il browser non le vede mai, e nessuna funzione le rimanda indietro (lo controllano i test).
 
