@@ -9,7 +9,7 @@ from revisione import BENCHMARK
 from revisione.citazioni import trovata, verifica
 from revisione.confidenza import livello, probabilita_si
 from revisione.consiglio import Scritto, dissensi
-from revisione.punteggio import vota
+from revisione.punteggio import accordo, vota
 from revisione.schemi import schema_nota, schema_verdetto
 
 CUAD = BENCHMARK["cuad"]
@@ -77,6 +77,30 @@ def test_voto_con_base_sempre_si():
     voto = vota(revisioni, giuste)
     assert (voto.vp, voto.fp, voto.fn, voto.vn, voto.non_valide) == (1, 0, 2, 1, 2)
     assert round(voto.f1, 1) == 50.0 and round(voto.f1_sempre_si, 1) == round(100 * 2 * 3 / 7, 1)
+
+
+def test_voto_delle_note_e_accordo_con_il_verdetto():
+    def nota(segnalare):
+        return {"dati": None if segnalare is None else {"segnalare": segnalare}}
+
+    revisioni = [
+        {
+            "contratto": "a",
+            "note": {"legale": nota({"x": True}), "rischio": nota({"y": True})},
+            "verdetto": {"dati": {"segnalare": {"x": False, "y": True}}},
+        },
+        # La nota della finanza non è valida: la sua categoria conta come "no" e non si confronta col verdetto.
+        {
+            "contratto": "b",
+            "note": {"legale": nota({"x": False}), "finanza": nota(None)},
+            "verdetto": {"dati": {"segnalare": {"x": True, "y": True}}},
+        },
+    ]
+    giuste = {("a", "x"): True, ("a", "y"): True, ("b", "x"): False, ("b", "y"): True}
+    voto = vota(revisioni, giuste, dalle_note=True)
+    assert (voto.vp, voto.fp, voto.fn, voto.vn, voto.non_valide) == (2, 0, 1, 1, 1)
+    assert accordo(revisioni) == (1, 3)
+    assert accordo([{**revisioni[0], "verdetto": None}]) == (0, 0)
 
 
 def test_limite_di_token_dal_caso_peggiore_dello_schema():

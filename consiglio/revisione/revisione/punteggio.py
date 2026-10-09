@@ -1,4 +1,5 @@
-"""Il voto sulle coppie (contratto, categoria): F1, precisione, richiamo, MCC e la base "sempre sì".
+"""Il voto sulle coppie (contratto, categoria): F1, precisione, richiamo, MCC e la base "sempre sì",
+per il verdetto e per le note degli esperti, e quanto note e verdetto vanno d'accordo.
 
 Una versione minima, per la taratura dei passi latenti sul set di sviluppo. L'eval completo è di «Eval del Consiglio».
 """
@@ -41,21 +42,49 @@ class Voto:
         return 100 * 2 * positivi / (positivi + totale) if positivi else 0.0
 
 
-def vota(revisioni: list[dict], giuste: dict[tuple[str, str], bool]) -> Voto:
-    """Confronta i verdetti con le risposte giuste. Un verdetto non valido o mancante conta come "no" su tutte le
-    sue coppie, e si conta a parte."""
-    verdetti = {r["contratto"]: r["verdetto"] for r in revisioni}
+def _segnalare(revisione: dict, dalle_note: bool) -> dict[str, bool] | None:
+    """Le risposte su un contratto: quelle del verdetto, oppure quelle delle note valide messe insieme (ogni categoria
+    la guarda un esperto solo, quindi non si sovrappongono). None se non ce n'è nessuna valida."""
+    if dalle_note:
+        note = [n["dati"]["segnalare"] for n in revisione["note"].values() if n["dati"] is not None]
+        return {chiave: si for segnalare in note for chiave, si in segnalare.items()} if note else None
+    verdetto = revisione["verdetto"]
+    return verdetto["dati"]["segnalare"] if verdetto and verdetto["dati"] is not None else None
+
+
+def vota(revisioni: list[dict], giuste: dict[tuple[str, str], bool], *, dalle_note: bool = False) -> Voto:
+    """Confronta i verdetti con le risposte giuste. Una risposta non valida o mancante conta come "no", e si conta a
+    parte.
+
+    Con `dalle_note` al posto del verdetto ci sono le note degli esperti messe insieme: se le note vanno bene e il
+    verdetto no, le segnalazioni si perdono nel relatore.
+    """
+    risposte = {r["contratto"]: _segnalare(r, dalle_note) for r in revisioni}
     vp = fp = fn = vn = non_valide = 0
     for (contratto, categoria), giusta in giuste.items():
-        if contratto not in verdetti:
+        if contratto not in risposte:
             continue
-        verdetto = verdetti[contratto]
-        dati = verdetto["dati"] if verdetto else None
-        if dati is None:
+        segnalare = risposte[contratto]
+        if segnalare is None or categoria not in segnalare:
             non_valide += 1
-        detta = bool(dati and dati["segnalare"].get(categoria))
+        detta = bool(segnalare and segnalare.get(categoria))
         vp += detta and giusta
         fp += detta and not giusta
         fn += giusta and not detta
         vn += not giusta and not detta
     return Voto(vp, fp, fn, vn, non_valide)
+
+
+def accordo(revisioni: list[dict]) -> tuple[int, int]:
+    """Su quante categorie il verdetto dice lo stesso della nota dell'esperto che le guarda, fra quelle dove ci sono
+    sia la nota sia il verdetto: (d'accordo, confrontate)."""
+    uguali = confrontate = 0
+    for revisione in revisioni:
+        verdetto, note = _segnalare(revisione, False), _segnalare(revisione, True)
+        if verdetto is None or note is None:
+            continue
+        for chiave, si in note.items():
+            if chiave in verdetto:
+                confrontate += 1
+                uguali += si == verdetto[chiave]
+    return uguali, confrontate

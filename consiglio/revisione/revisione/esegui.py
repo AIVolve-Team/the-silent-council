@@ -4,6 +4,7 @@ Esempi:
     python -m revisione.esegui --benchmark cuad --insieme sviluppo --modalita telepatia --passi 10
     python -m revisione.esegui --benchmark dimostrativo --modalita testo
     python -m revisione.esegui --benchmark cuad --insieme sviluppo --passi 0 10 20 40   # taratura dei passi
+    python -m revisione.esegui --benchmark dimostrativo --senza-riallineamento --passi 0 10 40   # diagnosi
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from motore import TELEPATIA, TESTO, Modello, Motore
 from .categorie import BENCHMARK
 from .consiglio import Consiglio
 from .dati import contratti, dimostrativo, risposte_giuste
-from .punteggio import vota
+from .punteggio import accordo, vota
 
 MODELLI = {
     "Qwen/Qwen3-0.6B": "c1899de289a04d12100db370d81485cdf75e47ca",
@@ -51,6 +52,10 @@ def libera_memoria() -> None:
 
 def sintesi(revisioni: list[dict], giuste: dict) -> str:
     voto = vota(revisioni, giuste)
+    # Le note prese come verdetto e l'accordo con il verdetto dicono dove si perde una segnalazione: negli esperti o
+    # nel relatore.
+    dalle_note = vota(revisioni, giuste, dalle_note=True)
+    uguali, confrontate = accordo(revisioni)
     note = [n for r in revisioni for n in r["note"].values()]
     validi = sum(r["verdetto"] is not None and r["verdetto"]["dati"] is not None for r in revisioni)
     dissensi = Counter(d["tipo"] for r in revisioni for d in r["dissensi"])
@@ -58,7 +63,9 @@ def sintesi(revisioni: list[dict], giuste: dict) -> str:
     return (
         f"{len(revisioni)} contratti | verdetti validi {validi}/{len(revisioni)} | note valide "
         f"{sum(x['dati'] is not None for x in note)}/{len(note)} | F1 {voto.f1:.1f} (P {voto.precisione:.1f}, "
-        f"R {voto.richiamo:.1f}, MCC {voto.mcc:.2f}; sempre sì {voto.f1_sempre_si:.1f}) | dissensi {dict(dissensi)} | "
+        f"R {voto.richiamo:.1f}, MCC {voto.mcc:.2f}; sempre sì {voto.f1_sempre_si:.1f}) | note come verdetto F1 "
+        f"{dalle_note.f1:.1f} (P {dalle_note.precisione:.1f}, R {dalle_note.richiamo:.1f}) | note e verdetto d'accordo "
+        f"{uguali}/{confrontate} | dissensi {dict(dissensi)} | "
         f"token generati {sum(r['token_generati'] for r in revisioni) / n:.0f} e letti "
         f"{sum(r['token_letti'] for r in revisioni) / n:.0f} per contratto | {sum(r['secondi'] for r in revisioni) / n:.0f} s"
     )
@@ -78,6 +85,11 @@ def main() -> None:
     )
     parser.add_argument("--traduci", action="store_true", help="traduzione italiana delle citazioni")
     parser.add_argument(
+        "--senza-riallineamento",
+        action="store_true",
+        help="i passi latenti senza la matrice W_a di LatentMAS, che lì è spenta di default (diagnosi del 12/10)",
+    )
+    parser.add_argument(
         "--dtype",
         choices=["float32", "bfloat16", "float16"],
         help="di default bf16 su GPU, fp32 altrove; su un Mac da 16 GB conviene bf16",
@@ -90,7 +102,12 @@ def main() -> None:
             "Il test si fa girare solo con l'eval pre-registrato, una volta, dopo il commit delle regole."
         )
     dtype = getattr(torch, argomenti.dtype) if argomenti.dtype else None
-    modello = Modello(argomenti.modello, argomenti.revisione or MODELLI[argomenti.modello], dtype=dtype)
+    modello = Modello(
+        argomenti.modello,
+        argomenti.revisione or MODELLI[argomenti.modello],
+        dtype=dtype,
+        riallinea=not argomenti.senza_riallineamento,
+    )
     motore = Motore(modello, registro=argomenti.uscita / "registro")
     voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
     if argomenti.max_token:
@@ -110,6 +127,8 @@ def main() -> None:
             traduci=argomenti.traduci,
         )
         nome = f"{argomenti.benchmark}-{argomenti.insieme}-{argomenti.modalita}-m{passi}-{argomenti.modello.split('/')[-1]}"
+        if argomenti.senza_riallineamento:
+            nome += "-senza-riallineamento"  # i giri normali non si sovrascrivono
         revisioni = []
         with (argomenti.uscita / f"{nome}.jsonl").open("w") as f:
             for contratto, testo in voci:

@@ -20,7 +20,7 @@ Per un contratto:
 | `revisione/consiglio.py` | `Consiglio.revisiona`: taglio, staffetta, note, verdetto, confidenza e dissenso |
 | `revisione/confidenza.py` | p(sì) dai logprob osservati, livelli alta / media / bassa |
 | `revisione/citazioni.py` | verifica delle citazioni nel testo del contratto |
-| `revisione/punteggio.py` | F1, precisione, richiamo, MCC e base "sempre sì" sulle coppie (contratto, categoria) |
+| `revisione/punteggio.py` | F1, precisione, richiamo, MCC e base "sempre sì" sulle coppie (contratto, categoria), per il verdetto e per le note; accordo fra note e verdetto |
 | `revisione/esegui.py` | fa girare il Consiglio su un insieme e scrive una revisione per riga in `risultati/` |
 | `revisione/dati.py` | legge contratti, risposte giuste e set dimostrativo da `consiglio/dati` |
 | `revisione/vista.py` | dalla revisione alla vista della pagina del verdetto, e la pagina con i dati dentro |
@@ -31,18 +31,20 @@ Per un contratto:
 ```bash
 cd consiglio/revisione
 uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/requirements.txt
-.venv/bin/python -m pytest -q -m "not modello" # 20 test veloci
-.venv/bin/python -m pytest -q # 22 test, circa 4 minuti su un Mac M4 (Qwen3-0.6B)
+.venv/bin/python -m pytest -q -m "not modello" # 22 test veloci
+.venv/bin/python -m pytest -q # 24 test, circa 4 minuti su un Mac M4 (Qwen3-0.6B)
 
 # I contratti del set di misura vengono da consiglio/dati/cache (prepara.py li scarica).
 .venv/bin/python -m revisione.esegui --benchmark cuad --modalita telepatia --passi 10 --modello Qwen/Qwen3-1.7B
 .venv/bin/python -m revisione.esegui --benchmark dimostrativo --modalita testo
 .venv/bin/python -m revisione.esegui --benchmark cuad --passi 0 10 20 40 # taratura dei passi latenti 
+.venv/bin/python -m revisione.esegui --benchmark dimostrativo --senza-riallineamento --passi 0 10 40 # diagnosi 
 ```
 
 - Il set dimostrativo sta in `consiglio/dati/set-dimostrativo`, fuori dal repo; con `CONSIGLIO_SET_DIMOSTRATIVO` si indica un'altra cartella.
 - `esegui` gira solo sul set di **sviluppo**. Il test si fa girare una volta sola, con l'eval pre-registrato.
 - Le revisioni finiscono in `risultati/`, una per riga, con note, verdetto, confidenze, dissensi, citazioni verificate, token, tempo e impronte dei messaggi.
+- `--senza-riallineamento` spegne la matrice W_a di LatentMAS sui passi latenti, come è di default in LatentMAS; il nome del file finisce con `-senza-riallineamento`. Il riepilogo di ogni giro dà anche l'F1 delle note prese come verdetto e l'accordo fra note e verdetto, per vedere se una segnalazione si perde negli esperti o nel relatore.
 - Per le prove e per la demo, `Consiglio.revisiona(..., pensieri_da=..., attacchi=...)` passa le opzioni alla staffetta del motore.
 
 ## La pagina del verdetto 

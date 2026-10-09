@@ -57,10 +57,49 @@ Alla fine lo script stampa un riepilogo per ogni giro e apre la pagina del primo
 
 Sono numeri del **set di sviluppo**, per capire come va. I numeri per la giuria vengono dall'eval pre-registrato, sul set di test e sulla MI300X.
 
+Il riepilogo ha anche due numeri che dicono **dove si perde una segnalazione**, se negli esperti o nel relatore:
+
+- **note come verdetto**: l'F1 che avrebbe il Consiglio se il verdetto si facesse mettendo insieme le note degli esperti;
+- **note e verdetto d'accordo**: su quante categorie il relatore dice lo stesso dell'esperto che le guarda.
+
+Se le note vanno bene e il verdetto no, il problema è nel relatore.
+
+## La prova di diagnosi
+
+Con Qwen3-14B, nella prova dell'8/10, in telepatia le note degli esperti erano buone mentre il verdetto del relatore no. La diagnosi serve a capire perché:
+
+```bash
+./consiglio/prova.sh --diagnosi
+```
+
+Su Mac c'è anche `consiglio/diagnosi.command`, che fa la stessa cosa in una finestra del Terminale tutta sua (doppio clic nel Finder, oppure `open consiglio/diagnosi.command`).
+
+- Gira **solo la telepatia** e **solo sui 4 contratti del set dimostrativo**, che quindi deve esserci (vedi [Il set dimostrativo](#il-set-dimostrativo)).
+- **Spegne il riallineamento** dei passi latenti: è una correzione dei "pensieri" degli esperti prima di passarli avanti (la matrice W_a di LatentMAS). Nel Consiglio è accesa, in LatentMAS è spenta di default.
+- Fa **tre giri**, con 0, 10 e 40 passi latenti, cioè i passi in cui ogni esperto "pensa" senza scrivere. Il modello si carica una volta sola.
+- Con Qwen3-14B su un Mac M1 Max da 64 GB dura **circa un'ora**. Con modelli più piccoli dell'8B il riallineamento non cambia quasi niente: la prova serve solo a vedere che tutto funziona.
+- I risultati vanno in `consiglio/risultati-prova/diagnosi/`, così quelli della prova normale restano. Alla fine lo script prepara lo zip `consiglio/risultati-prova/diagnosi.zip`.
+- **Lo zip contiene frasi del set dimostrativo:** va mandato in privato a chi l'ha chiesto, mai su GitHub.
+
+Come si leggono i numeri, confrontandoli con la prova dell'8/10 (10 passi con riallineamento):
+
+- **con 0 passi** il relatore riceve solo la memoria di quello che gli esperti hanno letto, senza "pensieri": se il verdetto resta rotto, il relatore non riesce a ritrovare le informazioni nella memoria degli altri senza avere il contratto davanti;
+- se invece **con 0 e 10 passi senza riallineamento** il verdetto torna vicino a quello a testo, il colpevole è il riallineamento;
+- se va bene con 0 passi ma non con 10, anche senza riallineamento, a confondere il relatore sono i "pensieri" stessi.
+
 ## Con Claude Code
 
 Se la prova la chiedi a Claude Code, queste sono le regole per lui:
 
+- **Sempre in un clone nuovo**, fatto apposta per la prova, anche se il repo è già sul computer: mai in una cartella dove lavorano altre sessioni di Claude Code o altre persone. Se qualcuno cambia ramo in quella cartella mentre la prova gira, la prova si ferma a metà, per esempio con `No module named revisione.esegui`.
+
+  ```bash
+  CARTELLA=~/consiglio-prova-$(date +%Y%m%d-%H%M)
+  git clone https://github.com/AIVolve-Team/the-silent-council.git "$CARTELLA"
+  git -C "$CARTELLA" checkout feat/pagina-verdetto
+  ```
+
+  Il modello non si riscarica, perché sta nella cache di Hugging Face fuori dal clone, e il set dimostrativo lo riprende da solo lo script dal repo privato. Se invece il set te l'avevano passato a mano, va copiato in `consiglio/dati/set-dimostrativo/` del clone nuovo.
 - **Non si modifica niente.** Niente file cambiati, niente pacchetti installati a mano, niente modello diverso: fa tutto `prova.sh`.
 - **Il modello lo scarica lo script:** Qwen3-14B da Hugging Face, a una revisione fissata. Un Qwen già installato con Ollama o LM Studio non si può usare: il Consiglio passa da un agente all'altro la memoria interna del modello (la cache KV), e quei programmi non la danno.
 - **La prova parte fuori da Claude Code**, in una finestra del Terminale tutta sua:
@@ -69,11 +108,14 @@ Se la prova la chiedi a Claude Code, queste sono le regole per lui:
   open consiglio/prova.command
   ```
 
+  Per la [prova di diagnosi](#la-prova-di-diagnosi) il comando è `open consiglio/diagnosi.command`.
+
   Il giro dura ore e usa molta memoria: un comando lanciato dentro Claude Code può essere fermato quando la memoria si riempie. La prima volta macOS può chiedere il permesso di far aprire la cartella al Terminale: va accettato.
-- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log`, che cresce mentre la prova va avanti.
+- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log` (per la diagnosi `consiglio/risultati-prova/diagnosi/prova.log`), che cresce mentre la prova va avanti.
   - È finita quando in fondo al log compare la riga che comincia con `Fatto.`.
   - Si è fermata se `pgrep -f consiglio/prova.sh` non trova più niente e quella riga non c'è.
 - **Alla fine** il log ha il riepilogo di ogni giro: va spiegato in parole semplici, mettendo a confronto telepatia e testo (F1, token, secondi). Le pagine del verdetto sono in `consiglio/risultati-prova/pagine/`.
+  Nella diagnosi invece si confrontano i tre giri (0, 10 e 40 passi) e si ricorda di mandare lo zip in privato.
 - **Se si ferma, niente correzioni:** si riportano il messaggio d'errore e le ultime righe di `prova.log`.
 
 ## Il set dimostrativo
