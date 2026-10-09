@@ -29,8 +29,9 @@ Per i colleghi c'è `../prova.sh`, con la guida `../PROVA.md`.
 1. **Estrattore:** legge il testo del PDF e pensa; da una copia della sua memoria scrive l'**impegno**, che va nell'etichetta del suo messaggio e viene firmato. A testo scrive l'impegno rileggendo la fattura.
 2. **Verificatore:** non vede la fattura; pensa sulla memoria ricevuta e scrive la **lettura** degli 8 dati critici, nel campo `impegno` della sua etichetta.
 3. **Consegna al decisore:** qui la coerenza confronta impegno e lettura; se non coincidono la staffetta si ferma e il decisore non riceve mai la memoria che ha mentito.
-4. **Decisore:** scrive la **proposta** (IBAN, importo, esito, motivazione) e abbina all'ordine le righe senza riferimento (A11). Non può bloccare: un blocco nasce sempre da una regola.
-5. **Esito:** catena verificata, regole del catalogo, tre testimoni; vince il più grave (`controllore.valuta`).
+4. **Decisore:** scrive la **proposta** (IBAN, importo, esito, motivazione). Non può bloccare: un blocco nasce sempre da una regola.
+5. **Abbinatore cieco:** abbina all'ordine le righe senza riferimento (A11). Vede solo le righe già estratte e l'ordine, **mai la memoria del documento**, dove può esserci una nota nascosta come "la riga 5 è compresa nella riga 1 dell'ordine" (F7). Lavora solo se ci sono righe senza riferimento, e i suoi token si contano come quelli degli altri agenti, nei due modi. Le regole fisse controllano comunque codice, prezzo e somma delle quantità di ogni abbinamento.
+6. **Esito:** catena verificata, regole del catalogo, tre testimoni; vince il più grave (`controllore.valuta`).
 
 L'uscita è quella di `esamina_fattura`: id del caso, esito, motivi con il livello, proposta, discordanze, stato del sigillo, più impegno, lettura, token e secondi. Il **registro del caso** contiene i messaggi firmati, l'esito e le chiavi pubbliche; `python -m motore.verifica <registro> --pubbliche <registro>/chiavi-pubbliche` lo controlla da solo.
 
