@@ -129,7 +129,7 @@ def abbina(motore, ordine, libere: list[dict], conteggio: Conteggio, *, modalita
 
 def ordine_di(impegno: dict, archivi: Archivi):
     numero = (impegno.get("ordine") or {}).get("numero")
-    ordine = archivi.ordini.get(numero) if numero else None
+    ordine = archivi.ordine(numero)  # con il numero normalizzato, come nelle regole (A08)
     fornitore = id_fiscale((impegno.get("fornitore") or {}).get("id_fiscale") or "")
     return ordine if ordine is not None and id_fiscale(ordine.fornitore) == fornitore else None
 
