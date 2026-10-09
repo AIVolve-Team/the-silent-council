@@ -39,3 +39,16 @@ def test_senza_righe_libere_non_si_chiama_nessuno_e_una_risposta_interrotta_pass
     assert abbina(motore, ORDINE, [], Conteggio(), modalita="telepatia") == {}
     assert abbina(motore, ORDINE, LIBERE, Conteggio(), modalita="telepatia") == {2: None}  # A11: decide una persona
     assert len(motore.chiamate) == 1
+
+
+def test_l_abbinatore_riceve_l_ordine_anche_scritto_diverso():
+    # Come nelle regole (A08): "po 2026 0042" è l'ordine PO-2026-0042, che quindi arriva all'abbinatore.
+    from fatture.archivi import Archivi
+
+    from pipeline.sportello import ordine_di
+
+    archivi = Archivi(ordini={ORDINE.numero: ORDINE})
+    impegno = {"fornitore": {"id_fiscale": "IT01234567890"}, "ordine": {"numero": "po 2026 0042"}}
+    assert ordine_di(impegno, archivi) is ORDINE
+    altro = {"fornitore": {"id_fiscale": "IT22222222222"}, "ordine": {"numero": "po 2026 0042"}}
+    assert ordine_di(altro, archivi) is None  # l'ordine di un altro fornitore resta fuori
