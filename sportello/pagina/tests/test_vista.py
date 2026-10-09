@@ -133,3 +133,15 @@ def test_la_traduzione_segna_il_testo_nascosto_e_non_mostra_iban_interi(insieme)
     assert "IT99…2854" in t["righe"][1]["testo"]
     assert ATTACCANTE not in json.dumps(t)
     assert t["pensieri"]["estrattore"][0][0] == ["\n", 0.9]
+
+
+def test_l_ordine_accanto_alla_fattura_anche_scritto_diverso(insieme):
+    # Come nelle regole (A08): "po 2026 0001" è l'ordine PO-2026-0001.
+    caso = next(c for c in insieme.casi if c.anomalia is None and c.al_limite is None)
+    impegno = copy.deepcopy(caso.impegno)
+    impegno["ordine"]["numero"] = caso.impegno["ordine"]["numero"].lower().replace("-", " ")
+    proposta = {"iban": caso.impegno["pagamento"]["iban"], "importo": caso.impegno["totale_documento"],
+                "esito": "pagare", "motivazione": "Conforme all'ordine."}  # fmt: skip
+    r = risultato_di(caso, insieme.archivi, lettura=lettura_da(caso.impegno), proposta=proposta) | {"impegno": impegno}
+    vista = vista_caso(r, insieme.archivi, pdf=rendi_pdf(caso))
+    assert vista["ordine"]["numero"] == caso.impegno["ordine"]["numero"]

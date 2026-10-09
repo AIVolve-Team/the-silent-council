@@ -8,7 +8,16 @@ import pytest
 from fatture.genera import genera_insieme
 from pipeline.testo import estrai_testo
 
-from attacchi.costruisci import FAMIGLIE, costruisci, impronta_attacchi, pdf_di, pdf_memoria_di, scegli
+from attacchi.costruisci import (
+    FAMIGLIE,
+    IMPRONTE,
+    controlla_impronta,
+    costruisci,
+    impronta_attacchi,
+    pdf_di,
+    pdf_memoria_di,
+    scegli,
+)
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +83,23 @@ def test_f7_aggiunge_una_riga_che_nessun_ordine_prevede(sviluppo, attacchi):
 def test_lo_stesso_insieme_da_gli_stessi_attacchi(sviluppo, attacchi):
     assert impronta_attacchi(costruisci(sviluppo)) == impronta_attacchi(attacchi)
     assert impronta_attacchi(costruisci(genera_insieme("esame"))) != impronta_attacchi(attacchi)
+
+
+def test_il_codice_costruisce_gli_attacchi_scritti_su_50(attacchi):
+    # Se questo test cade, la costruzione è cambiata: la nuova impronta va scritta su «Eval pre-registrato G1-G4», con il motivo, prima di
+    # misurare, e poi qui.
+    assert impronta_attacchi(attacchi) == IMPRONTE["sviluppo"]
+    assert impronta_attacchi(costruisci(genera_insieme("esame"))) == IMPRONTE["esame"]
+
+
+def test_l_esame_non_parte_con_attacchi_diversi_da_quelli_scritti_su_50(attacchi):
+    esame = costruisci(genera_insieme("esame"))
+    controlla_impronta("esame", esame)  # quelli veri passano
+    toccati = copy.deepcopy(esame)
+    toccati[0].testo_nascosto = (toccati[0].testo_nascosto or "") + " "
+    with pytest.raises(SystemExit, match="“Pre-registered eval G1-G4”"):
+        controlla_impronta("esame", toccati)
+    controlla_impronta("sviluppo", toccati)  # lo sviluppo può cambiare: si riscrive l'impronta, ma non si ferma
 
 
 def test_si_sceglie_per_famiglia_o_per_id_e_l_ordine_resta_quello_del_catalogo(attacchi):

@@ -102,6 +102,13 @@ def test_a02_un_canone_entro_le_rate_non_e_un_duplicato():
     assert codici(fattura(), a) == {}
 
 
+def test_a02_il_duplicato_mascherato_scatta_anche_con_l_ordine_scritto_diverso():
+    # Altrimenti, con l'ordine trovato anche scritto diverso (A08), un duplicato si pagherebbe due volte.
+    a = archivi()
+    a.storico.append(VoceStorico(ALFA, "FT/0013/2026", "2026-09-01", 152.50, "PO-2026-0042"))
+    assert codici(con(ordine__numero="po 2026 0042"), a) == {"A02": "persona"}
+
+
 def test_a03_iban_diverso_da_quello_registrato():
     assert codici(con(pagamento__iban="IT99C0300203280000400162854")) == {"A03": "bloccare"}
 
@@ -122,17 +129,42 @@ def test_a05_fornitore_non_in_anagrafica():
     assert codici(con(fornitore__id_fiscale="IT22222222222")) == {"A05": "bloccare"}
 
 
+def test_a05_lo_stesso_fornitore_scritto_con_spazi_e_minuscole_c_e():
+    assert codici(con(fornitore__id_fiscale="it 012 345 678 90")) == {}
+
+
 def test_a06_fornitore_disattivato():
     assert codici(fattura(), archivi(attivo=False)) == {"A06": "bloccare"}
+
+
+def test_a06_non_scatta_per_un_omonimo_disattivato():
+    # Conta l'identificativo fiscale, non il nome: un altro fornitore con lo stesso nome, disattivato, non c'entra.
+    a = archivi()
+    a.anagrafica["IT33333333333"] = Fornitore(
+        "IT33333333333", "Alfa Forniture S.r.l.", "IT02L1234512345123456789012", attivo=False
+    )
+    assert codici(fattura(), a) == {}
 
 
 def test_a07_nessun_riferimento_all_ordine():
     assert codici(con(ordine__numero=None)) == {"A07": "persona"}
 
 
+def test_a07_il_riferimento_all_ordine_scritto_in_minuscolo_e_con_spazi_c_e():
+    assert codici(con(ordine__numero="po 2026 0042")) == {}
+
+
 def test_a08_ordine_inesistente_o_di_un_altro_fornitore():
     assert codici(con(ordine__numero="PO-2026-9999")) == {"A08": "bloccare"}
     assert codici(con(ordine__numero="PO-2026-0050")) == {"A08": "bloccare"}
+
+
+def test_a08_lo_stesso_ordine_scritto_diverso_non_e_inesistente_ne_di_altri():
+    # Come il numero del documento in A01: separatori, maiuscole e zeri iniziali non contano.
+    assert codici(con(ordine__numero="PO/2026/42")) == {}
+    a = archivi()
+    a.ordini["PO-2026-0042"].fornitore = "it 01234567890"  # l'intestatario scritto diverso è lo stesso fornitore
+    assert codici(fattura(), a) == {}
 
 
 @pytest.mark.parametrize(
@@ -179,6 +211,11 @@ def test_a11_una_riga_abbinata_dal_modello_si_controlla_come_le_altre():
 
 def test_a12_aliquota_diversa_da_quella_dell_ordine():
     assert codici(con(righe__0__aliquota=10)) == {"A12": "persona"}
+
+
+def test_a12_la_stessa_aliquota_scritta_con_i_decimali_va_bene():
+    assert codici(con(righe__0__aliquota=22.0)) == {}
+    assert codici(con(righe__0__aliquota="22.00")) == {}
 
 
 def test_a13_totale_diverso_da_imponibile_piu_iva():

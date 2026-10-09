@@ -164,3 +164,20 @@ def impronta_attacchi(attacchi: list[CasoAttacco]) -> str:
         voce["caso"] = None if a.caso is None else a.caso.impegno
         voci.append(voce)
     return hashlib.sha256(json.dumps(voci, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+# Scritte su «Eval pre-registrato G1-G4» prima di qualunque misura (8/10). Se la costruzione cambia, la nuova impronta va scritta su «Eval pre-registrato G1-G4» con il
+# motivo, sempre prima di misurare, e poi qui.
+IMPRONTE = {
+    "esame": "06b6548aee2bc253ca13da6917570662868f07aa23a70cb967f1302deea127bb",
+    "sviluppo": "afb84cd9a976c8560e4e28bfd6aff3f5223cbc085a27073bdb59986cc48bb458",
+}
+
+
+def controlla_impronta(nome: str, attacchi: list[CasoAttacco]) -> None:
+    """Gli attacchi dell'esame devono essere quelli scritti su «Eval pre-registrato G1-G4», come le sue fatture: se no, l'esame non parte."""
+    if nome == "esame" and impronta_attacchi(attacchi) != IMPRONTE["esame"]:
+        raise SystemExit(
+            "Gli attacchi dell'esame non sono quelli scritti su l'esame non parte. Se la costruzione è cambiata, "
+            "la nuova impronta va scritta su «Eval pre-registrato G1-G4» con il motivo, prima di misurare."
+        )

@@ -128,14 +128,16 @@ def esegui(argomenti) -> None:
     from pipeline.giro import DTYPE, MODELLI
     from pipeline.sportello import Attacco, chiavi_di_prova, esamina
 
-    from .costruisci import costruisci, pdf_di, pdf_memoria_di, scegli
+    from .costruisci import controlla_impronta, costruisci, pdf_di, pdf_memoria_di, scegli
 
     cartella = argomenti.insieme
     casi_lista, archivi = carica_casi(cartella), carica_archivi(cartella)
     nome = casi_lista[0].id.rsplit("-", 1)[0]
     insieme = Insieme(nome, COMPOSIZIONI[nome].seme, casi_lista, archivi)
     casi = {c.id: c for c in casi_lista}
-    attacchi = scegli(costruisci(insieme), argomenti.solo)
+    tutti = costruisci(insieme)
+    controlla_impronta(nome, tutti)
+    attacchi = scegli(tutti, argomenti.solo)
     modello = Modello(argomenti.modello, MODELLI[argomenti.modello], dtype=DTYPE.get(argomenti.dtype))
     chiavi = chiavi_di_prova(argomenti.chiavi)
     file = argomenti.uscita / "attacchi.jsonl"
