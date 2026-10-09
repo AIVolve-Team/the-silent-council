@@ -14,7 +14,8 @@ Una sola casa per i due progetti fino a G4 (16/10); dopo, solo quello consegnato
 | `finestre.json` | le finestre dal vivo dopo il 18/10, da fissare il 12/10 |
 | `costruisci.py` | scrive `public/`: home, pagine dei casi registrati con PDF e registro, dati delle prove, Consiglio |
 | `locale.mjs` | serve `public/` e le funzioni in locale, senza la CLI di Vercel |
-| `test/` | i test delle funzioni, con un motore e un Evolus finti |
+| `mi300x/` | la MI300X a finestre: nasce da uno snapshot quando serve e si distrugge quando non serve (README lì) |
+| `test/` | i test delle funzioni, con un motore e un Evolus finti, e di `mi300x/` con un'API di DigitalOcean finta |
 
 ## Costruire e pubblicare
 
