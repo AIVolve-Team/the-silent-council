@@ -53,18 +53,23 @@ def schema_nota(categorie: tuple[Categoria, ...]) -> dict:
     }
 
 
-def schema_verdetto(categorie: tuple[Categoria, ...]) -> dict:
+def schema_verdetto(categorie: tuple[Categoria, ...], *, obiezioni: bool = True) -> dict:
+    """Senza `obiezioni` è il verdetto di chi lavora da solo (agente solo e voto fra 4 dell'eval): non ha
+    colleghi a cui obiettare."""
     chiavi = [c.chiave for c in categorie]
+    proprieta = {
+        "obiezioni": _elenco(chiavi, {"obiezione": 150}, 3),
+        "segnalare": _segnalare(chiavi),
+        "dettagli": _elenco(chiavi, {"citazione": 120, "motivazione": 100}, MAX_DETTAGLI_VERDETTO),
+        "raccomandazione": {"enum": RACCOMANDAZIONI},
+        "motivazione": {"type": "string", "maxLength": 250},
+    }
+    if not obiezioni:
+        del proprieta["obiezioni"]
     return {
         "type": "object",
-        "properties": {
-            "obiezioni": _elenco(chiavi, {"obiezione": 150}, 3),
-            "segnalare": _segnalare(chiavi),
-            "dettagli": _elenco(chiavi, {"citazione": 120, "motivazione": 100}, MAX_DETTAGLI_VERDETTO),
-            "raccomandazione": {"enum": RACCOMANDAZIONI},
-            "motivazione": {"type": "string", "maxLength": 250},
-        },
-        "required": ["obiezioni", "segnalare", "dettagli", "raccomandazione", "motivazione"],
+        "properties": proprieta,
+        "required": list(proprieta),
         "additionalProperties": False,
     }
 
