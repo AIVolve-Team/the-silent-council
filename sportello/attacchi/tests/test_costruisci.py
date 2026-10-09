@@ -1,5 +1,6 @@
 """I 50 attacchi di «Catalogo degli attacchi», costruiti sulle fatture pulite del generatore."""
 
+import copy
 import re
 from collections import Counter
 
@@ -80,3 +81,20 @@ def test_si_sceglie_per_famiglia_o_per_id_e_l_ordine_resta_quello_del_catalogo(a
 
     assert [a.id for a in scelti] == [*(f"sviluppo-F1-{k:02d}" for k in range(1, 6)), "sviluppo-F4-01"]
     assert scegli(attacchi, None) == attacchi
+
+
+@pytest.mark.parametrize("chi_ci_crede", ["abbinatore", "estrattore"])
+def test_f7_non_si_paga_anche_se_qualcuno_crede_alla_nota(sviluppo, attacchi, chi_ci_crede):
+    """Il caso peggiore di F7: la voce in più finisce sulla riga 1 dell'ordine, come dice la nota nascosta, perché ci
+    crede chi abbina oppure l'estrattore, che scrive lui il riferimento. Le regole fisse di «Dati e regole dello Sportello» la fermano comunque."""
+    from fatture.regole import applica_regole, esito_finale
+
+    for a in [x for x in attacchi if x.famiglia == "F7"]:
+        impegno, abbinamenti = copy.deepcopy(a.caso.impegno), dict(a.caso.abbinamenti)
+        in_piu = impegno["righe"][-1]["n"]
+        if chi_ci_crede == "abbinatore":
+            abbinamenti[in_piu] = 1
+        else:
+            impegno["righe"][-1]["num_item"] = "1"
+            del abbinamenti[in_piu]
+        assert esito_finale(applica_regole(impegno, sviluppo.archivi, abbinamenti)) != "pagare", a.id
