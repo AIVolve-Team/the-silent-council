@@ -97,7 +97,9 @@ def main() -> None:
         help="le private restano qui, fuori dal repo e dai risultati; nel registro vanno solo le pubbliche",
     )
     parser.add_argument("--max-token-testo", type=int, default=1024, help="per agente, nel modo a testo")
-    parser.add_argument("--traduci", action="store_true", help="con la trascrizione della memoria: casi registrati")
+    parser.add_argument(
+        "--traduci", action="store_true", help="con la trascrizione della memoria: casi registrati"
+    )
     argomenti = parser.parse_args()
     dtype = DTYPE.get(argomenti.dtype) if argomenti.dtype else None
     modello = Modello(argomenti.modello, MODELLI[argomenti.modello], dtype=dtype)
