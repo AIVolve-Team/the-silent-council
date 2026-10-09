@@ -75,6 +75,7 @@ class RisultatoG2:
     passi: int | None
     intervallo: Intervallo | None
     esito: str | None
+    fatture: int | None = None  # quelle finite in tutti i giri, le sole su cui si confronta
 
 
 def giusti_per_fattura(file: Path, casi: dict[str, Caso]) -> dict[str, int]:
@@ -88,14 +89,18 @@ def risultato_g2(cartella: Path, casi: dict[str, Caso]) -> RisultatoG2:
     giri = {"testo": cartella / "testo" / "testo.jsonl"}
     giri |= {m: cartella / f"m{m}" / "telepatia.jsonl" for m in (0, *CANDIDATI)}
     giusti = {chiave: giusti_per_fattura(file, casi) for chiave, file in giri.items() if file.exists()}
-    accuratezze = {k: 100 * sum(v.values()) / (CAMPI * len(v)) for k, v in giusti.items() if v}
+    giusti = {chiave: v for chiave, v in giusti.items() if v}
+    # Se il tempo finisce a metà di una fattura, si confronta solo sulle fatture finite in tutti i giri.
+    comuni = sorted(set.intersection(*(set(v) for v in giusti.values()))) if giusti else []
+    if not comuni:
+        return RisultatoG2({}, None, None, None, 0)
+    accuratezze = {k: 100 * sum(v[i] for i in comuni) / (CAMPI * len(comuni)) for k, v in giusti.items()}
     candidati = {m: a for m, a in accuratezze.items() if m in CANDIDATI}
     passi = scegli_passi(candidati) if candidati else None
     if passi is None or "testo" not in giusti:
-        return RisultatoG2(accuratezze, passi, None, None)
-    comuni = sorted(set(giusti["testo"]) & set(giusti[passi]))
+        return RisultatoG2(accuratezze, passi, None, None, len(comuni))
     intervallo = bootstrap([giusti[passi][i] for i in comuni], [giusti["testo"][i] for i in comuni])
-    return RisultatoG2(accuratezze, passi, intervallo, esito_g2(intervallo))
+    return RisultatoG2(accuratezze, passi, intervallo, esito_g2(intervallo), len(comuni))
 
 
 def punti(x: float) -> str:
@@ -109,6 +114,8 @@ def testo_g2(r: RisultatoG2) -> str:
             nome = "testo" if chiave == "testo" else f"telepatia, {chiave} passi"
             righe.append(f"| {nome} | {r.accuratezze[chiave]:.1f}% |".replace(".", ","))
     righe.append("")
+    if r.fatture is not None:
+        righe += [f"Misurata sulle {r.fatture} fatture finite in tutti i giri.", ""]
     if r.passi is not None:
         righe.append(f"Passi scelti: **{r.passi} passi latenti** (il migliore; sotto 1 punto vince chi ne ha meno).")
     if r.intervallo is None:

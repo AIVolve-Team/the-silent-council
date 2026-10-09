@@ -26,7 +26,7 @@ python -m harness.esame rapporto risultati/esame $E --g1 passa --g2 <esito> --at
                                                       # numeri per la giuria e lista di G4: entro le 12:00
 ```
 
-- **I giri ripartono** da dove si erano fermati: ogni fattura finita si scrive subito. Vanno una fattura alla volta in tutti i giri, così se il tempo finisce i confronti restano possibili.
+- **I giri ripartono** da dove si erano fermati: ogni fattura finita si scrive subito. Vanno una fattura alla volta in tutti i giri, così se il tempo finisce i confronti restano possibili: il rapporto di G2 confronta solo le fatture finite in tutti i giri, e dice quante sono.
 - **L'esame si apre una volta sola.** `harness.esame esegui` controlla prima l'impronta dell'esame contro quella scritta e si ferma se è diversa. Per provare i comandi senza aprire l'esame c'è `--prova-su-sviluppo`, che usa le fatture di sviluppo e la loro impronta.
 - Il generatore crea gli insiemi con `python -m fatture.insiemi`.
 

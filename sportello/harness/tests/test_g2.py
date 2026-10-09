@@ -53,51 +53,75 @@ def test_la_scelta_dei_passi_latenti(accuratezze, atteso):
     assert scegli_passi(accuratezze) == atteso
 
 
-def test_il_rapporto_dai_file_dei_giri(tmp_path):
+def scrivi_giro(cartella, modalita, casi, sbagliate):
+    """Un giro finto: la lettura giusta della verità, con l'IBAN sbagliato nelle fatture `sbagliate` (1 dato su 8)."""
     import copy
     import json
 
-    from fatture.genera import genera_insieme
     from pipeline.schemi import lettura_da
+
+    def lettura(caso, sbagliata: bool):
+        letta = copy.deepcopy(lettura_da(caso.impegno))
+        if sbagliata:
+            letta["pagamento"]["iban"] = "IT99C0300203280000400162854"
+        return letta
+
+    cartella.mkdir()
+    righe = [
+        {"id": c.id, "modalita": modalita, "esito": "pagare", "lettura": lettura(c, i in sbagliate)}
+        for i, c in enumerate(casi)
+    ]
+    (cartella / f"{modalita}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in righe))
+
+
+def test_il_rapporto_dai_file_dei_giri(tmp_path):
+    from fatture.genera import genera_insieme
 
     from harness.g2 import risultato_g2
 
     casi = genera_insieme("sviluppo").casi[:4]
-
-    def lettura(caso, sbagliati: int):
-        letta = copy.deepcopy(lettura_da(caso.impegno))
-        if sbagliati:
-            letta["pagamento"]["iban"] = "IT99C0300203280000400162854"
-        return letta
-
-    def scrivi(cartella, modalita, sbagliate):
-        (tmp_path / cartella).mkdir()
-        righe = [
-            {"id": c.id, "modalita": modalita, "esito": "pagare", "lettura": lettura(c, i in sbagliate)}
-            for i, c in enumerate(casi)
-        ]
-        (tmp_path / cartella / f"{modalita}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in righe))
-
-    scrivi("testo", "testo", set())  # 32 su 32
-    scrivi("m0", "telepatia", {0, 1})  # 30 su 32
-    scrivi("m10", "telepatia", {0})  # 31 su 32: 3,1 punti sotto m20
-    scrivi("m20", "telepatia", set())  # 32 su 32
-    scrivi("m40", "telepatia", {0, 1, 2})  # 29 su 32
+    scrivi_giro(tmp_path / "testo", "testo", casi, set())  # 32 su 32
+    scrivi_giro(tmp_path / "m0", "telepatia", casi, {0, 1})  # 30 su 32
+    scrivi_giro(tmp_path / "m10", "telepatia", casi, {0})  # 31 su 32: 3,1 punti sotto m20
+    scrivi_giro(tmp_path / "m20", "telepatia", casi, set())  # 32 su 32
+    scrivi_giro(tmp_path / "m40", "telepatia", casi, {0, 1, 2})  # 29 su 32
 
     r = risultato_g2(tmp_path, {c.id: c for c in casi})
     assert r.accuratezze == {"testo": 100.0, 0: 93.75, 10: 96.875, 20: 100.0, 40: 90.625}
     assert r.passi == 20  # 10 è a 3,1 punti da 20: troppo lontano
     assert r.intervallo.differenza == 0.0
     assert r.esito == "dimostrato"
+    assert r.fatture == 4
+
+
+def test_se_il_tempo_finisce_si_confronta_solo_sulle_fatture_finite_in_tutti_i_giri(tmp_path):
+    # Il giro si è fermato durante la quarta fattura: testo, m0, m10 e m20 l'hanno finita, m40 no.
+    from fatture.genera import genera_insieme
+
+    from harness.g2 import risultato_g2
+
+    casi = genera_insieme("sviluppo").casi[:4]
+    scrivi_giro(tmp_path / "testo", "testo", casi, set())
+    for m in (0, 10, 20):
+        scrivi_giro(tmp_path / f"m{m}", "telepatia", casi, {3})  # sbagliano solo la quarta
+    scrivi_giro(tmp_path / "m40", "telepatia", casi[:3], set())
+
+    r = risultato_g2(tmp_path, {c.id: c for c in casi})
+    # Sulle 3 fatture finite da tutti, tutti i giri sono al 100%: la quarta non conta per nessuno, altrimenti
+    # 40 passi vincerebbe solo perché non l'ha ancora fatta.
+    assert r.accuratezze == {"testo": 100.0, 0: 100.0, 10: 100.0, 20: 100.0, 40: 100.0}
+    assert r.passi == 10
+    assert r.fatture == 3
 
 
 def test_il_testo_del_rapporto():
     from harness.g2 import RisultatoG2, testo_g2
 
     r = RisultatoG2(
-        {"testo": 98.0, 0: 93.5, 10: 96.0, 20: 96.5, 40: 95.0}, 10, Intervallo(-2.0, -3.4, -0.6), "compatibile"
+        {"testo": 98.0, 0: 93.5, 10: 96.0, 20: 96.5, 40: 95.0}, 10, Intervallo(-2.0, -3.4, -0.6), "compatibile", 87
     )
     testo = testo_g2(r)
+    assert "sulle 87 fatture finite in tutti i giri" in testo
     assert "| testo | 98,0% |" in testo
     assert "**10 passi latenti**" in testo
     assert "−2,0 punti" in testo and "da −3,4 a −0,6" in testo
