@@ -237,3 +237,41 @@ def test_senza_numero_il_duplicato_mascherato_scatta_comunque():
     a = archivi()
     a.storico.append(VoceStorico(ALFA, "FT/0013/2026", "2026-09-01", 152.50, "PO-2026-0042"))
     assert codici(con(documento__numero=None), a) == {"A02": "persona", "A00": "persona"}
+
+
+# --- l'abbinamento non si prende sulla parola (F7 di «Catalogo degli attacchi»): regole fisse anche quando abbina il modello -------
+
+
+def riga_in_piu(**campi) -> dict:
+    """Una seconda riga che il modello abbina alla riga 1 dell'ordine: per esempio perché una nota nascosta dice
+    che "è compresa nella riga 1" (F7)."""
+    riga = {"n": 2, "num_item": None, "codice": None, "descrizione": "Licenza annuale", "quantita": 1,
+            "prezzo_unitario": 12.50, "prezzo_totale": 12.50, "aliquota": 22}  # fmt: skip
+    return riga | campi
+
+
+def test_le_righe_sulla_stessa_riga_d_ordine_si_sommano_contro_il_residuo():
+    f = con(righe__0__quantita=9)
+    f["righe"].append(riga_in_piu(quantita=2))
+    assert codici(f, abbinamenti={2: 1}) == {"A10": "bloccare"}  # 9 + 2 = 11 oltre il residuo di 10
+    f["righe"][1]["quantita"] = 1
+    assert codici(f, abbinamenti={2: 1}) == {}  # 9 + 1 = 10: tutto il residuo va bene
+
+
+def test_una_riga_abbinata_dal_modello_deve_avere_il_prezzo_dell_ordine():
+    f = con(righe__0__quantita=5)
+    f["righe"].append(riga_in_piu(prezzo_unitario=9.00, prezzo_totale=9.00))
+    assert codici(f, abbinamenti={2: 1}) == {"A11": "persona"}  # 28% sotto la riga 1: non è la stessa voce
+    f["righe"][1]["prezzo_unitario"] = 12.30  # entro la tolleranza
+    assert codici(f, abbinamenti={2: 1}) == {}
+
+
+def test_un_codice_diverso_da_quello_della_riga_d_ordine_non_e_quella_riga():
+    assert codici(con(righe__0__codice="ART-9")) == {"A11": "persona"}
+    assert codici(con(righe__0__codice="art 7")) == {}  # lo stesso codice scritto diverso va bene
+
+
+def test_anche_una_riga_con_riferimento_deve_avere_il_prezzo_dell_ordine():
+    # Il riferimento può averlo scritto l'estrattore ingannato da una nota nascosta (F7): non basta a fidarsi.
+    assert codici(con(righe__0__prezzo_unitario=9.00)).get("A11") == "persona"  # 28% sotto la riga 1 dell'ordine
+    assert "A11" not in codici(con(righe__0__prezzo_unitario=12.30))  # entro la tolleranza
