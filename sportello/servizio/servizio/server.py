@@ -2,14 +2,15 @@
 
 Rotte:
 - `POST /mcp`: MCP (Streamable HTTP, senza stato, risposte JSON) con i tool `esamina_fattura` e `registra_decisione`;
-- `POST /esamina_fattura`, `POST /registra_decisione`: gli stessi tool in HTTP semplice, per il blocco "Call an endpoint"
-  di Evolus se il connettore MCP nostro non c'è nella workspace dell'evento;
+- `POST /esamina_fattura`, `POST /registra_decisione`: gli stessi tool in HTTP semplice. Il PDF arriva a Evolus con il
+  blocco «Call an endpoint»: il connettore MCP porta solo il testo che scrive il modello, mai il file;
 - `GET /casi`, `GET /casi/{id}`, `GET /casi/{id}/fattura.pdf`: elenco, vista e PDF dei casi, per la casa dei giudici;
 - `GET /salute`: l'unica aperta, dice se il motore è pronto e se sta esaminando.
 
 Tutte le altre chiedono il segreto, in `Authorization: Bearer <segreto>` oppure in `X-Api-Key: <segreto>`.
-Il PDF arriva in base64 (`pdf_base64`), come file (`multipart/form-data`, campo `pdf`) oppure come link (`pdf_url`),
-solo se il server è partito con l'elenco degli host da cui può scaricarlo.
+Il PDF arriva in base64 (`pdf_base64`), come file (`multipart/form-data`: il campo `pdf`, oppure il primo file che è
+un PDF) oppure come link (`pdf_url`), solo se il server è partito con l'elenco degli host da cui può scaricarlo.
+Mittente, oggetto e data possono stare anche nell'indirizzo (`?mittente=…`), dai segnaposto di Evolus.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ import hmac
 import inspect
 import json
 import logging
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
@@ -39,6 +41,7 @@ if TYPE_CHECKING:
 
 log = logging.getLogger("sportello.servizio")
 MAX_CORPO = 16 * 2**20  # un PDF di 10 MB in base64, più i campi
+MAX_FILE = 5  # gli allegati di un'email che Evolus può mettere nel modulo
 GUASTO = "motore: errore interno. Riprova una volta; se non risponde ancora, passa il caso a una persona."
 ISTRUZIONI = (
     "Sportello telepatico: esamina le fatture in arrivo con agenti che si passano la memoria, controllati da una "
@@ -107,23 +110,29 @@ async def corpo(request: Request) -> bytes:
     return letto
 
 
-async def campi(request: Request) -> dict:
-    """JSON, oppure un modulo con il PDF come file nel campo `pdf`."""
+async def campi(request: Request) -> tuple[dict, bool]:
+    """JSON, oppure un modulo con il PDF come file. Il secondo valore dice se era un modulo.
+
+    Nel modulo il PDF è il campo `pdf` oppure il primo file che è un PDF, con qualsiasi nome: «Call an endpoint» di
+    Evolus («Multipart with the flow's files») non documenta i nomi, e può mandare anche campi e file suoi."""
     if int(request.headers.get("content-length") or 0) > MAX_CORPO:
         raise Rifiuto("richiesta troppo grande")
     if request.headers.get("content-type", "").startswith("multipart/form-data"):
-        async with request.form(max_files=1, max_fields=10, max_part_size=MAX_CORPO) as modulo:
+        async with request.form(max_files=MAX_FILE, max_fields=20, max_part_size=MAX_CORPO) as modulo:
             dati = {k: v for k, v in modulo.items() if isinstance(v, str)}
-            if (file := modulo.get("pdf")) is not None and not isinstance(file, str):
-                dati["pdf_base64"] = base64.b64encode(await file.read()).decode()
-            return dati
+            file = [modulo.get("pdf")] + [v for k, v in modulo.multi_items() if k != "pdf"]
+            for f in file:
+                if f is not None and not isinstance(f, str) and (contenuto := await f.read()).startswith(b"%PDF"):
+                    dati["pdf_base64"] = base64.b64encode(contenuto).decode()
+                    break
+            return dati, True
     try:
         dati = json.loads(await corpo(request))
     except ValueError as errore:
         raise Rifiuto("serve un oggetto JSON") from errore
     if not isinstance(dati, dict):
         raise Rifiuto("serve un oggetto JSON")
-    return dati
+    return dati, False
 
 
 def crea_app(
@@ -171,14 +180,21 @@ def crea_app(
         except Rifiuto as errore:
             raise ToolError(str(errore)) from errore
 
-    def http(azione):
+    def http(azione, dall_indirizzo: tuple[str, ...] = (), nel_modulo: dict | None = None):
+        """`dall_indirizzo`: i campi che possono arrivare anche nell'indirizzo, dai segnaposto di Evolus; quelli del
+        corpo vincono. `nel_modulo`: i valori dei campi che in un modulo (Evolus) possono mancare."""
         previsti = set(inspect.signature(azione).parameters)
 
         async def rotta(request: Request) -> Response:
             try:
-                dati = await campi(request)
-                if in_piu := sorted(set(dati) - previsti):
+                dati, da_modulo = await campi(request)
+                if da_modulo:  # i campi in più di Evolus si ignorano, mai si usano
+                    dati = {k: v for k, v in dati.items() if k in previsti}
+                elif in_piu := sorted(set(dati) - previsti):
                     raise Rifiuto(f"campi non previsti: {', '.join(in_piu)}")
+                dati = {k: v for k, v in request.query_params.items() if k in dall_indirizzo} | dati
+                if da_modulo and nel_modulo:
+                    dati = {k: v() for k, v in nel_modulo.items()} | {k: v for k, v in dati.items() if v}
                 return JSONResponse(await azione(**dati))
             except Occupato as errore:
                 return JSONResponse({"errore": str(errore)}, status_code=409)
@@ -190,7 +206,13 @@ def crea_app(
 
         return rotta
 
-    mcp.custom_route("/esamina_fattura", methods=["POST"])(http(esamina))
+    dall_email = ("mittente", "oggetto", "data", "modalita")
+    se_mancano = {
+        "mittente": lambda: "(sconosciuto)",
+        "oggetto": str,
+        "data": lambda: datetime.now(UTC).date().isoformat(),
+    }
+    mcp.custom_route("/esamina_fattura", methods=["POST"])(http(esamina, dall_email, se_mancano))
     mcp.custom_route("/registra_decisione", methods=["POST"])(http(decidi))
 
     if prove is not None:

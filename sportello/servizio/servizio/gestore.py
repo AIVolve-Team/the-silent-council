@@ -58,6 +58,36 @@ def mascherato(dato):
     return dato
 
 
+AVVISI = {"bloccare": ("Blocked", "blocked"), "persona": ("Needs review", "a person must decide")}
+
+
+def avviso(esito: str, vista: dict, link: str) -> dict | None:
+    """L'email per la persona, in inglese come nella demo. La scrive il motore e l'agente principale la
+    manda così com'è: non può copiarci l'IBAN o i contatti scritti nella fattura. Con "pagare" nessuna email, perché
+    la proposta aspetta l'approvazione nell'elenco."""
+    if esito not in AVVISI:
+        return None
+    titolo, frase = AVVISI[esito]
+    fattura = vista["fattura"]
+    numero = fattura.get("numero") or "(number not found)"
+    fornitore = fattura.get("fornitore") or "(supplier not found)"
+    importo = f", {fattura['totale']:,.2f} EUR" if fattura.get("totale") is not None else ""
+    righe = [
+        f"Invoice {numero} from {fornitore}{importo}.",
+        f"Outcome: {frase}. Nothing has been paid.",
+        f"Why: {vista['motivo']['en']}",
+    ]
+    if vista["frode_sospetta"]:
+        contatti = vista.get("contatti") or {}
+        verifica = ", ".join(x for x in (contatti.get("telefono"), contatti.get("email")) if x)
+        righe.append(
+            "Possible fraud. Do not reply to this email and do not use any contact written in the invoice"
+            + (f": check with the supplier using the contacts on file, {verifica}." if verifica else ".")
+        )
+    righe.append(f"Open the case: {link}")
+    return {"oggetto": f"[{titolo}] Invoice {numero} from {fornitore}", "testo": "\n".join(righe)}
+
+
 class Sportello:
     def __init__(
         self,
@@ -137,6 +167,7 @@ class Sportello:
             "sigillo": risultato.get("sigillo"),
             "contatti_anagrafica": vista["contatti"],
             "link": self.link.format(id=risultato["id_caso"]),
+            "avviso": avviso(esito, vista, self.link.format(id=risultato["id_caso"])),
             "modalita": modalita,
             "token": risultato.get("token"),
             "secondi": risultato.get("secondi"),

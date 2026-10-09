@@ -15,7 +15,7 @@ Il server sta sulla MI300X accanto al modello; le prove dal vivo della casa per 
 ## I due tool
 
 - **`esamina_fattura`**: `pdf_base64` (oppure `pdf_url`), `mittente`, `oggetto`, `data`, `modalita` (`telepatia` o `testo`).
-  Restituisce `id_caso`, `esito`, `motivo` e `motivi` con il livello, `proposta` (solo se l'esito è pagare: importo, scadenza, IBAN in anagrafica, "in attesa di approvazione"), `discordanze`, `sigillo`, `contatti_anagrafica`, `frode_sospetta`, `non_rispondere_al_mittente` e il `link` alla pagina del caso.
+  Restituisce `id_caso`, `esito`, `motivo` e `motivi` con il livello, `proposta` (solo se l'esito è pagare: importo, scadenza, IBAN in anagrafica, "in attesa di approvazione"), `discordanze`, `sigillo`, `contatti_anagrafica`, `frode_sospetta`, `non_rispondere_al_mittente`, il `link` alla pagina del caso e l'`avviso` per la persona (oggetto e testo in inglese, solo se l'esito è persona o bloccare), che l'agente principale manda così com'è.
 - **`registra_decisione`**: `id_caso`, `decisione` (`approvato`, `rifiutato`, `segnalato`, come sulla pagina del caso), `chi`, `nota`.
   Lo chiama il secondo workflow, che la casa per i giudici avvia quando la persona decide.
 
@@ -35,7 +35,7 @@ Regole che valgono per tutti e due i trasporti:
 | Rotta | Cosa fa |
 |---|---|
 | `POST /mcp` | MCP Streamable HTTP, senza stato, risposte JSON |
-| `POST /esamina_fattura` | lo stesso tool in HTTP: JSON con `pdf_base64`, oppure modulo con il file nel campo `pdf` |
+| `POST /esamina_fattura` | lo stesso tool in HTTP: JSON con `pdf_base64`, oppure modulo con il file nel campo `pdf` o come primo file PDF, per il blocco «Call an endpoint» di Evolus; mittente, oggetto e data anche nell'indirizzo |
 | `POST /registra_decisione` | lo stesso tool in HTTP, JSON |
 | `GET /casi` | i casi con esito e ultima decisione, per l'indice della casa dei giudici |
 | `GET /casi/{id}`, `GET /casi/{id}/fattura.pdf` | la vista della pagina del caso con le decisioni, e il PDF |
@@ -90,4 +90,4 @@ Due punti di test: il **gestore** (le regole dei due tool, con una staffetta fin
 
 ## Cosa manca
 
-- **Il lato Evolus** (workflow dall'email, blocco *choice*, avviso per email, secondo workflow, agente principale su vLLM): dipende da cosa c'è nella workspace dell'evento, che si sa al kickoff del 12/10.
+- **Il lato Evolus** (workflow dall'email, «Routing», avviso per email, secondo workflow, agente principale su vLLM): si monta al kickoff del 12/10 seguendo [`EVOLUS.md`](EVOLUS.md), che ha anche le domande da fare. Il PDF arriva al motore con «Call an endpoint», perché un connettore MCP riceve solo il testo scritto dal modello.
