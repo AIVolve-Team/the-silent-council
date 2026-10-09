@@ -43,8 +43,9 @@ SCRIVI_IMPEGNO = (
     "Write the data of the invoice as JSON. Copy every value exactly as printed. Dates as YYYY-MM-DD. Amounts as "
     "plain numbers. IBAN without spaces. Supplier and customer VAT numbers with the country prefix. The payee is the "
     "name printed as Payee, Beneficiario or account holder in the payment details, only if the invoice prints one: it "
-    "is never the customer (the Bill to or Spett.le part). Use null for anything that is not printed on the invoice. "
-    "Never invent a value."
+    "is never the customer (the Bill to or Spett.le part). num_item is the purchase order line number printed on an "
+    "invoice line, not a number taken from its code. Use null for anything that is not printed on the invoice. Never "
+    "invent a value."
 )
 RICORDA = (
     "Recall the invoice the extractor read: the supplier, the invoice number and date, the total, the payment "
