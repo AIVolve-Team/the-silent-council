@@ -94,3 +94,15 @@ def test_una_proposta_da_approvare(insieme):
     assert vista["proposta"]["importo"] == caso.impegno["totale_documento"]
     assert vista["nota_obbligatoria"] is False and vista["frode_sospetta"] is False
     assert all(not r["diverso"] for r in vista["testimoni"])
+
+
+def test_l_ordine_accanto_alla_fattura_anche_scritto_diverso(insieme):
+    # Come nelle regole (A08): "po 2026 0001" è l'ordine PO-2026-0001.
+    caso = next(c for c in insieme.casi if c.anomalia is None and c.al_limite is None)
+    impegno = copy.deepcopy(caso.impegno)
+    impegno["ordine"]["numero"] = caso.impegno["ordine"]["numero"].lower().replace("-", " ")
+    proposta = {"iban": caso.impegno["pagamento"]["iban"], "importo": caso.impegno["totale_documento"],
+                "esito": "pagare", "motivazione": "Conforme all'ordine."}  # fmt: skip
+    r = risultato_di(caso, insieme.archivi, lettura=lettura_da(caso.impegno), proposta=proposta) | {"impegno": impegno}
+    vista = vista_caso(r, insieme.archivi, pdf=rendi_pdf(caso))
+    assert vista["ordine"]["numero"] == caso.impegno["ordine"]["numero"]

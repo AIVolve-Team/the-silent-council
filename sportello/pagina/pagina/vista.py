@@ -74,7 +74,7 @@ def vista_caso(risultato: dict, archivi: Archivi, *, pdf: bytes) -> dict:
     motivi = risultato.get("motivi") or []
     fornitore = archivi.anagrafica.get(id_fiscale((impegno.get("fornitore") or {}).get("id_fiscale") or ""))
     numero_ordine = (impegno.get("ordine") or {}).get("numero")
-    ordine = archivi.ordini.get(numero_ordine) if numero_ordine else None
+    ordine = archivi.ordine(numero_ordine)  # con il numero normalizzato, come nelle regole (A08)
     documento = impegno.get("documento") or {}
     proposto = risultato.get("pagamento_proposto")
     return {
