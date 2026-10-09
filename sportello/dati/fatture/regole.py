@@ -124,9 +124,15 @@ def applica_regole(impegno: dict, archivi: Archivi, abbinamenti: dict[int, int |
             Scatto("A08", "bloccare", f"Ordine {numero_ordine} {motivo}", f"Purchase order {numero_ordine} {motivo_en}")
         )
         return scatti
+    # Le quantità si sommano per riga d'ordine: due righe della fattura sulla stessa voce non passano ognuna per conto
+    # suo contro tutto il residuo (F7 di una voce in più fatta passare per "compresa nella riga 1").
+    per_voce: dict[int, list[dict]] = {}
     for riga in impegno["righe"]:
-        scatti += controlla_riga(riga, ordine, abbinamenti)
-    return scatti
+        scatti_riga, voce = controlla_riga(riga, ordine, abbinamenti)
+        scatti += scatti_riga
+        if voce is not None:
+            per_voce.setdefault(voce.n, []).append(riga)
+    return scatti + quantita_oltre_il_residuo(per_voce, ordine)
 
 
 def totali(impegno: dict) -> list[Scatto]:
@@ -206,7 +212,10 @@ def riferimento(riga: dict) -> int | None:
         return None
 
 
-def controlla_riga(riga: dict, ordine: Ordine, abbinamenti: dict[int, int | None] | None) -> list[Scatto]:
+def controlla_riga(
+    riga: dict, ordine: Ordine, abbinamenti: dict[int, int | None] | None
+) -> tuple[list[Scatto], RigaOrdine | None]:
+    """Gli scatti della riga e la voce dell'ordine a cui corrisponde, se c'è."""
     n = riga["n"]
     numero = riferimento(riga)
     if numero is not None:
@@ -219,8 +228,9 @@ def controlla_riga(riga: dict, ordine: Ordine, abbinamenti: dict[int, int | None
                     f"Riga {n}: la riga {numero} dell'ordine non esiste",
                     f"Line {n}: purchase order line {numero} does not exist",
                 )
-            ]
-    elif abbinamenti is None or n not in abbinamenti:
+            ], None
+        return confronta(riga, voce, abbinata=False), voce
+    if abbinamenti is None or n not in abbinamenti:
         return [
             Scatto(
                 "A11",
@@ -228,8 +238,9 @@ def controlla_riga(riga: dict, ordine: Ordine, abbinamenti: dict[int, int | None
                 f"Riga {n} «{riga['descrizione']}»: da abbinare all'ordine",
                 f"Line {n} “{riga['descrizione']}”: to be matched to the purchase order",
             )
-        ]
-    elif abbinamenti[n] is None:
+        ], None
+    voce = ordine.riga(abbinamenti[n]) if abbinamenti[n] is not None else None
+    if voce is None:
         return [
             Scatto(
                 "A11",
@@ -237,16 +248,43 @@ def controlla_riga(riga: dict, ordine: Ordine, abbinamenti: dict[int, int | None
                 f"Riga {n} «{riga['descrizione']}»: non corrisponde a nessuna riga dell'ordine",
                 f"Line {n} “{riga['descrizione']}”: matches no purchase order line",
             )
-        ]
-    else:
-        voce = ordine.riga(abbinamenti[n])
-    return confronta(riga, voce)
+        ], None
+    return confronta(riga, voce, abbinata=True), voce
 
 
-def confronta(riga: dict, voce: RigaOrdine) -> list[Scatto]:
+def codice_compatto(codice: str | None) -> str:
+    return re.sub(r"[^A-Z0-9]", "", str(codice or "").upper())
+
+
+def confronta(riga: dict, voce: RigaOrdine, *, abbinata: bool) -> list[Scatto]:
+    """La riga contro la sua voce d'ordine. Il riferimento (scritto dall'estrattore) e l'abbinamento (fatto dal modello,
+    `abbinata`) non si prendono sulla parola: la riga deve essere quella voce, quindi stesso codice e stesso prezzo,
+    né più alto né più basso (F7 di una voce in più fatta passare per "compresa nella riga 1")."""
     n, scatti = riga["n"], []
     prezzo, prezzo_ordine = importo(riga["prezzo_unitario"]), importo(voce.prezzo_unitario)
     aumento = (prezzo - prezzo_ordine) / prezzo_ordine
+    codice, codice_ordine = codice_compatto(riga.get("codice")), codice_compatto(voce.codice)
+    if codice and codice_ordine and codice != codice_ordine:
+        scatti.append(
+            Scatto(
+                "A11",
+                "persona",
+                f"Riga {n}: codice {riga['codice']} diverso dalla riga {voce.n} dell'ordine ({voce.codice})",
+                f"Line {n}: item code {riga['codice']} differs from purchase order line {voce.n} ({voce.codice})",
+            )
+        )
+    if -aumento > PAGA_FINO_A:
+        modo_it, modo_en = ("l'abbinamento", "the match") if abbinata else ("il riferimento", "the reference")
+        scatti.append(
+            Scatto(
+                "A11",
+                "persona",
+                f"Riga {n} «{riga['descrizione']}»: prezzo {prezzo} sotto la riga {voce.n} dell'ordine ({prezzo_ordine}), "
+                f"{modo_it} non torna",
+                f"Line {n} “{riga['descrizione']}”: price {prezzo} below purchase order line {voce.n} ({prezzo_ordine}), "
+                f"{modo_en} does not hold",
+            )
+        )
     if aumento > PERSONA_FINO_A:
         scatti.append(
             Scatto(
@@ -265,15 +303,6 @@ def confronta(riga: dict, voce: RigaOrdine) -> list[Scatto]:
                 f"Line {n}: price {prezzo} 2% to 10% above the order ({prezzo_ordine})",
             )
         )
-    if Decimal(str(riga["quantita"])) > Decimal(str(voce.residuo)):
-        scatti.append(
-            Scatto(
-                "A10",
-                "bloccare",
-                f"Riga {n}: quantità {riga['quantita']} oltre il residuo dell'ordine ({voce.residuo})",
-                f"Line {n}: quantity {riga['quantita']} exceeds the order's remaining {voce.residuo}",
-            )
-        )
     if Decimal(str(riga["aliquota"])) != Decimal(str(voce.aliquota)):
         scatti.append(
             Scatto(
@@ -283,4 +312,24 @@ def confronta(riga: dict, voce: RigaOrdine) -> list[Scatto]:
                 f"Line {n}: VAT rate {riga['aliquota']}% differs from the order ({voce.aliquota}%)",
             )
         )
+    return scatti
+
+
+def quantita_oltre_il_residuo(per_voce: dict[int, list[dict]], ordine: Ordine) -> list[Scatto]:
+    """A10 sulla somma: tutte le righe della fattura che cadono sulla stessa voce d'ordine, insieme."""
+    scatti = []
+    for numero, righe in per_voce.items():
+        voce = ordine.riga(numero)
+        totale = sum((Decimal(str(r["quantita"])) for r in righe), Decimal(0))
+        if totale <= Decimal(str(voce.residuo)):
+            continue
+        if len(righe) == 1:
+            n, q = righe[0]["n"], righe[0]["quantita"]
+            it = f"Riga {n}: quantità {q} oltre il residuo dell'ordine ({voce.residuo})"
+            en = f"Line {n}: quantity {q} exceeds the order's remaining {voce.residuo}"
+        else:
+            elenco = ", ".join(str(r["n"]) for r in righe)
+            it = f"Righe {elenco}: quantità {totale:g} insieme oltre il residuo della riga {numero} dell'ordine ({voce.residuo})"
+            en = f"Lines {elenco}: quantity {totale:g} together exceed the remaining {voce.residuo} of purchase order line {numero}"
+        scatti.append(Scatto("A10", "bloccare", it, en))
     return scatti
