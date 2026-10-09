@@ -2,7 +2,7 @@ import jsonschema
 import pytest
 from fatture.genera import genera_insieme
 
-from pipeline.schemi import SCHEMA_IMPEGNO, SCHEMA_LETTURA, lettura_da, schema_proposta
+from pipeline.schemi import SCHEMA_IMPEGNO, SCHEMA_LETTURA, lettura_da, schema_abbinamenti, schema_proposta
 
 
 @pytest.fixture(scope="module")
@@ -34,18 +34,14 @@ def test_lo_schema_impone_i_formati_di_46(casi, sbagliato):
         jsonschema.validate(impegno, SCHEMA_IMPEGNO)
 
 
-def test_la_proposta_chiede_l_abbinamento_delle_sole_righe_libere():
-    schema = schema_proposta([2, 5])
-    proposta = {
-        "iban": "IT60X0542811101000000123456", "importo": 152.5, "esito": "pagare",
-        "motivazione": "Conforme all'ordine.",
-        "abbinamenti": [{"riga": 2, "riga_ordine": 1}, {"riga": 5, "riga_ordine": None}],
-    }  # fmt: skip
-    jsonschema.validate(proposta, schema)
-    proposta["abbinamenti"] = [{"riga": 3, "riga_ordine": 1}, {"riga": 5, "riga_ordine": None}]
+def test_l_abbinatore_risponde_solo_per_le_righe_libere_e_il_decisore_non_abbina():
+    schema = schema_abbinamenti([2, 5])
+    risposta = {"abbinamenti": [{"riga": 2, "riga_ordine": 1}, {"riga": 5, "riga_ordine": None}]}
+    jsonschema.validate(risposta, schema)
+    risposta["abbinamenti"] = [{"riga": 3, "riga_ordine": 1}, {"riga": 5, "riga_ordine": None}]
     with pytest.raises(jsonschema.ValidationError):
-        jsonschema.validate(proposta, schema)
-    assert "abbinamenti" not in schema_proposta([])["properties"]
+        jsonschema.validate(risposta, schema)
+    assert "abbinamenti" not in schema_proposta()["properties"]  # il decisore vede la memoria: non abbina (F7 di «Catalogo degli attacchi»)
 
 
 def test_il_riferimento_alla_riga_d_ordine_e_solo_un_numero(casi):

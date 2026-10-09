@@ -34,8 +34,19 @@ from motore import ControlloSigillo, MessaggioLatente, Modello, Motore, carica_p
 from motore.messaggio import TELEPATIA, TESTO
 from motore.modello import Generazione
 
-from .agenti import DECISORE, ESTRATTORE, LEGGI, RICORDA, SCRIVI_IMPEGNO, SCRIVI_LETTURA, VERIFICATORE, prompt_decisore
-from .schemi import SCHEMA_IMPEGNO, SCHEMA_LETTURA, schema_proposta
+from .agenti import (
+    ABBINATORE,
+    DECISORE,
+    ESTRATTORE,
+    LEGGI,
+    RICORDA,
+    SCRIVI_IMPEGNO,
+    SCRIVI_LETTURA,
+    VERIFICATORE,
+    prompt_abbinatore,
+    prompt_decisore,
+)
+from .schemi import SCHEMA_IMPEGNO, SCHEMA_LETTURA, schema_abbinamenti, schema_proposta
 from .testo import estrai_testo
 
 RUOLI = ("estrattore", "verificatore", "decisore")
@@ -97,6 +108,23 @@ def leggi_json(generazione: Generazione) -> dict | None:
         return json.loads(generazione.testo)
     except json.JSONDecodeError:
         return None
+
+
+def abbina(motore, ordine, libere: list[dict], conteggio: Conteggio, *, modalita: str) -> dict[int, int | None]:
+    """L'abbinatore cieco (F7 di «Catalogo degli attacchi»): abbina all'ordine le righe senza riferimento vedendo solo le righe estratte e
+    l'ordine, senza nessun messaggio latente, quindi senza il testo della fattura, nascosto compreso. Una risposta
+    interrotta lascia le righe senza abbinamento: decide una persona (A11). Le regole fisse controllano comunque
+    codice, prezzo e quantità di ogni abbinamento."""
+    if not libere:
+        return {}
+    g = motore.scrivi(ABBINATORE, prompt_abbinatore(ordine, libere), [], modalita=modalita,
+                      schema=schema_abbinamenti([r["n"] for r in libere]), max_token=64 + 32 * len(libere),
+                      ordine_campi=True, max_spazi=1)  # fmt: skip
+    conteggio.scritto(g)
+    dati = leggi_json(g)
+    if dati is None:
+        return {r["n"]: None for r in libere}
+    return {a["riga"]: a["riga_ordine"] for a in dati["abbinamenti"]}
 
 
 def ordine_di(impegno: dict, archivi: Archivi):
@@ -186,8 +214,8 @@ def esamina(
     # 3. Decisore: propone il pagamento e abbina le righe senza riferimento all'ordine.
     ordine = ordine_di(impegno, archivi)
     libere = [r for r in impegno.get("righe", []) if riferimento(r) is None] if ordine else []
-    g = motore.scrivi(DECISORE, prompt_decisore(ordine, libere), catena,
-                      schema=schema_proposta([r["n"] for r in libere]), max_token=MAX_TOKEN["proposta"], **vincolo)  # fmt: skip
+    g = motore.scrivi(DECISORE, prompt_decisore(), catena, schema=schema_proposta(), max_token=MAX_TOKEN["proposta"],
+                      **vincolo)  # fmt: skip
     conteggio.scritto(g)
     proposta = leggi_json(g)
     if proposta is None:
@@ -197,7 +225,7 @@ def esamina(
         return fine(sessione, inizio, conteggio, registro, chiavi, catena, fermata(esito_catena, impegno, lettura))
 
     # 4. Regole del catalogo e tre testimoni.
-    abbinamenti = {a["riga"]: a["riga_ordine"] for a in proposta.get("abbinamenti", [])}
+    abbinamenti = abbina(motore, ordine, libere, conteggio, modalita=modalita)
     v = valuta(impegno, lettura, proposta, applica_regole(impegno, archivi, abbinamenti), livello2=livello2)
     esito = {
         "esito": v.esito,
