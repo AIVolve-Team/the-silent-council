@@ -22,6 +22,25 @@ def test_un_caso_bloccato_torna_con_il_link_e_senza_nessun_iban_intero(sportello
     assert IBAN_INTERO.search(json.dumps(risposta, ensure_ascii=False)) is None
 
 
+def test_l_avviso_alla_persona_lo_scrive_il_motore_e_l_agente_lo_manda_cosi_com_e(
+    sportello, pdf_frode, frode, pdf_pulita, pulita
+):
+    # breve, con esito, fornitore, numero, importo, motivo e link; con sospetta frode "non rispondere" e i
+    # contatti dell'anagrafica. Scritto dal motore, l'agente non può copiarci l'IBAN o i contatti della fattura.
+    bloccato = esamina(sportello, pdf_frode, frode)
+    avviso, contatti = bloccato["avviso"], bloccato["contatti_anagrafica"]
+
+    documento, fornitore = frode.impegno["documento"]["numero"], frode.impegno["fornitore"]["denominazione"]
+    assert avviso["oggetto"] == f"[Blocked] Invoice {documento} from {fornitore}"
+    assert "Nothing has been paid." in avviso["testo"]
+    assert "differs from the one on file" in avviso["testo"]
+    assert "Do not reply to this email" in avviso["testo"]
+    assert contatti["telefono"] in avviso["testo"] and contatti["email"] in avviso["testo"]
+    assert bloccato["link"] in avviso["testo"]
+    assert IBAN_INTERO.search(json.dumps(avviso, ensure_ascii=False)) is None
+    assert esamina(sportello, pdf_pulita, pulita)["avviso"] is None  # si propone il pagamento: nessuna email
+
+
 def test_la_stessa_email_due_volte_e_lo_stesso_caso_e_non_rifa_l_esame(sportello, pipeline, pdf_pulita, pulita):
     prima = esamina(sportello, pdf_pulita, pulita)
     seconda = esamina(sportello, pdf_pulita, pulita)
