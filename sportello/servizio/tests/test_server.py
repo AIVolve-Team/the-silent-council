@@ -94,3 +94,43 @@ def test_il_pdf_si_scarica_solo_in_https_dagli_host_ammessi(sportello, pipeline,
     assert r.status_code == 400
     assert "non ammesso" in r.json()["errore"]
     assert pipeline.chiamate == []
+
+
+def test_da_evolus_il_pdf_arriva_con_un_nome_qualsiasi_e_i_dati_dell_email_nell_indirizzo(
+    app, pipeline, pdf_pulita, pulita
+):
+    # «Call an endpoint» di Evolus con «Multipart with the flow's files»: il nome del campo del file non è documentato,
+    # nel modulo possono esserci campi suoi e altri file; i dati dell'email arrivano dai segnaposto dell'indirizzo.
+    e, chiave = pulita.email, {"Authorization": f"Bearer {SEGRETO}"}
+    with TestClient(app) as http:
+        via_json = http.post("/esamina_fattura", json=argomenti(pdf_pulita, pulita), headers=chiave).json()
+        r = http.post(
+            "/esamina_fattura",
+            params={"mittente": e["mittente"], "oggetto": e["oggetto"], "data": e["data"], "livello2": "no"},
+            files=[
+                ("logo", ("logo.png", b"\x89PNG\r\n", "image/png")),
+                ("document", ("f.pdf", pdf_pulita, "application/pdf")),
+            ],
+            data={"input": "il testo dell'email, che Evolus aggiunge", "livello2": "no"},
+            headers=chiave,
+        )
+        senza_pdf = http.post("/esamina_fattura", params={"mittente": e["mittente"]}, data={"input": "x"},
+                              files={"logo": ("logo.png", b"\x89PNG\r\n", "image/png")}, headers=chiave)  # fmt: skip
+
+    assert r.status_code == 200, r.text
+    assert r.json() == via_json  # la stessa email è lo stesso caso: niente secondo esame
+    assert len(pipeline.chiamate) == 1
+    assert senza_pdf.status_code == 400
+
+
+def test_da_evolus_senza_i_dati_dell_email_il_caso_si_esamina_lo_stesso(app, pipeline, pdf_pulita):
+    # Se l'indirizzo del catalogo di Evolus non accetta segnaposto, mittente e data non arrivano: si esamina lo stesso.
+    from datetime import UTC, datetime
+
+    with TestClient(app) as http:
+        r = http.post("/esamina_fattura", files={"file": ("f.pdf", pdf_pulita, "application/pdf")},
+                      headers={"Authorization": f"Bearer {SEGRETO}"})  # fmt: skip
+
+    assert r.status_code == 200, r.text
+    email, _, _ = pipeline.chiamate[0]
+    assert email == {"mittente": "(sconosciuto)", "oggetto": "", "data": datetime.now(UTC).date().isoformat()}
