@@ -40,7 +40,7 @@ Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni
 
 | Passo | Ticket | Cosa | Come si spegne |
 |---|---|---|---|
-| `30-attacchi.sh` | | La manomissione in transito (F1) e i 10 testi nascosti (F4), in telepatia e a testo, cioè 21 esami. Il rapporto dice chi li ferma e se la sola coerenza blocca almeno 8 F4 su 10: è la regola dell'attacco 2 dal vivo. | `SENZA_ATTACCHI=1` |
+| `30-attacchi.sh` | | La manomissione in transito (F1), i 10 testi nascosti (F4) e i 5 inganni sulle righe da abbinare (F7), in telepatia e a testo, cioè 31 esami. Il rapporto dice chi li ferma, se la sola coerenza blocca almeno 8 F4 su 10 (la regola dell'attacco 2 dal vivo,) e se qualche F7 riesce. | `SENZA_ATTACCHI=1` |
 
 ### Cosa non prova
 
