@@ -2,7 +2,8 @@
 // Ogni giro Evolus costa crediti, e le prove dei giudici non passano da Evolus: la funzione è spenta finché
 // EVOLUS_ATTIVO non vale 1, cosa che si fa solo per le riprese del video e per il palco. Da spenta risponde 503 e la
 // pagina dice "decisione salvata in questo browser".
-// Da verificare al kickoff (12/10): l'intestazione della chiave (EVOLUS_INTESTAZIONE) e il formato dell'ingresso.
+// La chiamata segue la pagina per sviluppatori di Evolus (https://evolus.ai/en/developers, letta il 9/10): multipart,
+// X-ApiKey e X-Application-Id (lo "Space ID"), i parametri dichiarati nel workflow in "parameters", niente callbackUrl.
 import { Errore, corpo, gestisci, json, motore } from "../lib/comune.mjs";
 
 const DECISIONI = ["approvato", "rifiutato", "segnalato"];
@@ -29,13 +30,16 @@ export default {
     const ultima = (await caso.json()).decisioni.at(-1);
     if (ultima && ultima.decisione === decisione && ultima.nota === nota.trim()) return json({ inviata: true, gia_registrata: true });
 
-    const { EVOLUS_URL, EVOLUS_WORKFLOW, EVOLUS_API_KEY, EVOLUS_INTESTAZIONE } = process.env;
-    if (!EVOLUS_URL || !EVOLUS_WORKFLOW || !EVOLUS_API_KEY) throw new Errore(503, "Evolus non configurato");
-    const chiave = EVOLUS_INTESTAZIONE ? { [EVOLUS_INTESTAZIONE]: EVOLUS_API_KEY } : { Authorization: `Bearer ${EVOLUS_API_KEY}` };
+    const { EVOLUS_URL = "https://api.evolus.ai", EVOLUS_WORKFLOW, EVOLUS_API_KEY, EVOLUS_SPAZIO } = process.env;
+    if (!EVOLUS_WORKFLOW || !EVOLUS_API_KEY || !EVOLUS_SPAZIO) throw new Errore(503, "Evolus non configurato");
+    const modulo = new FormData();
+    const parametri = { id_caso, decisione, chi: "persona sulla pagina del caso", nota: nota.trim() };
+    modulo.set("input", `Decisione della persona sul caso ${id_caso}: ${decisione}`);
+    modulo.set("parameters", JSON.stringify(parametri));
     const r = await fetch(new URL(`/api/v1/workflows/${encodeURIComponent(EVOLUS_WORKFLOW)}/execute`, EVOLUS_URL), {
       method: "POST",
-      headers: { ...chiave, "Content-Type": "application/json" },
-      body: JSON.stringify({ input: { id_caso, decisione, chi: "persona sulla pagina del caso", nota: nota.trim() } }),
+      headers: { "X-ApiKey": EVOLUS_API_KEY, "X-Application-Id": EVOLUS_SPAZIO },
+      body: modulo,
       signal: AbortSignal.timeout(15000),
     });
     if (!r.ok) throw new Errore(502, "Evolus non ha accettato la decisione");
