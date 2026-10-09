@@ -190,5 +190,8 @@ Si copia `risultati/` sul Mac (`rsync -a root@<IP>:~/hackathon/g1/risultati/ g1/
 
 ### Dopo G1, se la macchina è un droplet
 
-- **Snapshot** del disco di avvio, con i modelli dentro, e prova a far nascere una macchina dallo snapshot: il tempo va scritto (serve alla casa per i giudici,).
-- **Distruggere la macchina** e controllare che non compaia più nel pannello.
+Con `casa/mi300x/mi300x.sh` della casa per i giudici, che parla con l'API di AMD Developer Cloud (è quella di DigitalOcean):
+
+- **Snapshot** del disco di avvio, con i modelli dentro: `mi300x.sh snapshot`. Ci vogliono circa 1-3 minuti per GB usato, e intanto la macchina si paga: conviene lanciarlo a fine giornata. Prima si preparano i servizi che devono ripartire da soli (`casa/mi300x/README.md`, "La macchina d'oro").
+- **Distruggere la macchina:** `mi300x.sh distruggi`, che ricontrolla e dà errore se ne resta una accesa.
+- **Il tempo di nascita da snapshot**, la mattina dopo: `mi300x.sh crea aspetta`, che stampa i secondi fino alla macchina attiva e, con `MI300X_SALUTE`, fino al motore pronto. Va scritto.
