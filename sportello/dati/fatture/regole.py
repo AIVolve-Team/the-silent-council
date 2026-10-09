@@ -116,7 +116,7 @@ def applica_regole(impegno: dict, archivi: Archivi, abbinamenti: dict[int, int |
     if not numero_ordine:
         scatti.append(Scatto("A07", "persona", "Nessun riferimento all'ordine", "No purchase order reference"))
         return scatti
-    ordine = archivi.ordini.get(numero_ordine)
+    ordine = archivi.ordine(numero_ordine)
     if ordine is None or id_fiscale(ordine.fornitore) != id_fornitore:
         motivo = "inesistente" if ordine is None else f"intestato a un altro fornitore ({ordine.fornitore})"
         motivo_en = "does not exist" if ordine is None else f"belongs to another supplier ({ordine.fornitore})"
@@ -163,7 +163,7 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
     numero = numero_documento(documento["numero"]) if documento.get("numero") else None
     giorno = giorno_di(documento.get("data"))
     numero_ordine = (impegno.get("ordine") or {}).get("numero")
-    ordine = archivi.ordini.get(numero_ordine) if numero_ordine else None
+    ordine = archivi.ordine(numero_ordine)
     scatti = []
     for voce in archivi.storico:
         if id_fiscale(voce.fornitore) != id_fornitore:
@@ -186,7 +186,8 @@ def duplicati(impegno: dict, archivi: Archivi, id_fornitore: str) -> list[Scatto
             )
         elif (
             numero_ordine
-            and voce.ordine == numero_ordine
+            and voce.ordine
+            and numero_documento(voce.ordine) == numero_documento(numero_ordine)
             and stesso_importo(voce.importo, impegno["totale_documento"])
             and (giorno is None or abs((giorno - giorno_voce).days) <= GIORNI_DUPLICATO)
             and (ordine is None or ordine.rate <= 1)
