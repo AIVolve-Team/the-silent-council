@@ -72,12 +72,22 @@ def test_la_frase_sui_pensieri(con_pensieri, senza, attesa):
 
 def test_g4_lo_sportello_e_consegnabile_solo_se_tutto_torna(casi):
     m = metriche_esame([riga(primo(casi, anomalia=None), "pagare")], {c.id: c for c in casi})
-    ok, voci = consegnabile(g1_passa=True, g2_esito="compatibile", metriche=m, attacchi_ok=True, demo_ok=True)
+    tutto = {"g1_passa": True, "metriche": m, "attacchi_ok": True, "demo_ok": True, "esame_completo": True}
+    ok, voci = consegnabile(g2_esito="compatibile", **tutto)
     assert ok is True and all(stato == "✓" for _, stato in voci)
-    ok, voci = consegnabile(g1_passa=True, g2_esito="no", metriche=m, attacchi_ok=True, demo_ok=True)
+    ok, voci = consegnabile(g2_esito="no", **tutto)
     assert ok is False
-    ok, _ = consegnabile(g1_passa=True, g2_esito="dimostrato", metriche=m, attacchi_ok=None, demo_ok=True)
+    ok, _ = consegnabile(g2_esito="dimostrato", **tutto | {"attacchi_ok": None})
     assert ok is None  # manca una misura: G4 non si decide ancora
+
+
+def test_g4_non_dice_si_finche_l_esame_non_e_finito(casi):
+    # Zero pagamenti dannosi su zero fatture non vuol dire niente: l'esame a metà lascia G4 in sospeso.
+    m = metriche_esame([], {c.id: c for c in casi})
+    ok, voci = consegnabile(g1_passa=True, g2_esito="compatibile", metriche=m, attacchi_ok=True, demo_ok=True,
+                            esame_completo=False)  # fmt: skip
+    assert ok is None
+    assert ("esame completo, nei due modi e con le prove anti-trucco", "?") in voci
 
 
 def righe_attacchi(riusciti: frozenset[str] = frozenset(), quante: int | None = None) -> list[dict]:
@@ -138,3 +148,62 @@ def test_il_rapporto_dell_esame_porta_gli_attacchi(tmp_path):
     assert "| Proposta giusta, IBAN e importo (senza soglia) |" in testo
     assert "- ✓ attacchi fermati come in §5" in testo
     assert "arrivano con “Attacks”" not in testo
+
+
+@pytest.fixture(scope="module")
+def insieme_su_disco(tmp_path_factory):
+    from fatture.insiemi import salva_insieme
+
+    cartella = tmp_path_factory.mktemp("insieme") / "sviluppo"
+    salva_insieme(genera_insieme("sviluppo"), cartella)
+    return cartella
+
+
+def test_il_rapporto_dell_esame_ha_la_tabella_atteso_ottenuto_e_i_token_letti(tmp_path, insieme_su_disco):
+    import json
+
+    from fatture.insiemi import carica_casi
+
+    from harness.esame import testo_esame
+
+    casi = carica_casi(insieme_su_disco)
+    giri = tmp_path / "esame" / "giri"
+    giri.mkdir(parents=True)
+    for modalita in ("telepatia", "testo"):
+        righe = [riga(c, c.esito_atteso) for c in casi]
+        (giri / f"{modalita}.jsonl").write_text("".join(json.dumps(r) + "\n" for r in righe))
+
+    testo = testo_esame(tmp_path / "esame", insieme_su_disco, g1=None, g2=None, attacchi=None, demo=None)
+
+    assert "| Token letti per fattura | 400 | 400 |" in testo
+    assert "Esito atteso (righe) contro esito ottenuto (colonne)" in testo
+    # 58 pulite da pagare, 18 da passare a una persona, 24 da bloccare: tutte giuste, quindi sulla diagonale
+    assert "| pagare | 58 | 0 | 0 | 0 |" in testo
+    assert "| bloccare | 0 | 0 | 24 | 0 |" in testo
+
+
+def test_l_esame_scrive_un_errore_e_va_avanti_e_ogni_modo_ha_il_suo_registro(tmp_path, insieme_su_disco, monkeypatch):
+    import json
+
+    import pipeline.sportello
+    from fatture.insiemi import carica_archivi, carica_casi
+
+    from harness.esame import esegui_uno
+
+    registri = []
+
+    def finta(modello, pdf, email, archivi, chiavi, *, registro, id_caso, modalita="telepatia", **_):
+        registri.append(registro)
+        if modalita == "testo":
+            raise RuntimeError("memoria esaurita")
+        return {"id_caso": id_caso, "esito": "pagare", "token": {"generati": 1, "letti": 2}, "secondi": 1.0}
+
+    monkeypatch.setattr(pipeline.sportello, "esamina", finta)
+    caso = carica_casi(insieme_su_disco)[0]
+    comuni = {"esame": insieme_su_disco, "archivi": carica_archivi(insieme_su_disco), "modello": None, "chiavi": None}
+    esegui_uno(tmp_path / "giri" / "telepatia.jsonl", caso, modalita="telepatia", **comuni)
+    esegui_uno(tmp_path / "giri" / "testo.jsonl", caso, modalita="testo", **comuni)
+
+    riga_testo = json.loads((tmp_path / "giri" / "testo.jsonl").read_text())
+    assert riga_testo["esito"] == "errore" and "memoria esaurita" in riga_testo["errore"]
+    assert registri[0] != registri[1]  # il testo non sovrascrive i messaggi firmati della telepatia
