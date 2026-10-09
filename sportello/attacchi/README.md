@@ -45,4 +45,5 @@ Ogni attacco finito si scrive subito; rilanciando si riparte da quelli che manca
 
 ## L'esame
 
-I 50 attacchi dell'esame si costruiscono nello stesso modo sulle 116 pulite dell'esame; la loro impronta (`impronta_attacchi`) si scrive prima di misurare, come quella delle fatture.
+I 50 attacchi dell'esame si costruiscono nello stesso modo sulle 116 pulite dell'esame; la loro impronta (`impronta_attacchi`) è scritta prima di misurare, come quella delle fatture.
+`esegui` sull'esame la ricontrolla e non parte se è diversa; un test ricontrolla ogni volta che il codice costruisca proprio gli attacchi scritti, sia dello sviluppo sia dell'esame.
