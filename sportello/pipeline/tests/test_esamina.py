@@ -11,6 +11,7 @@ import os
 import pytest
 from fatture.genera import genera_insieme
 from fatture.pdf import rendi_pdf
+from fatture.regole import riferimento
 from motore import Modello
 from motore.messaggio import TELEPATIA, TESTO
 from motore.verifica import verifica_archivio
@@ -115,3 +116,15 @@ def test_un_messaggio_manomesso_in_transito_rompe_il_sigillo(modello, insieme, c
     assert r["sigillo"].startswith("rotto")
     assert r["motivi"][0]["livello"] == "sigillo"
     assert list((tmp_path / "incidenti").glob("incidente-*.json"))
+
+
+def test_le_righe_senza_riferimento_le_abbina_l_abbinatore_cieco(modello, insieme, chiavi, tmp_path):
+    con_righe_libere = [c for c in insieme.casi if c.anomalia is None and c.al_limite is None and c.abbinamenti]
+    caso = min(con_righe_libere, key=lambda c: len(c.impegno["righe"]))
+    perfetto = Attacco(lettura=lambda letta, impegno: lettura_da(impegno))  # perché la staffetta arrivi al decisore
+    r = esegui(modello, insieme, caso, chiavi, tmp_path, modalita=TELEPATIA, passi_latenti=2, attacco=perfetto)
+    if r["sigillo"] == "integro" and r["proposta"] is not None:
+        # Una risposta per ogni riga che nell'impegno dichiarato non ha riferimento, giusta o no: quali sono dipende da
+        # come il modello piccolo ha letto la fattura.
+        libere = {riga["n"] for riga in r["impegno"]["righe"] if riferimento(riga) is None}
+        assert set(r["abbinamenti"]) == libere

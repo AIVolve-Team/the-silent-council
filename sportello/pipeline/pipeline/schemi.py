@@ -72,18 +72,21 @@ def lettura_da(impegno: dict) -> dict:
     }
 
 
-def schema_proposta(righe_libere: list[int]) -> dict:
-    """La proposta del decisore: IBAN e importo, esito proposto, motivazione e, se ci sono righe senza
-    riferimento all'ordine, a quale riga dell'ordine corrisponde ognuna (A11). Il decisore non può bloccare: un
+def schema_proposta() -> dict:
+    """La proposta del decisore: IBAN e importo, esito proposto e motivazione. Il decisore non può bloccare: un
     blocco nasce sempre da una regola."""
-    proprieta = {
+    return oggetto({
         "iban": IBAN,
         "importo": IMPORTO,
         "esito": {"enum": ["pagare", "persona"]},
         "motivazione": {"type": "string", "maxLength": 240},
-    }
-    if righe_libere:
-        proprieta["abbinamenti"] = {
+    })  # fmt: skip
+
+
+def schema_abbinamenti(righe_libere: list[int]) -> dict:
+    """L'abbinatore cieco (F7 di «Catalogo degli attacchi»): per ogni riga senza riferimento, la riga dell'ordine o null (A11)."""
+    return oggetto({
+        "abbinamenti": {
             "type": "array",
             "minItems": len(righe_libere),
             "maxItems": len(righe_libere),
@@ -91,4 +94,4 @@ def schema_proposta(righe_libere: list[int]) -> dict:
                 {"riga": {"enum": righe_libere}, "riga_ordine": {"anyOf": [{"type": "integer"}, {"type": "null"}]}}
             ),
         }
-    return oggetto(proprieta)
+    })  # fmt: skip
