@@ -1,0 +1,56 @@
+# La MI300X a finestre: ogni mezz'ora si confronta l'ora con casa/finestre.json. Dentro una finestra, con 45
+# minuti di anticipo, la MI300X dev'essere accesa; fuori va distrutta, perché anche spenta si paga (2,59 $ l'ora).
+# Tocca solo le macchine con il tag sportello-finestra: quelle accese a mano per lavorare restano.
+# GitHub può far slittare o saltare un orario: girando spesso e fuori dall'ora tonda, il giro dopo rimette a posto.
+# Gli orari partono solo dal ramo principale.
+#
+# Segreti: DIGITALOCEAN_ACCESS_TOKEN (token del team AMD Developer Cloud), MI300X_SSH (impronta della chiave SSH).
+# Variabili facoltative: DO_API (https://api.devcloud.amd.com se quella predefinita non accetta il token AMD),
+# MI300X_DNS_DOMINIO e MI300X_DNS_NOME (il record A da puntare al nuovo IP, se il dominio sta nel DNS di DigitalOcean).
+name: MI300X a finestre
+
+on:
+  schedule:
+    - cron: "13,43 * * * *"
+  workflow_dispatch:
+    inputs:
+      comando:
+        description: "finestre: come da finestre.json; distruggi-tutto: anche le macchine accese a mano"
+        type: choice
+        default: stato
+        options: [stato, finestre, crea, distruggi, distruggi-tutto]
+
+concurrency:
+  group: mi300x
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mi300x:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: La MI300X
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          MI300X_SSH: ${{ secrets.MI300X_SSH }}
+          DO_API: ${{ vars.DO_API || 'https://api.digitalocean.com' }}
+          MI300X_DNS_DOMINIO: ${{ vars.MI300X_DNS_DOMINIO }}
+          MI300X_DNS_NOME: ${{ vars.MI300X_DNS_NOME }}
+          COMANDO: ${{ inputs.comando || 'finestre' }}
+        run: |
+          if [ -z "$DIGITALOCEAN_ACCESS_TOKEN" ]; then
+            echo "Manca il segreto DIGITALOCEAN_ACCESS_TOKEN: niente da fare."
+            exit 0
+          fi
+          s=casa/mi300x/mi300x.sh
+          case "$COMANDO" in
+            finestre) $s finestre casa/finestre.json ;;
+            crea) MI300X_TAG=sportello-finestra $s crea ;;
+            distruggi) MI300X_TAG=sportello-finestra $s distruggi ;;
+            distruggi-tutto) MI300X_TAG=sportello-finestra $s distruggi && MI300X_TAG=sportello-mi300x $s distruggi ;;
+            *) MI300X_TAG=sportello-finestra $s stato && MI300X_TAG=sportello-mi300x $s stato ;;
+          esac
