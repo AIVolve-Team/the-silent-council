@@ -68,11 +68,12 @@ Una riga per fattura: `id`, `lingua`, `anomalia` (o `null`), `al_limite` (o `nul
 
 ## Scelte fatte qui
 
-non le fissava; i test le rendono esplicite.
+non le fissava; i test le rendono esplicite. Ogni regola ha un test che la fa scattare e uno al limite che non la fa scattare (`tests/test_regole.py`).
 
 - **A00, mai pagare senza aver potuto controllare:** se mancano o non sono validi i dati che servono alle regole (identificativo fiscale del fornitore, numero, data, IBAN), l'esito è almeno "persona". Non è nel catalogo: coincide con la regola sui campi critici vuoti, ma vale anche con la coerenza spenta. Con una data impossibile il duplicato esatto si cerca sul solo numero e il duplicato mascherato scatta su ordine e importo; senza numero, il duplicato mascherato scatta comunque. Nasce da una revisione di sicurezza: una versione precedente, robusta ma "fail-open", lasciava pagare in questi casi.
 - **A05 da solo:** con un fornitore sconosciuto non c'è niente con cui confrontare ordine, IBAN o storico, quindi le regole si fermano lì (resta solo il controllo dei totali, A13). L'ordine stampato in queste fatture non esiste.
 - **A07 e A08** fermano i controlli sulle righe: senza un ordine valido non c'è niente da confrontare.
+- **Il numero d'ordine si normalizza come quello del documento in A01**: `PO/2026/42` è `PO-2026-0042`, nella ricerca dell'ordine (A08) e nel duplicato mascherato (A02). Prima l'ordine si cercava scritto esattamente così: una fattura onesta con l'ordine scritto in minuscolo si bloccava, e normalizzando solo A08 un duplicato con l'ordine scritto diverso sarebbe sfuggito ad A02. Lo stesso vale per chi legge gli archivi: `Archivi.ordine(numero)`.
 - **Una riga con un riferimento a una riga d'ordine che non esiste** è A11, persona, senza bisogno del modello.
 - **A03:** chi cambia l'IBAN stampa anche un altro telefono. La verifica si fa con i contatti in anagrafica, mai con quelli della fattura.
 - **Fornitori esteri senza IVA:** A12, per loro, è una fattura che addebita l'IVA del proprio paese.
