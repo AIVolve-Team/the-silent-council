@@ -23,14 +23,16 @@ Per un contratto:
 | `revisione/punteggio.py` | F1, precisione, richiamo, MCC e base "sempre sì" sulle coppie (contratto, categoria), per il verdetto e per le note; accordo fra note e verdetto |
 | `revisione/esegui.py` | fa girare il Consiglio su un insieme e scrive una revisione per riga in `risultati/` |
 | `revisione/dati.py` | legge contratti, risposte giuste e set dimostrativo da `consiglio/dati` |
+| `revisione/vista.py` | dalla revisione alla vista della pagina del verdetto, e la pagina con i dati dentro |
+| `pagina/verdetto.html` | la pagina del verdetto per la persona |
 
 ## Uso
 
 ```bash
 cd consiglio/revisione
 uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/requirements.txt
-.venv/bin/python -m pytest -q -m "not modello" # 17 test veloci
-.venv/bin/python -m pytest -q # 19 test, circa 4 minuti su un Mac M4 (Qwen3-0.6B)
+.venv/bin/python -m pytest -q -m "not modello" # 22 test veloci
+.venv/bin/python -m pytest -q # 24 test, circa 4 minuti su un Mac M4 (Qwen3-0.6B)
 
 # I contratti del set di misura vengono da consiglio/dati/cache (prepara.py li scarica).
 .venv/bin/python -m revisione.esegui --benchmark cuad --modalita telepatia --passi 10 --modello Qwen/Qwen3-1.7B
@@ -44,6 +46,31 @@ uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/req
 - Le revisioni finiscono in `risultati/`, una per riga, con note, verdetto, confidenze, dissensi, citazioni verificate, token, tempo e impronte dei messaggi.
 - `--senza-riallineamento` spegne la matrice W_a di LatentMAS sui passi latenti, come è di default in LatentMAS; il nome del file finisce con `-senza-riallineamento`. Il riepilogo di ogni giro dà anche l'F1 delle note prese come verdetto e l'accordo fra note e verdetto, per vedere se una segnalazione si perde negli esperti o nel relatore.
 - Per le prove e per la demo, `Consiglio.revisiona(..., pensieri_da=..., attacchi=...)` passa le opzioni alla staffetta del motore.
+
+## La pagina del verdetto 
+
+`pagina/verdetto.html` mostra alla persona il verdetto di una revisione, con le regole:
+
+- in cima la raccomandazione *firmare / negoziare / non firmare*, con la motivazione;
+- le righe di tutte le categorie, divise per esperto: citazione con il bollino "trovata nel contratto" o "non trovata", motivazione e confidenza;
+- il dissenso grave con l'esperto sicuro sempre in evidenza, gli altri dissensi si aprono con un clic. Su ogni dissenso la persona sceglie chi ha ragione;
+- il sigillo: "comunicazione tra esperti integra" con le impronte dei messaggi, oppure l'avviso rosso senza verdetto;
+- "Mostra cosa ha pensato ogni esperto" apre le note;
+- "Scarica il riepilogo (PDF)" stampa raccomandazione, clausole segnalate, dissensi e scelte; "Salva le scelte" scarica un JSON.
+
+```bash
+.venv/bin/python -m revisione.vista risultati/<giro>.jsonl --contratto <id> --titolo "Contratto..." --uscita vista.json --html verdetto.html
+```
+
+Con `--html` la pagina contiene già i dati: è un file solo, da aprire o allegare. Senza, la pagina legge `?vista=vista.json` o un file scelto a mano.
+`pagina/esempio.html` è la pagina di una revisione inventata (`pagina/esempio-revisione.json`): non contiene niente del set dimostrativo, che resta privato.
+Per rigenerarla:
+
+```bash
+.venv/bin/python -c "import json; from pathlib import Path; from revisione import BENCHMARK; from revisione.vista import pagina, vista; r = json.loads(Path('pagina/esempio-revisione.json').read_text); Path('pagina/esempio.html').write_text(pagina(vista(r, BENCHMARK['dimostrativo'], 'Contratto di fornitura di componenti (esempio)')))"
+```
+
+Il collegamento con Evolus (email con il link alla pagina, scelte rimandate con il secondo workflow) aspetta l'integrazione dell'.
 
 ## Scelte
 

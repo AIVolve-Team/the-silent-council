@@ -1,0 +1,239 @@
+{
+  "benchmark": "dimostrativo",
+  "contratto": "esempio-fornitura",
+  "modalita": "telepatia",
+  "passi_latenti": 10,
+  "modello": "Qwen/Qwen3-14B",
+  "taglio": {
+    "modo": "titoli",
+    "clausole": 14,
+    "caratteri": {
+      "legale": 4200,
+      "finanza": 900,
+      "rischio": 1400
+    }
+  },
+  "note": {
+    "legale": {
+      "dati": {
+        "segnalare": {
+          "Uncapped Liability": false,
+          "Cap On Liability": true,
+          "Ip Ownership Assignment": false,
+          "Joint Ip Ownership": false,
+          "Irrevocable Or Perpetual License": false,
+          "Covenant Not To Sue": false,
+          "Non-Disparagement": false
+        },
+        "citazioni": [
+          {
+            "categoria": "Cap On Liability",
+            "testo": "non potrà superare il 10% dei corrispettivi pagati dal Cliente"
+          }
+        ],
+        "importi_date_parti": [
+          "10% dei corrispettivi"
+        ]
+      },
+      "probabilita_si": {
+        "Cap On Liability": 0.97
+      },
+      "citazioni_trovate": {
+        "Cap On Liability": true
+      },
+      "token_letti": 2900,
+      "token_generati": 160,
+      "testo": ""
+    },
+    "finanza": {
+      "dati": {
+        "segnalare": {
+          "Liquidated Damages": true,
+          "Minimum Commitment": true,
+          "Volume Restriction": false,
+          "Most Favored Nation": false
+        },
+        "citazioni": [
+          {
+            "categoria": "Minimum Commitment",
+            "testo": "non inferiore a € 180.000,00"
+          }
+        ],
+        "importi_date_parti": [
+          "€ 180.000,00 l'anno",
+          "€ 2.500,00 a settimana"
+        ]
+      },
+      "probabilita_si": {
+        "Liquidated Damages": 0.9,
+        "Minimum Commitment": 0.98,
+        "Most Favored Nation": 0.6
+      },
+      "citazioni_trovate": {
+        "Minimum Commitment": true
+      },
+      "token_letti": 2900,
+      "token_generati": 160,
+      "testo": ""
+    },
+    "rischio": {
+      "dati": {
+        "segnalare": {
+          "Change Of Control": true,
+          "Anti-Assignment": true,
+          "Rofr/Rofo/Rofn": false,
+          "Termination For Convenience": true,
+          "Non-Compete": false,
+          "Exclusivity": true,
+          "No-Solicit Of Customers": false,
+          "No-Solicit Of Employees": false
+        },
+        "citazioni": [
+          {
+            "categoria": "Change Of Control",
+            "testo": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto"
+          }
+        ],
+        "importi_date_parti": [
+          "tre anni",
+          "preavviso di 30 giorni"
+        ]
+      },
+      "probabilita_si": {
+        "Change Of Control": 0.94,
+        "Exclusivity": 0.97,
+        "Termination For Convenience": 0.93,
+        "Anti-Assignment": 0.9
+      },
+      "citazioni_trovate": {
+        "Change Of Control": true
+      },
+      "token_letti": 2900,
+      "token_generati": 160,
+      "testo": ""
+    }
+  },
+  "verdetto": {
+    "dati": {
+      "obiezioni": [
+        {
+          "categoria": "Change Of Control",
+          "obiezione": "Il rischio segnala il cambio di controllo, ma la clausola dà al fornitore solo un diritto di risoluzione: va pesato."
+        }
+      ],
+      "segnalare": {
+        "Uncapped Liability": false,
+        "Cap On Liability": true,
+        "Ip Ownership Assignment": false,
+        "Joint Ip Ownership": false,
+        "Irrevocable Or Perpetual License": false,
+        "Covenant Not To Sue": false,
+        "Non-Disparagement": false,
+        "Liquidated Damages": true,
+        "Minimum Commitment": true,
+        "Volume Restriction": false,
+        "Most Favored Nation": true,
+        "Change Of Control": false,
+        "Anti-Assignment": true,
+        "Rofr/Rofo/Rofn": false,
+        "Termination For Convenience": true,
+        "Non-Compete": false,
+        "Exclusivity": true,
+        "No-Solicit Of Customers": false,
+        "No-Solicit Of Employees": false
+      },
+      "dettagli": [
+        {
+          "categoria": "Minimum Commitment",
+          "citazione": "Componenti per un importo complessivo non inferiore a € 180.000,00",
+          "motivazione": "Un minimo di 180.000 euro l'anno, con la differenza da pagare se non si raggiunge."
+        },
+        {
+          "categoria": "Exclusivity",
+          "citazione": "si impegna ad acquistare i Componenti esclusivamente dal Fornitore",
+          "motivazione": "Per tre anni l'impresa non può comprare i componenti da nessun altro."
+        },
+        {
+          "categoria": "Termination For Convenience",
+          "citazione": "Il Fornitore potrà recedere dal contratto in qualsiasi momento, senza obbligo di motivazione",
+          "motivazione": "Solo il fornitore può uscire con 30 giorni di preavviso."
+        },
+        {
+          "categoria": "Cap On Liability",
+          "citazione": "non potrà superare il 10% dei corrispettivi pagati dal Cliente",
+          "motivazione": "Il fornitore risponde al massimo per il 10% di quanto pagato nell'anno."
+        },
+        {
+          "categoria": "Liquidated Damages",
+          "citazione": "a titolo di penale, € 2.500,00 per ogni settimana di ritardo",
+          "motivazione": "Una penale di 2.500 euro a settimana se l'impresa non ritira la merce."
+        },
+        {
+          "categoria": "Anti-Assignment",
+          "citazione": "Il Cliente non può cedere il contratto senza il consenso scritto",
+          "motivazione": "L'impresa non può cedere il contratto, il fornitore sì."
+        }
+      ],
+      "raccomandazione": "negoziare",
+      "motivazione": "Tre anni di esclusiva con un minimo di 180.000 euro l'anno, mentre il fornitore può uscire con 30 giorni e risponde al massimo per il 10%: da riequilibrare prima di firmare."
+    },
+    "probabilita_si": {
+      "Uncapped Liability": 0.04,
+      "Cap On Liability": 0.96,
+      "Ip Ownership Assignment": 0.04,
+      "Joint Ip Ownership": 0.04,
+      "Irrevocable Or Perpetual License": 0.04,
+      "Covenant Not To Sue": 0.04,
+      "Non-Disparagement": 0.04,
+      "Liquidated Damages": 0.96,
+      "Minimum Commitment": 0.96,
+      "Volume Restriction": 0.04,
+      "Most Favored Nation": 0.2,
+      "Change Of Control": 0.35,
+      "Anti-Assignment": 0.96,
+      "Rofr/Rofo/Rofn": 0.04,
+      "Termination For Convenience": 0.96,
+      "Non-Compete": 0.04,
+      "Exclusivity": 0.96,
+      "No-Solicit Of Customers": 0.04,
+      "No-Solicit Of Employees": 0.04
+    },
+    "citazioni_trovate": {
+      "Minimum Commitment": true,
+      "Exclusivity": true,
+      "Termination For Convenience": true,
+      "Cap On Liability": true,
+      "Liquidated Damages": true,
+      "Anti-Assignment": false
+    },
+    "token_letti": 9100,
+    "token_generati": 640,
+    "testo": ""
+  },
+  "dissensi": [
+    {
+      "categoria": "Change Of Control",
+      "ruolo": "rischio",
+      "tipo": "grave",
+      "confidenza_esperto": "alta",
+      "confidenza_verdetto": "bassa"
+    },
+    {
+      "categoria": "Most Favored Nation",
+      "ruolo": "finanza",
+      "tipo": "lieve",
+      "confidenza_esperto": "bassa",
+      "confidenza_verdetto": "alta"
+    }
+  ],
+  "fermata": null,
+  "impronte": [
+    "7f3a000000000000000000000000000000000000000000000000000000000000",
+    "c91e111111111111111111111111111111111111111111111111111111111111",
+    "52bd222222222222222222222222222222222222222222222222222222222222"
+  ],
+  "token_letti": 18300,
+  "token_generati": 1120,
+  "posizioni_latenti": 30,
+  "secondi": 41.2
+}
