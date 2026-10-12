@@ -49,6 +49,7 @@ SPORTELLO = {
     "coerenza e tre testimoni. Testo nascosto, messaggi manomessi e agenti che mentono si fermano prima di pagare.",
     "casi": "sportello/index.html",
     "prova": "sportello/prove.html",
+    "numeri": None,
 }
 CONSIGLIO = {
     "id": "consiglio",
@@ -126,8 +127,10 @@ def main() -> None:
         shutil.rmtree(a.uscita / "sportello")
     if a.consiglio:
         shutil.copytree(a.consiglio, a.uscita / "consiglio")
-        progetti.append(CONSIGLIO)
-        print(f"Consiglio: pagine da {a.consiglio}")
+        # numeri.json (scritto da revisione.vetrina): le medie di telepatia e testo per la dimostrazione della home
+        numeri = "consiglio/numeri.json" if (a.uscita / "consiglio" / "numeri.json").exists() else None
+        progetti.append(CONSIGLIO | {"numeri": numeri})
+        print(f"Consiglio: pagine da {a.consiglio}" + (", con i numeri per la home" if numeri else ""))
     (a.uscita / "progetti.json").write_text(
         json.dumps({"progetti": progetti, "repo": a.repo}, ensure_ascii=False, indent=1)
     )

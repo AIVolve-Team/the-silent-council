@@ -5,7 +5,7 @@ Una sola casa per i due progetti fino a G4 (16/10); dopo, solo quello consegnato
 
 | File | Cosa fa |
 |---|---|
-| `sorgenti/index.html` | la home: i progetti, "dal vivo adesso" o la prossima finestra, come verificare un caso |
+| `sorgenti/index.html` | la home: la dimostrazione in cima (gli stessi agenti che si scrivono e che si passano la memoria, con i contatori di `<progetto>/numeri.json`), i progetti, "dal vivo adesso" o la prossima finestra, come verificare un caso |
 | `sorgenti/sportello/prove.html` | le prove dal vivo: una nostra fattura, i due attacchi della demo, "prova tu a ingannarlo" |
 | `api/stato.mjs` | la MI300X è accesa? (chiede `/salute` al motore) |
 | `api/prova.mjs` | porta le prove al motore con la sua chiave; una alla volta (409 se è occupato) |
