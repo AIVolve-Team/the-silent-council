@@ -148,7 +148,10 @@ def esamina(
     registro: Path | None = None,
     attacco: Attacco | None = None,
     id_caso: str | None = None,
+    traduci: bool = False,
 ) -> dict:
+    """Con `traduci` il risultato porta anche la traduzione della memoria dell'estrattore: solo per i casi
+    registrati, le prove dal vivo e G3, perché ricopiare la memoria costa qualche centinaio di token."""
     inizio = time.perf_counter()
     attacco = attacco or Attacco()
     sessione = id_caso or f"sportello-{hashlib.sha256(pdf).hexdigest()[:12]}"
@@ -163,6 +166,16 @@ def esamina(
     opzioni = {"sessione": sessione, "passi_latenti": passi_latenti, "modalita": modalita}
     vincolo = {"modalita": modalita, "ordine_campi": True, "max_spazi": 1}
     testo = estrai_testo(pdf)
+    memoria: dict[str, MessaggioLatente] = {}
+
+    def chiudi(catena: list[MessaggioLatente], esito: dict, **altro) -> dict:
+        """Come `fine`, più la traduzione della memoria se è chiesta. I suoi token restano fuori da quelli della
+        staffetta, che G2 confronta."""
+        if traduci and "estrattore" in memoria:
+            from traduttore.traduci import traduci as traduttore
+
+            esito = esito | {"traduzione": traduttore(modello, memoria["estrattore"], memoria.get("verificatore"))}
+        return fine(sessione, inizio, conteggio, registro, chiavi, catena, esito, **altro)
 
     # 1. Estrattore: pensa sulla fattura e scrive l'impegno da una copia della sua memoria.
     if attacco.pdf_memoria is not None:
@@ -173,6 +186,7 @@ def esamina(
     else:
         lettura_impegno, testo_memoria = None, testo
     m1 = motore.pensa(ESTRATTORE, LEGGI.format(fattura=testo_memoria), [], destinatario="verificatore", **opzioni)
+    memoria["estrattore"] = m1
     conteggio.messaggio(m1)
     if modalita == TESTO:
         g = motore.scrivi(ESTRATTORE, f"{SCRIVI_IMPEGNO}\n\nInvoice:\n{testo}", [], schema=SCHEMA_IMPEGNO,
@@ -183,24 +197,26 @@ def esamina(
     conteggio.scritto(g)
     impegno = leggi_json(g)
     if impegno is None:
-        return fine(sessione, inizio, conteggio, registro, chiavi, [], esito_troncato("impegno"))
+        return chiudi([], esito_troncato("impegno"))
     m1 = motore.con_impegno(m1, impegno)
     if attacco.manometti:
         attacco.manometti("estrattore", m1)
+    memoria["estrattore"] = m1  # quella che parte davvero verso il verificatore, anche se manomessa
     consegna = motore.consegna(m1, [])
     if not consegna.esito.passa:
-        return fine(sessione, inizio, conteggio, registro, chiavi, [], fermata(consegna.esito, impegno, None))
+        return chiudi([], fermata(consegna.esito, impegno, None))
     catena = [consegna.copia]
 
     # 2. Verificatore: non vede la fattura; dalla memoria ricevuta scrive la lettura dei dati critici.
     m2 = motore.pensa(VERIFICATORE, RICORDA, catena, destinatario="decisore", **opzioni)
+    memoria["verificatore"] = m2
     conteggio.messaggio(m2)
     g = motore.scrivi(VERIFICATORE, SCRIVI_LETTURA, [*catena, m2], schema=SCHEMA_LETTURA, max_token=MAX_TOKEN["lettura"],
                       **vincolo)  # fmt: skip
     conteggio.scritto(g)
     lettura = leggi_json(g)
     if lettura is None:
-        return fine(sessione, inizio, conteggio, registro, chiavi, catena, esito_troncato("lettura", impegno))
+        return chiudi(catena, esito_troncato("lettura", impegno))
     if attacco.lettura:
         lettura = attacco.lettura(lettura, impegno)
     m2 = motore.con_impegno(m2, lettura)  # nel campo `impegno` dell'etichetta del verificatore c'è la lettura
@@ -208,7 +224,7 @@ def esamina(
         attacco.manometti("verificatore", m2)
     consegna = motore.consegna(m2, catena)  # qui la coerenza confronta impegno e lettura
     if not consegna.esito.passa:
-        return fine(sessione, inizio, conteggio, registro, chiavi, catena, fermata(consegna.esito, impegno, lettura))
+        return chiudi(catena, fermata(consegna.esito, impegno, lettura))
     catena.append(consegna.copia)
 
     # 3. Decisore: propone il pagamento e abbina le righe senza riferimento all'ordine.
@@ -219,10 +235,10 @@ def esamina(
     conteggio.scritto(g)
     proposta = leggi_json(g)
     if proposta is None:
-        return fine(sessione, inizio, conteggio, registro, chiavi, catena, esito_troncato("proposta", impegno, lettura))
+        return chiudi(catena, esito_troncato("proposta", impegno, lettura))
     esito_catena = motore.verifica_catena(catena)
     if not esito_catena.passa:
-        return fine(sessione, inizio, conteggio, registro, chiavi, catena, fermata(esito_catena, impegno, lettura))
+        return chiudi(catena, fermata(esito_catena, impegno, lettura))
 
     # 4. Regole del catalogo e tre testimoni.
     abbinamenti = abbina(motore, ordine, libere, conteggio, modalita=modalita)
@@ -240,7 +256,7 @@ def esamina(
         "impegno": impegno,
         "lettura": lettura,
     }
-    return fine(sessione, inizio, conteggio, registro, chiavi, catena, esito, email=email)
+    return chiudi(catena, esito, email=email)
 
 
 def fermata(esito_controllo, impegno: dict | None, lettura: dict | None) -> dict:

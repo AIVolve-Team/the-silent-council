@@ -6,7 +6,7 @@ if [ "${CASA:-}" != "1" ]; then
 fi
 passo "La casa per i giudici in locale"
 command -v node >/dev/null 2>&1 || ferma "Serve Node.js 20 o più recente (https://nodejs.org) per le funzioni della casa."
-uv pip install -q -p "$PY" -e "$SPORTELLO/attacchi" -e "$SPORTELLO/pagina" -e "$SPORTELLO/servizio" "mcp==2.3.0" \
+uv pip install -q -p "$PY" -e "$SPORTELLO/attacchi" -e "$SPORTELLO/traduttore" -e "$SPORTELLO/pagina" -e "$SPORTELLO/servizio" "mcp==2.3.0" \
   "uvicorn==0.54.0" "python-multipart==0.0.32"
 (cd "$RADICE/casa" && npm test --silent)
 "$PY" "$RADICE/casa/costruisci.py" --insieme "$INSIEME" --giro "$USCITA/telepatia.jsonl" \

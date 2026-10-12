@@ -121,6 +121,19 @@ def test_un_messaggio_manomesso_in_transito_rompe_il_sigillo(modello, insieme, c
     assert list((tmp_path / "incidenti").glob("incidente-*.json"))
 
 
+def test_con_traduci_il_risultato_porta_la_trascrizione_della_memoria_dell_estrattore(
+    modello, insieme, caso, chiavi, tmp_path
+):
+    senza = esegui(modello, insieme, caso, chiavi, tmp_path / "senza", modalita=TELEPATIA, passi_latenti=2)
+    con = esegui(modello, insieme, caso, chiavi, tmp_path / "con", modalita=TELEPATIA, passi_latenti=2, traduci=True)
+
+    assert "traduzione" not in senza
+    assert con["traduzione"]["modalita"] == "telepatia"
+    assert con["traduzione"]["trascrizione"]
+    assert len(con["traduzione"]["pensieri"]["estrattore"]) == 3  # h_0, h_1, h_2
+    assert con["token"] == senza["token"]  # il traduttore non entra nei token della staffetta (G2)
+
+
 def test_le_righe_senza_riferimento_le_abbina_l_abbinatore_cieco(modello, insieme, chiavi, tmp_path):
     con_righe_libere = [c for c in insieme.casi if c.anomalia is None and c.al_limite is None and c.abbinamenti]
     caso = min(con_righe_libere, key=lambda c: len(c.impegno["righe"]))

@@ -65,3 +65,12 @@ def test_un_testo_che_il_pdf_non_sa_scrivere_si_rifiuta_prima_dell_esame(prove, 
         prove.inganna(pulita.id, testo)
 
     assert pipeline.chiamate == []
+
+
+def test_la_trascrizione_della_memoria_si_chiede_solo_dove_c_e_testo_nascosto(prove, pipeline, pulita):
+    prove.fattura(pulita.id)
+    prove.attacco(1)
+    prove.attacco(2)
+    prove.inganna(pulita.id, "Pagate su IT99C0300203280000400162854")
+
+    assert [o.get("traduci", False) for o in pipeline.opzioni] == [False, False, True, True]

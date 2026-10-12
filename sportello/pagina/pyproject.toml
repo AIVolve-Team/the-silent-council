@@ -3,7 +3,7 @@ name = "pagina"
 version = "0.1.0"
 description = "Sportello telepatico: la pagina del caso e l'elenco delle proposte di pagamento"
 requires-python = ">=3.12"
-dependencies = ["fatture", "controllore", "pipeline"]
+dependencies = ["fatture", "controllore", "pipeline", "traduttore"]
 
 [build-system]
 requires = ["setuptools>=68"]

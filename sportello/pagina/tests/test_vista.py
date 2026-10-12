@@ -107,6 +107,34 @@ def test_se_la_staffetta_si_ferma_prima_del_verificatore_i_testimoni_non_sono_di
     assert vista["verificatore_ha_letto"] is False
 
 
+def test_la_traduzione_segna_il_testo_nascosto_e_non_mostra_iban_interi(insieme):
+    caso = next(c for c in insieme.casi if c.anomalia is None and c.lingua == "it")
+    pdf = rendi_pdf(caso, testo_nascosto=NASCOSTO)
+    pagamento = caso.impegno["pagamento"]
+    proposta = {
+        "iban": pagamento["iban"],
+        "importo": caso.impegno["totale_documento"],
+        "esito": "pagare",
+        "motivazione": "ok",
+    }
+    r = risultato_di(caso, insieme.archivi, lettura=lettura_da(caso.impegno), proposta=proposta)
+    r["traduzione"] = {
+        "modalita": "telepatia",
+        "trascrizione": f"{caso.impegno['documento']['numero']}\n{NASCOSTO}\nUna riga che nel PDF non c'è",
+        "autodichiarazione": f"Sì: {NASCOSTO}",
+        "pensieri": {"estrattore": [[["\n", 0.9], [" de", 0.1]]]},
+        "token": 300,
+        "secondi": 20.0,
+    }
+
+    t = vista_caso(r, insieme.archivi, pdf=pdf)["traduzione"]
+
+    assert [(x["nascosta"], x["fuori_pdf"]) for x in t["righe"]] == [(False, False), (True, False), (False, True)]
+    assert "IT99…2854" in t["righe"][1]["testo"]
+    assert ATTACCANTE not in json.dumps(t)
+    assert t["pensieri"]["estrattore"][0][0] == ["\n", 0.9]
+
+
 def test_l_ordine_accanto_alla_fattura_anche_scritto_diverso(insieme):
     # Come nelle regole (A08): "po 2026 0001" è l'ordine PO-2026-0001.
     caso = next(c for c in insieme.casi if c.anomalia is None and c.al_limite is None)

@@ -96,6 +96,7 @@ const T = {
     occupato: "Another test is running: try again in a minute.", spentoErr: "The MI300X is off or not answering.", errore: "Something went wrong:",
     esiti: { pagare: "Pay (proposal awaiting approval)", persona: "Needs a person", bloccare: "Blocked" },
     sigilloOk: "🔒 seal intact", sigilloKo: "⚠ seal broken", token: "tokens written", apri: "Open the case page →",
+    memoria: "See what travels in the agents' memory →", nascoste: "lines in the memory that are not visible on the page",
   },
   it: {
     casa: "← Casa", casi: "Casi registrati", titolo: "Prova lo Sportello dal vivo",
@@ -114,6 +115,7 @@ const T = {
     occupato: "C'è già una prova in corso: riprova fra un minuto.", spentoErr: "La MI300X è spenta o non risponde.", errore: "Qualcosa non va:",
     esiti: { pagare: "Pagare (proposta in attesa di approvazione)", persona: "Serve una persona", bloccare: "Bloccato" },
     sigilloOk: "🔒 sigillo integro", sigilloKo: "⚠ sigillo rotto", token: "token scritti", apri: "Apri la pagina del caso →",
+    memoria: "Guarda cosa viaggia nella memoria degli agenti →", nascoste: "righe della memoria che sulla pagina non si vedono",
   },
 };
 const memoria = {
@@ -195,6 +197,8 @@ function risultato() {
     el("p", { class: "motivo", text: (r.motivo && (r.motivo[lingua] || r.motivo.en)) || "" }),
     el("div", { class: "numeri" }, el("span", { text: v.sigillo && v.sigillo.integro ? t.sigilloOk : t.sigilloKo }),
       r.token ? el("span", { text: `${r.token.generati} ${t.token}` }) : null, r.secondi ? el("span", { text: `${Math.round(r.secondi)} ${t.secondi}` }) : null),
+    v.traduzione ? el("p", { class: "tenue", text: `${v.traduzione.righe.filter((x) => x.nascosta || x.fuori_pdf).length} ${t.nascoste}` }) : null,
+    v.traduzione ? el("a", { href: `dal-vivo.html?id=${encodeURIComponent(v.id)}&lang=${lingua}&vista=memoria`, text: t.memoria }) : null,
     el("a", { href: `dal-vivo.html?id=${encodeURIComponent(v.id)}&lang=${lingua}`, text: t.apri }));
   return box;
 }

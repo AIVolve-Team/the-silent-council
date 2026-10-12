@@ -2,6 +2,7 @@
 # Il motore (../../motore) arriva in main con la PR «Motore telepatico»; fino ad allora si installa dal suo ramo.
 -e ../dati
 -e ../controllore
+-e ../traduttore
 -e ../../motore
 torch==2.14.1
 transformers==4.57.6

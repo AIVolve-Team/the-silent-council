@@ -5,6 +5,7 @@
 -e ../pipeline
 -e ../pagina
 -e ../attacchi
+-e ../traduttore
 -e ../../motore
 torch==2.14.1
 transformers==4.57.6

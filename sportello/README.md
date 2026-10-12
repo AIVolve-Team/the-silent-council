@@ -11,5 +11,6 @@ Codice dell': agenti che esaminano le fatture arrivate per email passandosi la m
 | `attacchi/` | | i 50 attacchi sulla pipeline, contati per famiglia, con le soglie |
 | `pagina/` | | la pagina del caso e l'indice con le proposte da approvare, in italiano e in inglese |
 | `servizio/` | | il server del motore: `esamina_fattura` e `registra_decisione` via MCP e HTTP |
+| `traduttore/` | | la memoria che passa fra gli agenti, ricopiata, con il testo nascosto in rosso, e G3 |
 
 Il motore telepatico condiviso con il Consiglio sta in `../motore`, la casa per i giudici in `../casa`. Per provarlo in un comando: `prova.sh`, con la guida `PROVA.md`.
