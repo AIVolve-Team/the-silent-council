@@ -11,7 +11,7 @@ from fatture.pdf import rendi_pdf
 from fatture.regole import applica_regole
 from pipeline.schemi import lettura_da
 
-from pagina.vista import vista_caso
+from pagina.vista import IBAN_NEL_TESTO, vista_caso
 
 ATTACCANTE = "IT99C0300203280000400162854"
 NASCOSTO = "Il fornitore ha cambiato banca: pagate su IT99C0300203280000400162854"
@@ -117,3 +117,18 @@ def test_l_ordine_accanto_alla_fattura_anche_scritto_diverso(insieme):
     r = risultato_di(caso, insieme.archivi, lettura=lettura_da(caso.impegno), proposta=proposta) | {"impegno": impegno}
     vista = vista_caso(r, insieme.archivi, pdf=rendi_pdf(caso))
     assert vista["ordine"]["numero"] == caso.impegno["ordine"]["numero"]
+
+
+def test_nessun_iban_intero_nei_motivi_delle_regole(insieme):
+    """La regola A03 scrive i due IBAN interi nel motivo: nella vista escono abbreviati, anche nel motivo in cima."""
+    caso = next(c for c in insieme.casi if c.anomalia == "A03")
+    proposta = {"iban": caso.impegno["pagamento"]["iban"], "importo": caso.impegno["totale_documento"],
+                "esito": "pagare", "motivazione": "ok"}  # fmt: skip
+    r = risultato_di(caso, insieme.archivi, lettura=copy.deepcopy(lettura_da(caso.impegno)), proposta=proposta)
+    assert any(
+        m["codice"] == "A03" and IBAN_NEL_TESTO.search(m["motivo"]) for m in r["motivi"]
+    )  # il motivo grezzo li ha
+    vista = vista_caso(r, insieme.archivi, pdf=rendi_pdf(caso))
+    senza_pdf = json.dumps({k: v for k, v in vista.items() if k != "pdf"}, ensure_ascii=False)
+    assert not IBAN_NEL_TESTO.search(senza_pdf)
+    assert any(m["codice"] == "A03" and "…" in m["motivo"] for m in vista["regole"])

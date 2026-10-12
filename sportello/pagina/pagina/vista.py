@@ -38,6 +38,11 @@ def maschera(testo: str) -> str:
     return IBAN_NEL_TESTO.sub(lambda m: abbrevia(m.group(0)), testo)
 
 
+def motivo_mascherato(m: dict) -> dict:
+    """Un motivo con gli IBAN abbreviati in ogni testo: la regola A03, per esempio, li scrive interi nel motivo."""
+    return {k: maschera(v) if isinstance(v, str) else v for k, v in m.items()}
+
+
 def mostra(campo, dato):
     return abbrevia(dato) if campo.tipo == "iban" else dato
 
@@ -74,7 +79,7 @@ def testimoni(impegno: dict | None, lettura: dict | None, proposta: dict | None)
 
 def vista_caso(risultato: dict, archivi: Archivi, *, pdf: bytes) -> dict:
     impegno = risultato.get("impegno") or {}
-    motivi = risultato.get("motivi") or []
+    motivi = [motivo_mascherato(m) for m in risultato.get("motivi") or []]
     fornitore = archivi.anagrafica.get(id_fiscale((impegno.get("fornitore") or {}).get("id_fiscale") or ""))
     numero_ordine = (impegno.get("ordine") or {}).get("numero")
     ordine = archivi.ordine(numero_ordine)  # con il numero normalizzato, come nelle regole (A08)
@@ -83,7 +88,7 @@ def vista_caso(risultato: dict, archivi: Archivi, *, pdf: bytes) -> dict:
     return {
         "id": risultato["id_caso"],
         "esito": risultato["esito"],
-        "motivo": motivo_principale(risultato),
+        "motivo": motivo_principale({**risultato, "motivi": motivi}),
         "fattura": {
             "fornitore": (impegno.get("fornitore") or {}).get("denominazione"),
             "id_fiscale": (impegno.get("fornitore") or {}).get("id_fiscale"),
