@@ -42,6 +42,7 @@ Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni
 |---|---|---|---|
 | `20-pagine.sh` | | Le pagine dei casi in telepatia e l'indice con le proposte da approvare, come le vedrebbe la persona: si aprono nel browser. | |
 | `30-attacchi.sh` | | La manomissione in transito (F1), i 10 testi nascosti (F4) e i 5 inganni sulle righe da abbinare (F7), in telepatia e a testo, cioè 31 esami. Il rapporto dice chi li ferma, se la sola coerenza blocca almeno 8 F4 su 10 (la regola dell'attacco 2 dal vivo,) e se qualche F7 riesce. | `SENZA_ATTACCHI=1` |
+| `40-servizio.sh` | | Il motore chiamato come lo chiama l'agente in Evolus: il server con i due tool, una fattura esaminata con `esamina_fattura` via MCP e via HTTP (deve tornare lo stesso caso), poi `registra_decisione`. | |
 
 ### Cosa non prova
 

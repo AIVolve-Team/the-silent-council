@@ -10,5 +10,6 @@ Codice dell': agenti che esaminano le fatture arrivate per email passandosi la m
 | `harness/` | | le misure pre-registrate: G2, esame del 16/10, prove anti-trucco, lista di G4 |
 | `attacchi/` | | i 50 attacchi sulla pipeline, contati per famiglia, con le soglie |
 | `pagina/` | | la pagina del caso e l'indice con le proposte da approvare, in italiano e in inglese |
+| `servizio/` | | il server del motore: `esamina_fattura` e `registra_decisione` via MCP e HTTP |
 
 Il motore telepatico condiviso con il Consiglio sta in `../motore`, la casa per i giudici in `../casa`. Per provarlo in un comando: `prova.sh`, con la guida `PROVA.md`.

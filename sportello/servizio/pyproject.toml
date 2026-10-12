@@ -1,0 +1,16 @@
+[project]
+name = "servizio"
+version = "0.1.0"
+description = "Sportello telepatico: il server del motore, i due tool via MCP e HTTP"
+requires-python = ">=3.12"
+dependencies = ["fatture", "controllore", "pipeline", "pagina", "mcp==2.3.0", "uvicorn==0.54.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["servizio"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
