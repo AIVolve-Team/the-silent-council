@@ -13,6 +13,7 @@
 #                                                 oggi; i risultati vanno in consiglio/risultati-prova/diagnosi-cuad
 #   MODELLO=Qwen/Qwen3-8B ./consiglio/prova.sh    sceglie il modello invece di lasciarlo decidere allo script
 #   TORCH_DI_SISTEMA=1 ./consiglio/prova.sh       sulla MI300X, nel container di G1: usa il torch ROCm dell'immagine
+#   SENZA_RIALLINEAMENTO=1 ./consiglio/prova.sh   i giri della telepatia senza W_a, come deciso con la diagnosi
 #
 # Funziona su macOS (Apple Silicon) e su Linux con una GPU NVIDIA; su Windows va lanciato dentro WSL2.
 # Rilanciarlo è sicuro: quello che è già scaricato non si riscarica.
@@ -29,7 +30,7 @@ for argomento in "$@"; do
     --veloce) VELOCE=1 ;;
     --diagnosi) DIAGNOSI=1 ;;
     --diagnosi-cuad) DIAGNOSI=1; DIAGNOSI_CUAD=1 ;;
-    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,19p' "$0"; exit 0 ;;
     *) echo "Opzione sconosciuta: $argomento (vedi --help)"; exit 2 ;;
   esac
 done
@@ -196,7 +197,11 @@ else
     aggiungi_giro "--benchmark cuad --modalita testo --passi 10" 1
   fi
 fi
+# La diagnosi spegne già il riallineamento da sé; negli altri giri lo spegne SENZA_RIALLINEAMENTO=1.
+SENZA_WA=""
+[ "${SENZA_RIALLINEAMENTO:-0}" = 1 ] && [ "$DIAGNOSI" = 0 ] && SENZA_WA=" --senza-riallineamento"
 for giro in "${giri[@]}"; do
+  [[ "$giro" == *"--modalita telepatia"* ]] && giro="$giro$SENZA_WA"
   echo "-- $giro ($(date +%H:%M))"
   # shellcheck disable=SC2086
   (cd "$CONSIGLIO/revisione" && "$PY" -u -m revisione.esegui $giro --modello "$MODELLO" \
