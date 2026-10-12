@@ -59,7 +59,7 @@ CONSIGLIO = {
     "it": "Un consiglio di agenti rivede i contratti in silenzio, passandosi la memoria, e scrive un verdetto con il suo "
     "dissenso.",
     "casi": "consiglio/index.html",
-    "prova": None,
+    "prova": "consiglio/prova.html",
 }
 
 
@@ -126,11 +126,14 @@ def main() -> None:
     else:
         shutil.rmtree(a.uscita / "sportello")
     if a.consiglio:
-        shutil.copytree(a.consiglio, a.uscita / "consiglio")
+        # accanto alla prova dal vivo di sorgenti/consiglio: indice, pagine del verdetto e numeri della vetrina
+        shutil.copytree(a.consiglio, a.uscita / "consiglio", dirs_exist_ok=True)
         # numeri.json (scritto da revisione.vetrina): le medie di telepatia e testo per la dimostrazione della home
         numeri = "consiglio/numeri.json" if (a.uscita / "consiglio" / "numeri.json").exists() else None
         progetti.append(CONSIGLIO | {"numeri": numeri})
         print(f"Consiglio: pagine da {a.consiglio}" + (", con i numeri per la home" if numeri else ""))
+    else:
+        shutil.rmtree(a.uscita / "consiglio")
     (a.uscita / "progetti.json").write_text(
         json.dumps({"progetti": progetti, "repo": a.repo}, ensure_ascii=False, indent=1)
     )

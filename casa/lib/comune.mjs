@@ -25,11 +25,8 @@ export async function corpo(request, massimo = 4096) {
   return dati;
 }
 
-/** Una chiamata al server del motore sulla MI300X, con il segreto. */
-export function motore(percorso, { method = "GET", dati, secondi = 10 } = {}) {
-  const base = process.env.MOTORE_URL;
-  const segreto = process.env.MOTORE_SEGRETO;
-  if (!base || !segreto) throw new Errore(503, "motore non configurato");
+function chiama(base, segreto, nome, percorso, { method = "GET", dati, secondi = 10 } = {}) {
+  if (!base || !segreto) throw new Errore(503, `${nome} non configurato`);
   return fetch(new URL(percorso, base), {
     method,
     headers: { Authorization: `Bearer ${segreto}`, ...(dati ? { "Content-Type": "application/json" } : {}) },
@@ -37,6 +34,13 @@ export function motore(percorso, { method = "GET", dati, secondi = 10 } = {}) {
     signal: AbortSignal.timeout(secondi * 1000),
   });
 }
+
+/** Una chiamata al server del motore dello Sportello sulla MI300X, con il segreto. */
+export const motore = (percorso, opzioni) => chiama(process.env.MOTORE_URL, process.env.MOTORE_SEGRETO, "motore", percorso, opzioni);
+
+/** Una chiamata al server del Consiglio sulla MI300X, con il suo segreto. */
+export const consiglio = (percorso, opzioni) =>
+  chiama(process.env.CONSIGLIO_URL, process.env.CONSIGLIO_SEGRETO, "consiglio", percorso, opzioni);
 
 /** Il gestore della funzione: gli errori previsti con il loro stato, gli altri come 500 senza dettagli. */
 export const gestisci = (metodo, fn) => async (request) => {

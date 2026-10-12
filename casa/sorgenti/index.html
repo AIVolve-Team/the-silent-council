@@ -443,10 +443,13 @@ function dimostrazione(id, n) {
 
 /* ---------- la pagina ---------- */
 
+// Lo Sportello e il Consiglio hanno ognuno il suo server sulla MI300X: le prove di ognuno si accendono con il suo.
+const vivoDi = (id) => Boolean(id === "consiglio" ? stato?.consiglio?.dal_vivo : stato?.dal_vivo);
+
 function pillola() {
   const t = T[lingua], f = prossima();
   if (stato === null) return el("span", { class: "stato", role: "status" }, el("span", { class: "punto" }), t.controllo);
-  if (stato.dal_vivo) return el("span", { class: "stato vivo", role: "status" }, el("span", { class: "punto" }), t.vivo);
+  if (stato.dal_vivo || stato.consiglio?.dal_vivo) return el("span", { class: "stato vivo", role: "status" }, el("span", { class: "punto" }), t.vivo);
   return el("span", { class: "stato", role: "status" }, el("span", { class: "punto" }), f ? `${t.prossima} ${quando(f.inizio)} – ${quando(f.fine)}` : t.annunciate);
 }
 
@@ -486,18 +489,18 @@ function disegna() {
   pagina.append(apertura);
 
   // I progetti.
-  const vivo = Boolean(stato && stato.dal_vivo);
   pagina.append(el("section", { class: "sezione", "aria-labelledby": "progetti" },
     el("h2", { id: "progetti", text: uno ? t.progettiUno : t.progettiTitolo }),
     el("div", { class: "progetti" }, progetti.map((p) => {
       const c = PROGETTI[p.id]?.[lingua] || { testo: p[lingua] || p.en };
+      const vivo = vivoDi(p.id);
       return el("article", { class: "progetto" },
         el("h3", { text: p.nome }), c.per ? el("p", { class: "per", text: c.per }) : null, el("p", { text: c.testo }),
         c.guarda ? el("p", { class: "guarda", text: c.guarda }) : null,
         el("div", { class: "azioni" },
           el("a", { class: "bottone pieno", href: p.casi, text: p.id === "consiglio" ? t.verdetti : t.casi }),
-          p.prova ? el("a", { class: "bottone vivo", href: p.prova, "aria-disabled": String(!vivo), tabindex: vivo ? null : "-1", text: t.provaVivo }) : null,
-          p.prova ? el("span", { class: "nota", hidden: vivo, text: t.provaSpenta }) : null));
+          p.prova ? el("a", { class: "bottone vivo", "data-progetto": p.id, href: p.prova, "aria-disabled": String(!vivo), tabindex: vivo ? null : "-1", text: t.provaVivo }) : null,
+          p.prova ? el("span", { class: "nota", "data-progetto": p.id, hidden: vivo, text: t.provaSpenta }) : null));
     }))));
 
   // Le prove che non è una messa in scena.
@@ -520,9 +523,12 @@ function aggiornaStato() {
   // Cambiano solo la pillola e i bottoni dal vivo: la dimostrazione non riparte.
   const posto = document.getElementById("pillola");
   if (posto) posto.replaceChildren(pillola());
-  const vivo = Boolean(stato && stato.dal_vivo);
-  document.querySelectorAll(".bottone.vivo").forEach((a) => { a.setAttribute("aria-disabled", String(!vivo)); if (vivo) a.removeAttribute("tabindex"); else a.setAttribute("tabindex", "-1"); });
-  document.querySelectorAll(".azioni .nota").forEach((n) => { n.hidden = vivo; });
+  document.querySelectorAll(".bottone.vivo").forEach((a) => {
+    const vivo = vivoDi(a.dataset.progetto);
+    a.setAttribute("aria-disabled", String(!vivo));
+    if (vivo) a.removeAttribute("tabindex"); else a.setAttribute("tabindex", "-1");
+  });
+  document.querySelectorAll(".azioni .nota").forEach((n) => { n.hidden = vivoDi(n.dataset.progetto); });
 }
 
 async function carica(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }

@@ -6,8 +6,10 @@ Una sola casa per i due progetti fino a G4 (16/10); dopo, solo quello consegnato
 | File | Cosa fa |
 |---|---|
 | `sorgenti/index.html` | la home: la dimostrazione in cima (gli stessi agenti che si scrivono e che si passano la memoria, con i contatori di `<progetto>/numeri.json`), i progetti, "dal vivo adesso" o la prossima finestra, come verificare un caso |
+| `sorgenti/consiglio/prova.html` | la prova dal vivo del Consiglio: il giudice sceglie un contratto CUAD dall'elenco del server e lo fa esaminare adesso; le prove restano nel suo browser |
 | `sorgenti/sportello/prove.html` | le prove dal vivo: una nostra fattura, i due attacchi della demo, "prova tu a ingannarlo" |
-| `api/stato.mjs` | la MI300X è accesa? (chiede `/salute` al motore) |
+| `api/stato.mjs` | la MI300X è accesa? (chiede `/salute` al motore dello Sportello e al server del Consiglio) |
+| `api/consiglio.mjs` | la prova dal vivo del Consiglio: l'elenco dei contratti e una prova, al server del Consiglio con la sua chiave; 409 se è occupato |
 | `api/prova.mjs` | porta le prove al motore con la sua chiave; una alla volta (409 se è occupato) |
 | `api/decisione.mjs` | la scelta della persona verso il secondo workflow di Evolus; **spenta di base** |
 | `lib/comune.mjs` | risposte, corpo della richiesta, chiamata al motore |
@@ -36,6 +38,8 @@ cd casa && vercel deploy --prod # la CLI: il piano gratuito non collega i repo d
 |---|---|---|
 | `MOTORE_URL` | stato, prove, decisione | l'indirizzo pubblico del server del motore, con TLS |
 | `MOTORE_SEGRETO` | stato, prove, decisione | lo stesso `SPORTELLO_SEGRETO` del server |
+| `CONSIGLIO_URL` | stato, prova dal vivo del Consiglio | l'indirizzo pubblico del server del Consiglio, con TLS, acceso con `--dal-vivo` |
+| `CONSIGLIO_SEGRETO` | stato, prova dal vivo del Consiglio | lo stesso `CONSIGLIO_SEGRETO` del server |
 | `EVOLUS_ATTIVO` | decisione | `1` solo per le riprese del video e per il palco: ogni giro Evolus costa crediti |
 | `EVOLUS_WORKFLOW`, `EVOLUS_API_KEY`, `EVOLUS_SPAZIO` | decisione | il secondo workflow, `POST https://api.evolus.ai/api/v1/workflows/{id}/execute` in multipart con `X-ApiKey` e `X-Application-Id`, come nella [pagina per sviluppatori](https://evolus.ai/en/developers). Id e chiave da «When it starts» › «Trigger via webhook», lo "Space ID" da «Your company» › «API keys». I parametri `id_caso`, `decisione`, `chi`, `nota` vanno dichiarati nel workflow (`sportello/servizio/EVOLUS.md`, passo 5) |
 | `EVOLUS_URL` | decisione | solo se l'indirizzo dell'API non è `https://api.evolus.ai` |
