@@ -37,6 +37,10 @@ class Rifiuto(ValueError):
     """La richiesta non va: 400 in HTTP, errore del tool in MCP. Il modello non è stato toccato."""
 
 
+class Occupato(Rifiuto):
+    """C'è già un esame in corso: le prove dal vivo non aspettano (409 in HTTP)."""
+
+
 def testo_breve(nome: str, valore, *, vuoto: bool = False) -> str:
     if not isinstance(valore, str) or len(valore) > MAX_TESTO or (not vuoto and not valore.strip()):
         raise Rifiuto(f"{nome}: serve un testo di al massimo {MAX_TESTO} caratteri")
@@ -87,13 +91,14 @@ def avviso(esito: str, vista: dict, link: str) -> dict | None:
 class Sportello:
     def __init__(
         self,
-        esamina: Callable[[bytes, dict, str, str], dict],
+        esamina: Callable[..., dict],
         archivi: Archivi,
         casi: Path,
         *,
         link: str,
     ) -> None:
-        """`esamina(pdf, email, modalità, id del caso)` è la staffetta, che scrive il registro in `casi/<id>/`."""
+        """`esamina(pdf, email, modalità, id del caso, **opzioni)` è la staffetta, che scrive il registro in
+        `casi/<id>/`; le opzioni (`livello2`, `attacco`) le passano solo le prove dal vivo."""
         self.esamina = esamina
         self.archivi = archivi
         self.casi = casi
@@ -112,17 +117,20 @@ class Sportello:
             testo_breve("data", data),
         )
         email = {"mittente": mittente, "oggetto": oggetto, "data": data}
-        id_caso = (
-            "sportello-"
-            + hashlib.sha256(
-                json.dumps([hashlib.sha256(pdf).hexdigest(), mittente, oggetto, data, modalita]).encode()
-            ).hexdigest()[:12]
-        )
-        with self.lucchetto:
+        return self.esame(pdf, email, modalita, [hashlib.sha256(pdf).hexdigest(), mittente, oggetto, data, modalita])
+
+    def esame(self, pdf: bytes, email: dict, modalita: str, chiave: list, *, attendi: bool = True, **opzioni) -> dict:
+        """Un esame alla volta. `chiave` fa l'id del caso: la stessa chiave è lo stesso caso, e non si riesamina.
+        Le `opzioni` vanno alla staffetta (le prove dal vivo: `livello2`, `attacco`); senza `attendi` un esame in corso
+        dà `Occupato` invece di mettersi in fila."""
+        id_caso = "sportello-" + hashlib.sha256(json.dumps(chiave).encode()).hexdigest()[:12]
+        if not self.lucchetto.acquire(blocking=attendi):
+            raise Occupato("c'è già una prova in corso: riprova fra un minuto")
+        try:
             cartella = self.casi / id_caso
             if (cartella / "risposta.json").exists():
                 return json.loads((cartella / "risposta.json").read_text())
-            risultato = self.esamina(pdf, email, modalita, id_caso)
+            risultato = self.esamina(pdf, email, modalita, id_caso, **opzioni)
             cartella.mkdir(parents=True, exist_ok=True)
             (cartella / "fattura.pdf").write_bytes(pdf)
             vista = vista_caso(risultato, self.archivi, pdf=pdf)
@@ -131,7 +139,9 @@ class Sportello:
                 json.dumps({k: v for k, v in vista.items() if k != "pdf"}, ensure_ascii=False)
             )
             (cartella / "risposta.json").write_text(json.dumps(risposta, ensure_ascii=False, indent=1))
-        return risposta
+            return risposta
+        finally:
+            self.lucchetto.release()
 
     def risposta(self, risultato: dict, vista: dict, modalita: str) -> dict:
         """Quello che serve all'agente principale per scegliere il percorso e scrivere l'avviso."""

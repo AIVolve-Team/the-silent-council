@@ -96,6 +96,17 @@ def test_una_proposta_da_approvare(insieme):
     assert all(not r["diverso"] for r in vista["testimoni"])
 
 
+def test_se_la_staffetta_si_ferma_prima_del_verificatore_i_testimoni_non_sono_differenze(insieme):
+    caso = next(c for c in insieme.casi if c.anomalia is None and c.lingua == "en")
+    r = {"id_caso": caso.id, "esito": "bloccare", "motivi": [], "impegno": caso.impegno, "lettura": None,
+         "proposta": None, "pagamento_proposto": None, "sigillo": "rotto: etichetta cambiata", "email": caso.email}  # fmt: skip
+
+    vista = vista_caso(r, insieme.archivi, pdf=rendi_pdf(caso))
+
+    assert all(t["lettura"] is None and t["diverso"] is False for t in vista["testimoni"])
+    assert vista["verificatore_ha_letto"] is False
+
+
 def test_l_ordine_accanto_alla_fattura_anche_scritto_diverso(insieme):
     # Come nelle regole (A08): "po 2026 0001" è l'ordine PO-2026-0001.
     caso = next(c for c in insieme.casi if c.anomalia is None and c.al_limite is None)

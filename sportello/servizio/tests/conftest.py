@@ -56,16 +56,21 @@ def risultato(caso, esito="pagare", motivi=()):
 class FintaPipeline:
     """Sta al posto della staffetta vera: dà il risultato preparato e conta le chiamate."""
 
-    def __init__(self, risultati: dict[bytes, dict]):
+    def __init__(self, risultati: dict[bytes, dict], predefinito: dict):
         self.risultati = risultati
+        self.predefinito = predefinito  # per i PDF fatti al momento: attacchi e testo del giudice
         self.chiamate = []
+        self.pdf = []
+        self.opzioni = []
         self.guasto = None
 
-    def __call__(self, pdf, email, modalita, id_caso):
+    def __call__(self, pdf, email, modalita, id_caso, **opzioni):
         self.chiamate.append((email, modalita, id_caso))
+        self.pdf.append(pdf)
+        self.opzioni.append(opzioni)
         if self.guasto:
             raise self.guasto
-        return {"id_caso": id_caso, **self.risultati[pdf], "email": email}
+        return {"id_caso": id_caso, **self.risultati.get(pdf, self.predefinito), "email": email}
 
 
 @pytest.fixture
@@ -85,7 +90,9 @@ def pipeline(pulita, frode, pdf_pulita, pdf_frode):
         "motivo": f"IBAN {frode.impegno['pagamento']['iban']} diverso da quello in anagrafica",
         "motivo_en": f"IBAN {frode.impegno['pagamento']['iban']} differs from the one on file",
     }  # fmt: skip
-    return FintaPipeline({pdf_pulita: risultato(pulita), pdf_frode: risultato(frode, "bloccare", [motivo])})
+    return FintaPipeline(
+        {pdf_pulita: risultato(pulita), pdf_frode: risultato(frode, "bloccare", [motivo])}, risultato(pulita)
+    )
 
 
 @pytest.fixture

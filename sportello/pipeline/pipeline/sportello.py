@@ -51,6 +51,15 @@ from .testo import estrai_testo
 
 RUOLI = ("estrattore", "verificatore", "decisore")
 CONTROLLI_DEL_SIGILLO = ("impronta", "catena", "sigillo")
+# Quello che legge la persona sulla pagina del caso; le impronte e i numeri restano nel `dettaglio`.
+FRASI_DEL_SIGILLO = {
+    "impronta": ("Sigillo rotto: un messaggio fra gli agenti è stato cambiato dopo la firma.",
+                 "Seal broken: a message between agents was changed after it was signed."),
+    "catena": ("Sigillo rotto: un messaggio è fuori posto nella catena (ripetuto, mancante o fuori ordine).",
+               "Seal broken: a message is out of place in the chain (replayed, missing or out of order)."),
+    "sigillo": ("Sigillo rotto: la firma di un messaggio non è valida.",
+                "Seal broken: a message's signature is not valid."),
+}  # fmt: skip
 MAX_TOKEN = {"impegno": 2048, "lettura": 320, "proposta": 512}
 
 
@@ -244,6 +253,7 @@ def fermata(esito_controllo, impegno: dict | None, lettura: dict | None) -> dict
         motivi = [asdict(m) for m in motivi_coerenza(discordanze, [])]
     else:
         motivi = None
+    it, en = FRASI_DEL_SIGILLO.get(esito_controllo.controllo, (esito_controllo.motivo, esito_controllo.motivo))
     return {
         "esito": "bloccare",
         "motivi": motivi
@@ -252,8 +262,9 @@ def fermata(esito_controllo, impegno: dict | None, lettura: dict | None) -> dict
                 "livello": livello,
                 "esito": "bloccare",
                 "codice": esito_controllo.controllo,
-                "motivo": esito_controllo.motivo,
-                "motivo_en": esito_controllo.motivo,
+                "motivo": it,
+                "motivo_en": en,
+                "dettaglio": esito_controllo.motivo,
             }
         ],
         "proposta": None,

@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review a contract live · Consiglio silenzioso</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+<style>
+/* La prova dal vivo del Consiglio: il giudice sceglie un contratto dall'elenco del server e lo fa esaminare
+   adesso sulla MI300X. Stessi caratteri e colori della home; il verde acqua è solo della memoria. */
+:root {
+  --carta: #f6f7f9; --foglio: #ffffff; --inchiostro: #151a30; --grafite: #565d70; --linea: #dcdfe6;
+  --memoria: #087a6d; --memoria-pieno: #12a594; --memoria-tenue: #ddf3ef;
+  --legale: #2f62c8; --finanza: #12a594; --rischio: #7458d6;
+  --vivo: #1f7a4d; --vivo-tenue: #e3f3ea; --attesa: #8a5208; --attesa-tenue: #fbf0dc; --errore: #b42318; --errore-tenue: #fde7e4;
+  --firmare: #1f7a4d; --negoziare: #8a5208; --rifiutare: #b42318;
+  --titoli: "Archivo", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --grafite: #a4aabb; --linea: #2b3350;
+    --memoria: #4fd1bf; --memoria-pieno: #35c2ae; --memoria-tenue: #123833; --legale: #7aa2f2; --finanza: #35c2ae; --rischio: #a893f2;
+    --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14; --errore: #f08a7f; --errore-tenue: #3a1a17;
+    --firmare: #5bc48e; --negoziare: #e6b35e; --rifiutare: #f08a7f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --grafite: #a4aabb; --linea: #2b3350;
+  --memoria: #4fd1bf; --memoria-pieno: #35c2ae; --memoria-tenue: #123833; --legale: #7aa2f2; --finanza: #35c2ae; --rischio: #a893f2;
+  --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14; --errore: #f08a7f; --errore-tenue: #3a1a17;
+  --firmare: #5bc48e; --negoziare: #e6b35e; --rifiutare: #f08a7f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 400 1.0625rem/1.6 var(--titoli); font-variation-settings: "wdth" 100; padding: 20px 16px 72px; }
+.foglio { max-width: 820px; margin-inline: auto; display: grid; gap: 36px; }
+p, h1, h2, h3, ol { margin: 0; }
+a { color: inherit; text-underline-offset: 0.18em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a:focus-visible, button:focus-visible, input:focus-visible + .scelta-testo { outline: 2px solid var(--memoria); outline-offset: 3px; border-radius: 4px; }
+.tenue { color: var(--grafite); }
+.barra { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+.barra > a { font-weight: 600; font-size: 0.9375rem; text-decoration: none; }
+.barra__destra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.stato { display: inline-flex; gap: 8px; align-items: center; border-radius: 999px; padding: 5px 12px; font-weight: 600; font-size: 0.875rem; background: var(--attesa-tenue); color: var(--attesa); }
+.stato.vivo { background: var(--vivo-tenue); color: var(--vivo); }
+.stato .punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.lingue { display: inline-flex; border: 1px solid var(--linea); border-radius: 999px; padding: 2px; background: var(--foglio); }
+.lingue button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+.testa { display: grid; gap: 14px; }
+.testa h1 { font-weight: 820; font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.05; letter-spacing: -0.025em; font-variation-settings: "wdth" 110; }
+.testa p { font-size: clamp(1.05rem, 1.8vw, 1.2rem); color: var(--grafite); max-width: 44rem; }
+
+.spento { background: var(--foglio); border: 1px solid var(--linea); border-left: 4px solid var(--attesa); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; }
+.spento h2 { font-size: 1.15rem; font-weight: 720; }
+.spento a { font-weight: 600; }
+
+.passi { list-style: none; padding: 0; display: grid; gap: 28px; counter-reset: passo; }
+.passo { display: grid; gap: 12px; }
+.passo > h2 { font-size: 1.2rem; font-weight: 740; display: flex; gap: 10px; align-items: baseline; font-variation-settings: "wdth" 106; }
+.passo > h2::before { counter-increment: passo; content: counter(passo); font-variant-numeric: tabular-nums; color: var(--memoria); font-weight: 800; }
+.contratti { display: grid; gap: 8px; max-height: 26rem; overflow: auto; padding: 2px; }
+.opzione { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; background: var(--foglio); border: 1px solid var(--linea); border-radius: 10px; padding: 12px 14px; cursor: pointer; }
+.opzione:has(input:checked) { border-color: var(--inchiostro); box-shadow: inset 0 0 0 1px var(--inchiostro); }
+.opzione input { margin: 4px 0 0; accent-color: var(--inchiostro); width: 16px; height: 16px; }
+.opzione .titolo { font-weight: 650; overflow-wrap: anywhere; }
+.opzione .da-dove { font-size: 0.875rem; color: var(--grafite); }
+.modi { display: flex; flex-wrap: wrap; gap: 8px; }
+.modi .opzione { grid-template-columns: auto auto; padding: 10px 14px; }
+.modi .memoria .scelta-testo { color: var(--memoria); font-weight: 650; }
+.avvia { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+.bottone { border: 1.5px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 10px; padding: 11px 20px; font-weight: 700; text-decoration: none; display: inline-block; }
+.bottone:disabled { opacity: 0.45; cursor: not-allowed; }
+.bottone.vuoto { background: transparent; color: var(--inchiostro); }
+
+/* mentre il Consiglio lavora: la tessera di memoria passa da un agente all'altro, finché non risponde il server */
+.lavoro { background: var(--foglio); border: 1px solid var(--linea); border-radius: 16px; padding: 22px; display: grid; gap: 16px; }
+.lavoro h2 { font-size: 1.15rem; font-weight: 720; overflow-wrap: anywhere; }
+.orologio { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.binario { position: relative; height: 34px; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; }
+.binario::before { content: ""; position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; background: var(--linea); }
+.binario i { justify-self: center; width: 14px; height: 14px; border-radius: 50%; background: var(--foglio); border: 2px solid var(--linea); position: relative; z-index: 1; }
+.binario i:nth-child(2) { background: var(--legale); border-color: var(--legale); }
+.binario i:nth-child(3) { background: var(--finanza); border-color: var(--finanza); }
+.binario i:nth-child(4) { background: var(--rischio); border-color: var(--rischio); }
+.binario b { position: absolute; z-index: 2; top: 50%; left: 10%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px; background: var(--memoria-pieno); box-shadow: 0 0 0 4px var(--memoria-tenue); animation: passa 3.2s ease-in-out infinite; }
+.lavoro.testo .binario b { background: var(--grafite); box-shadow: 0 0 0 4px var(--linea); border-radius: 4px 4px 4px 1px; }
+@keyframes passa { 0% { left: 10%; } 90%, 100% { left: 90%; } }
+@media (prefers-reduced-motion: reduce) { .binario b { animation: none; left: 50%; } }
+
+.esito { background: var(--foglio); border: 1px solid var(--linea); border-top: 6px solid var(--colore, var(--inchiostro)); border-radius: 14px; padding: 20px 22px; display: grid; gap: 10px; }
+.esito.firmare { --colore: var(--firmare); } .esito.negoziare { --colore: var(--negoziare); } .esito.non-firmare { --colore: var(--rifiutare); }
+.esito .valore { font-weight: 850; font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1; letter-spacing: -0.03em; font-variation-settings: "wdth" 116; color: var(--colore, var(--inchiostro)); }
+.esito .riga b { font-variant-numeric: tabular-nums; }
+.errore { background: var(--errore-tenue); border: 1px solid var(--errore); border-radius: 12px; padding: 14px 18px; display: grid; gap: 8px; }
+.errore p:first-child { font-weight: 650; color: var(--errore); }
+
+.fatte h2 { font-size: 1.2rem; font-weight: 740; margin-bottom: 10px; }
+.fatte ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border-top: 1px solid var(--linea); }
+.fatte li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--linea); align-items: center; }
+.fatte .titolo { font-weight: 650; overflow-wrap: anywhere; }
+.fatte .dettagli { font-size: 0.875rem; color: var(--grafite); }
+.fatte a { font-weight: 650; font-size: 0.9375rem; }
+footer { font-size: 0.875rem; color: var(--grafite); }
+</style>
+</head>
+<body>
+<main class="foglio" id="pagina"></main>
+<script>
+"use strict";
+// L'elenco dei contratti e le prove passano da /api/consiglio, che tiene il segreto del server. Lo stato da
+// /api/stato, le finestre da ../finestre.json, il tempo atteso da numeri.json. Le prove fatte restano nel browser.
+const T = {
+  en: {
+    casa: "← Home", titolo: "Review a contract live",
+    sotto: "Pick a contract from a public dataset. The council reviews it now on the AMD MI300X: the experts hand over their memory, a devil's advocate writes the verdict, and the dataset experts' answers appear next to it.",
+    vivo: "Live now: the AMD MI300X is on", prossima: "Next live window:", annunciate: "Live windows will be announced here", controllo: "Checking the MI300X…",
+    spentoTitolo: "The MI300X is off right now", spentoTesto: "Live reviews run while the machine is on.", spentoRegistrati: "Meanwhile, the recorded verdicts show the same pages.", registrati: "See the recorded verdicts",
+    passoContratto: "Choose a contract", passoModo: "Choose how the experts talk", passoAvvia: "Start the review",
+    da: (b, i) => `From ${b === "cuad" ? "CUAD" : b === "dimostrativo" ? "the demo set" : b}${{ sviluppo: ", development set", test: ", test set" }[i] ?? ""}`,
+    memoria: "Handing over memory", testo: "Writing to each other",
+    avvia: "Start the review", circa: (s) => `Usually about ${s} seconds on the recorded runs.`,
+    lavoro: (t) => `The council is reviewing ${t}`, lavoroSotto: "One review at a time on the GPU. Keep this page open.",
+    fatto: (s) => `Done in ${s} seconds.`, apri: "Open the verdict", nessuno: "No valid verdict",
+    racc: { "firmare": "Sign", "negoziare": "Negotiate", "non firmare": "Do not sign" },
+    trovate: (a, b) => [`Found `, el("b", { text: String(a) }), ` of the `, el("b", { text: String(b) }), ` clauses the experts flagged.`],
+    occupato: "Another judge is running a review right now.", occupatoTesto: "Try again in a minute.",
+    spento: "The council is off or does not answer.", lento: "The review took too long.", lentoTesto: "Try a shorter contract, or try again later.",
+    errore: "The review did not start.", riprova: "Try again",
+    fatte: "Your live reviews", fatteSotto: "They stay in this browser.", quando: (d) => new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+    lingue: "Language", piede: "Contracts from public datasets under CC BY 4.0. Nothing you do here is sent anywhere else.",
+  },
+  it: {
+    casa: "← Home", titolo: "Prova dal vivo",
+    sotto: "Scegli un contratto da un dataset pubblico. Il Consiglio lo esamina adesso sulla AMD MI300X: gli esperti si passano la memoria, un avvocato del diavolo scrive il verdetto, e accanto compaiono le risposte degli esperti del dataset.",
+    vivo: "Dal vivo adesso: la MI300X è accesa", prossima: "Prossima finestra dal vivo:", annunciate: "Le finestre dal vivo saranno annunciate qui", controllo: "Controllo la MI300X…",
+    spentoTitolo: "La MI300X adesso è spenta", spentoTesto: "Le prove dal vivo funzionano quando la macchina è accesa.", spentoRegistrati: "Intanto i verdetti registrati mostrano le stesse pagine.", registrati: "Vedi i verdetti registrati",
+    passoContratto: "Scegli un contratto", passoModo: "Scegli come si parlano gli esperti", passoAvvia: "Avvia la revisione",
+    da: (b, i) => `Da ${b === "cuad" ? "CUAD" : b === "dimostrativo" ? "il set dimostrativo" : b}${{ sviluppo: ", insieme di sviluppo", test: ", insieme di test" }[i] ?? ""}`,
+    memoria: "Si passano la memoria", testo: "Si scrivono",
+    avvia: "Avvia la revisione", circa: (s) => `Di solito circa ${s} secondi, nei giri registrati.`,
+    lavoro: (t) => `Il Consiglio sta esaminando ${t}`, lavoroSotto: "Una revisione alla volta sulla GPU. Tieni aperta questa pagina.",
+    fatto: (s) => `Fatto in ${s} secondi.`, apri: "Apri il verdetto", nessuno: "Nessun verdetto valido",
+    racc: { "firmare": "Firmare", "negoziare": "Negoziare", "non firmare": "Non firmare" },
+    trovate: (a, b) => [`Trovate `, el("b", { text: String(a) }), ` delle `, el("b", { text: String(b) }), ` clausole segnate dagli esperti.`],
+    occupato: "Un altro giudice sta facendo una prova proprio adesso.", occupatoTesto: "Riprova fra un minuto.",
+    spento: "Il Consiglio è spento o non risponde.", lento: "La revisione è durata troppo.", lentoTesto: "Prova un contratto più corto, oppure riprova più tardi.",
+    errore: "La revisione non è partita.", riprova: "Riprova",
+    fatte: "Le tue prove dal vivo", fatteSotto: "Restano in questo browser.", quando: (d) => new Date(d).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+    lingue: "Lingua", piede: "Contratti da dataset pubblici con licenza CC BY 4.0. Quello che fai qui non va da nessun'altra parte.",
+  },
+};
+const CHIAVE_FATTE = "consiglio-dal-vivo";
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+const chiesta = new URLSearchParams(location.search).get("lang");
+let lingua = chiesta === "it" || chiesta === "en" ? chiesta : memoria.leggi("sportello-lingua") === "it" ? "it" : "en";
+let stato = null, finestre = [], numeri = null, contratti = null, scelto = null, modo = "telepatia", corso = null, esito = null, guasto = null;
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const f of figli.flat()) if (f !== null && f !== undefined && f !== false) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const t = () => T[lingua];
+const quando = (iso) => new Intl.DateTimeFormat(lingua === "it" ? "it-IT" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome", timeZoneName: "short" }).format(new Date(iso));
+const prossima = () => finestre.map((f) => ({ ...f, i: new Date(f.inizio), f: new Date(f.fine) })).filter((f) => f.f > new Date()).sort((a, b) => a.i - b.i)[0];
+const acceso = () => Boolean(stato?.consiglio?.dal_vivo);
+const fatte = () => (Array.isArray(memoria.leggi(CHIAVE_FATTE)) ? memoria.leggi(CHIAVE_FATTE) : []);
+
+function pillola() {
+  const f = prossima();
+  if (stato === null) return el("span", { class: "stato", role: "status" }, el("span", { class: "punto" }), t().controllo);
+  if (acceso()) return el("span", { class: "stato vivo", role: "status" }, el("span", { class: "punto" }), t().vivo);
+  return el("span", { class: "stato", role: "status" }, el("span", { class: "punto" }), f ? `${t().prossima} ${quando(f.inizio)} – ${quando(f.fine)}` : t().annunciate);
+}
+
+function salva(risposta) {
+  // Al massimo le ultime 10: una vista pesa decine di kB e lo spazio del browser è piccolo.
+  const v = { ...risposta.vista, indice: "prova.html" };
+  const voce = { id_caso: risposta.id_caso, titolo: v.titolo, modalita: risposta.modalita, quando: v.dal_vivo || new Date().toISOString(),
+    raccomandazione: risposta.raccomandazione?.valore ?? null, secondi: risposta.secondi, confronto: v.confronto, vista: v };
+  const elenco = [voce, ...fatte().filter((f) => f.id_caso !== voce.id_caso)].slice(0, 10);
+  while (elenco.length && !memoria.scrivi(CHIAVE_FATTE, elenco)) elenco.pop();
+}
+
+async function avvia() {
+  if (!scelto || corso) return;
+  guasto = null; esito = null;
+  const voce = contratti.find((c) => c.chiave === scelto);
+  corso = { titolo: voce ? voce.titolo : scelto, inizio: performance.now(), modo };
+  disegna();
+  const orologio = setInterval(() => { const o = document.querySelector(".orologio"); if (o && corso) o.textContent = tempo((performance.now() - corso.inizio) / 1000); }, 250);
+  try {
+    const r = await fetch("/api/consiglio", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contratto: scelto, modalita: modo }) });
+    const dati = await r.json().catch(() => ({}));
+    if (r.ok && dati.vista) { esito = dati; salva(dati); }
+    else if (r.status === 409) guasto = [t().occupato, t().occupatoTesto];
+    else if (r.status === 503) guasto = [t().spento, ""];
+    else if (r.status === 504) guasto = [t().lento, t().lentoTesto];
+    else guasto = [t().errore, dati.errore || ""];
+  } catch {
+    guasto = [t().lento, t().lentoTesto];
+  } finally {
+    clearInterval(orologio);
+    corso = null;
+    disegna();
+  }
+}
+const tempo = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function bloccoEsito(r) {
+  const v = r.vista, valore = r.raccomandazione?.valore, c = v.confronto;
+  return el("section", { class: `esito ${valore ? valore.replace(" ", "-") : ""}`, "aria-live": "polite" },
+    el("p", { class: "tenue", text: t().fatto(Math.round(r.secondi)) }),
+    el("h2", { text: v.titolo }),
+    el("p", { class: "valore", text: valore ? t().racc[valore] : t().nessuno }),
+    c && c.da_trovare ? el("p", { class: "riga" }, t().trovate(c.trovate, c.da_trovare)) : null,
+    el("div", {}, el("a", { class: "bottone", href: `verdetto.html?dal-vivo=${encodeURIComponent(r.id_caso)}`, text: t().apri })));
+}
+
+function disegna() {
+  document.documentElement.lang = lingua;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": t().lingue },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), onclick: () => { if (l !== lingua) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } } }, l === "en" ? "English" : "Italiano")));
+  pagina.append(el("div", { class: "barra" }, el("a", { href: "../index.html", text: t().casa }), el("div", { class: "barra__destra" }, pillola(), lingue)));
+  pagina.append(el("header", { class: "testa" }, el("h1", { text: t().titolo }), el("p", { text: t().sotto })));
+
+  if (stato !== null && !acceso()) {
+    const f = prossima();
+    pagina.append(el("section", { class: "spento" }, el("h2", { text: t().spentoTitolo }),
+      el("p", {}, t().spentoTesto, f ? ` ${t().prossima} ${quando(f.inizio)} – ${quando(f.fine)}.` : ""),
+      el("p", {}, t().spentoRegistrati, " ", el("a", { href: "index.html", text: t().registrati }))));
+  }
+
+  if (corso) {
+    pagina.append(el("section", { class: `lavoro ${corso.modo === "testo" ? "testo" : ""}`, "aria-live": "polite" },
+      el("h2", { text: t().lavoro(corso.titolo) }),
+      el("div", { class: "binario", "aria-hidden": "true" }, el("i"), el("i"), el("i"), el("i"), el("i"), el("b")),
+      el("p", { class: "orologio", text: tempo((performance.now() - corso.inizio) / 1000) }),
+      el("p", { class: "tenue", text: t().lavoroSotto })));
+  } else if (esito) pagina.append(bloccoEsito(esito));
+  if (guasto) pagina.append(el("section", { class: "errore", role: "alert" }, el("p", { text: guasto[0] }), guasto[1] ? el("p", { text: guasto[1] }) : null));
+
+  if (acceso() && contratti && !corso) {
+    const lista = el("div", { class: "contratti", role: "radiogroup", "aria-label": t().passoContratto },
+      contratti.map((c) => el("label", { class: "opzione" },
+        el("input", { type: "radio", name: "contratto", value: c.chiave, checked: c.chiave === scelto, onchange: () => { scelto = c.chiave; aggiornaBottone(); } }),
+        el("span", {}, el("span", { class: "titolo", text: c.titolo }), el("br"), el("span", { class: "da-dove", text: t().da(c.benchmark, c.insieme) })))));
+    const modi = el("div", { class: "modi", role: "radiogroup", "aria-label": t().passoModo },
+      [["telepatia", t().memoria, "memoria"], ["testo", t().testo, ""]].map(([valore, nome, classe]) => el("label", { class: `opzione ${classe}` },
+        el("input", { type: "radio", name: "modo", value: valore, checked: modo === valore, onchange: () => { modo = valore; aggiornaBottone(); } }),
+        el("span", { class: "scelta-testo", text: nome }))));
+    const secondi = numeri?.[modo === "testo" ? "testo" : "telepatia"]?.secondi;
+    pagina.append(el("ol", { class: "passi" },
+      el("li", { class: "passo" }, el("h2", { text: t().passoContratto }), lista),
+      el("li", { class: "passo" }, el("h2", { text: t().passoModo }), modi),
+      el("li", { class: "passo" }, el("h2", { text: t().passoAvvia }),
+        el("div", { class: "avvia" }, el("button", { type: "button", class: "bottone", id: "avvia", disabled: !scelto, onclick: avvia }, guasto ? t().riprova : t().avvia),
+          secondi ? el("span", { class: "tenue", id: "circa", text: t().circa(Math.round(secondi)) }) : null))));
+  }
+
+  const mie = fatte();
+  if (mie.length) {
+    pagina.append(el("section", { class: "fatte" }, el("h2", { text: t().fatte }), el("p", { class: "tenue", text: t().fatteSotto }),
+      el("ul", {}, mie.map((f) => el("li", {},
+        el("div", {}, el("span", { class: "titolo", text: f.titolo }), el("br"),
+          el("span", { class: "dettagli", text: [f.modalita === "testo" ? t().testo : t().memoria, f.raccomandazione ? t().racc[f.raccomandazione] : t().nessuno, t().quando(f.quando)].join(", ") })),
+        el("a", { href: `verdetto.html?dal-vivo=${encodeURIComponent(f.id_caso)}`, text: t().apri }))))));
+  }
+  pagina.append(el("footer", { text: t().piede }));
+}
+function aggiornaBottone() {
+  const b = document.getElementById("avvia");
+  if (b) b.disabled = !scelto;
+  const c = document.getElementById("circa"), s = numeri?.[modo === "testo" ? "testo" : "telepatia"]?.secondi;
+  if (c && s) c.textContent = t().circa(Math.round(s));
+}
+
+async function carica(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  disegna();
+  [finestre, numeri, stato] = await Promise.all([carica("../finestre.json").then((f) => f || []), carica("numeri.json"), carica("/api/stato").then((s) => s || { dal_vivo: false })]);
+  if (acceso()) contratti = await carica("/api/consiglio");
+  if (acceso() && !Array.isArray(contratti)) { contratti = null; guasto = [t().spento, ""]; }
+  disegna();
+})();
+</script>
+</body>
+</html>

@@ -43,6 +43,9 @@ Dopo il riepilogo lo script esegue i passi di `sportello/prova.d/`, uno per ogni
 | `20-pagine.sh` | | Le pagine dei casi in telepatia e l'indice con le proposte da approvare, come le vedrebbe la persona: si aprono nel browser. | |
 | `30-attacchi.sh` | | La manomissione in transito (F1), i 10 testi nascosti (F4) e i 5 inganni sulle righe da abbinare (F7), in telepatia e a testo, cioè 31 esami. Il rapporto dice chi li ferma, se la sola coerenza blocca almeno 8 F4 su 10 (la regola dell'attacco 2 dal vivo,) e se qualche F7 riesce. | `SENZA_ATTACCHI=1` |
 | `40-servizio.sh` | | Il motore chiamato come lo chiama l'agente in Evolus: il server con i due tool, una fattura esaminata con `esamina_fattura` via MCP e via HTTP (deve tornare lo stesso caso), poi `registra_decisione`. | |
+| `50-casa.sh` | | La casa per i giudici in locale: home, casi di questa prova con il registro da scaricare, e le prove dal vivo (una nostra fattura, i due attacchi, "prova tu a ingannarlo") con il motore acceso. Si apre su http://localhost:3000; serve Node.js 20 o più recente. | parte solo con `CASA=1` |
+
+Per provare la casa senza rifare la pipeline basta rilanciare con `CASA=1 SENZA_ATTACCHI=1./sportello/prova.sh`: le fatture già esaminate non si rifanno. La casa resta accesa finché non premi Ctrl-C.
 
 ### Cosa non prova
 

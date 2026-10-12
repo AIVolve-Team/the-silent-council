@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIVolve at the AMD Developer Hackathon</title>
+<meta name="description" content="Agents that hand over their memory instead of writing to each other, on an AMD Instinct MI300X: a council that reviews contracts and a counter that checks invoices.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* La casa per i giudici. Il pezzo forte è la dimostrazione in cima: gli stessi agenti che si scrivono e che
+   si passano la memoria, con i contatori dei giri registrati. Il resto della pagina resta quieto. */
+:root {
+  --carta: #f6f7f9; --foglio: #ffffff; --inchiostro: #151a30; --grafite: #565d70; --linea: #dcdfe6;
+  /* il verde acqua è solo della memoria: non si usa per altro */
+  --memoria: #087a6d; --memoria-pieno: #12a594; --memoria-tenue: #ddf3ef;
+  /* un colore per posto nella staffetta, gli stessi nelle pagine del verdetto */
+  --legale: #2f62c8; --finanza: #12a594; --rischio: #7458d6; --ultimo: #151a30;
+  --vivo: #1f7a4d; --vivo-tenue: #e3f3ea; --attesa: #8a5208; --attesa-tenue: #fbf0dc;
+  --titoli: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --codice: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --largo: 1120px; --misura: 42rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --grafite: #a4aabb; --linea: #2b3350;
+    --memoria: #4fd1bf; --memoria-pieno: #35c2ae; --memoria-tenue: #123833;
+    --legale: #7aa2f2; --finanza: #35c2ae; --rischio: #a893f2; --ultimo: #e8ebf4;
+    --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --grafite: #a4aabb; --linea: #2b3350;
+  --memoria: #4fd1bf; --memoria-pieno: #35c2ae; --memoria-tenue: #123833;
+  --legale: #7aa2f2; --finanza: #35c2ae; --rischio: #a893f2; --ultimo: #e8ebf4;
+  --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 400 1.0625rem/1.6 var(--titoli); font-variation-settings: "wdth" 100; }
+p, h1, h2, h3, dl, dd { margin: 0; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--memoria); outline-offset: 3px; border-radius: 4px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.pagina { max-width: var(--largo); margin-inline: auto; padding: 20px 16px 72px; display: grid; gap: clamp(56px, 8vw, 104px); }
+
+/* barra in alto */
+.barra { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.marchio { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; font-variation-settings: "wdth" 118; text-decoration: none; }
+.marchio span { font-weight: 500; color: var(--grafite); font-variation-settings: "wdth" 100; margin-left: 10px; font-size: 0.9rem; letter-spacing: 0; }
+.barra__destra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.stato { display: inline-flex; gap: 8px; align-items: center; border-radius: 999px; padding: 5px 12px; font-weight: 600; font-size: 0.875rem; background: var(--attesa-tenue); color: var(--attesa); }
+.stato.vivo { background: var(--vivo-tenue); color: var(--vivo); }
+.stato .punto { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.stato.vivo .punto { animation: pulsa 1.6s ease-in-out infinite; }
+@keyframes pulsa { 50% { opacity: 0.3; } }
+.lingue { display: inline-flex; border: 1px solid var(--linea); border-radius: 999px; padding: 2px; background: var(--foglio); }
+.lingue button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+
+/* apertura */
+.apertura { display: grid; gap: 24px; margin-top: calc(-1 * clamp(20px, 4vw, 52px)); }
+.apertura h1 { font-weight: 820; font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.05; letter-spacing: -0.025em; font-variation-settings: "wdth" 104; }
+/* una frase per riga: il titolo dice già il contrasto */
+.apertura h1 span { display: block; text-wrap: balance; }
+.apertura .sotto { font-size: clamp(1.1rem, 1.9vw, 1.3rem); line-height: 1.5; color: var(--grafite); max-width: 40rem; }
+
+/* la dimostrazione */
+.demo { background: var(--foglio); border: 1px solid var(--linea); border-radius: 20px; padding: clamp(16px, 3.2vw, 36px); display: grid; gap: clamp(24px, 3.5vw, 36px); }
+.demo__comandi { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; min-height: 38px; }
+.scene { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--linea); border-radius: 999px; padding: 3px; }
+.scene button { border: 0; background: transparent; border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 0.9375rem; }
+.scene button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+.riguarda { border: 1px solid var(--linea); background: var(--foglio); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 0.9375rem; }
+.riguarda[hidden] { display: none; }
+.corsie { display: grid; gap: clamp(28px, 4vw, 44px); }
+.corsia { display: grid; gap: 14px; align-content: start; }
+/* Sugli schermi larghi le due corsie stanno affiancate, con le righe allineate: il confronto si vede tutto insieme. */
+@media (min-width: 980px) {
+  .corsie { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 48px; row-gap: 14px; }
+  .corsia { grid-row: span 3; grid-template-rows: subgrid; gap: 14px; }
+  .corsia + .corsia { position: relative; }
+  .corsia + .corsia::before { content: ""; position: absolute; left: -24px; top: 0; bottom: 0; width: 1px; background: var(--linea); }
+}
+.corsia__testa { display: grid; gap: 2px; }
+.corsia__testa h2 { font-size: clamp(1.15rem, 2.2vw, 1.4rem); font-weight: 760; letter-spacing: -0.01em; font-variation-settings: "wdth" 108; }
+.corsia[data-modo="memoria"] .corsia__testa h2 { color: var(--memoria); }
+.corsia__testa p { font-size: 0.9375rem; color: var(--grafite); }
+
+.catena { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: start; padding-bottom: 76px; }
+.catena::before { content: ""; position: absolute; top: 15px; height: 2px; left: calc(50% / var(--n)); right: calc(50% / var(--n)); background: var(--linea); }
+.nodo { position: relative; z-index: 1; display: grid; justify-items: center; gap: 8px; text-align: center; min-width: 0; padding-inline: 2px; }
+.nodo__punto { width: 32px; height: 32px; border-radius: 50%; background: var(--foglio); border: 2px solid var(--linea); display: grid; place-items: center; transition: border-color 0.2s, box-shadow 0.25s; }
+.nodo__punto svg { width: 16px; height: 16px; stroke: var(--grafite); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.nodo[data-ruolo] .nodo__punto::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+.nodo.attivo .nodo__punto { border-color: var(--c, var(--inchiostro)); box-shadow: 0 0 0 6px color-mix(in srgb, var(--c, var(--inchiostro)) 16%, transparent); }
+.nodo__nome { font-size: clamp(0.72rem, 1.6vw, 0.875rem); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.nodo--fine.fatto .nodo__punto { border-color: var(--vivo); }
+.nodo--fine.fatto .nodo__punto svg { stroke: var(--vivo); }
+.sigillo { font-size: 0.75rem; font-weight: 600; color: var(--vivo); opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+.nodo--fine.fatto .sigillo { opacity: 1; }
+
+.pacchetto { position: absolute; left: 0; top: 80px; will-change: transform; pointer-events: none; transition: opacity 0.2s; }
+.bolla { width: clamp(44px, 10vw, 120px); display: grid; gap: 3px; padding: 7px; border-radius: 8px 8px 8px 2px; background: var(--carta); border: 1px solid var(--linea); }
+.bolla i { display: block; height: 4px; border-radius: 2px; background: var(--grafite); opacity: 0.5; }
+.bolla i:nth-child(3n) { width: 70%; }
+.bolla i:nth-child(3n + 2) { width: 88%; }
+.tessera { display: grid; gap: 2px; padding: 5px; border-radius: 6px; background: var(--foglio); border: 1px solid var(--memoria-pieno); box-shadow: 0 0 0 4px var(--memoria-tenue); }
+.tessera div { display: grid; grid-template-columns: repeat(4, clamp(6px, 1.1vw, 9px)); gap: 2px; }
+.tessera i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--c); }
+
+.misure { display: grid; gap: 9px; }
+.misura { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; align-items: baseline; font-size: 0.9375rem; }
+.misura .asta { grid-column: 1 / -1; grid-row: 2; }
+.misura dt { color: var(--grafite); }
+.misura dd { display: contents; }
+.asta { height: 10px; border-radius: 5px; background: var(--carta); overflow: hidden; }
+.asta span { display: block; height: 100%; width: 0; border-radius: 5px; background: var(--grafite); }
+.corsia[data-modo="memoria"] .asta span { background: var(--memoria-pieno); }
+.valore { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.delta { font-weight: 600; font-size: 0.8125rem; color: var(--memoria); white-space: nowrap; }
+.provenienza { font-size: 0.875rem; color: var(--grafite); max-width: 62rem; }
+
+/* le sezioni */
+.sezione { display: grid; gap: 28px; }
+.sezione > h2 { font-size: clamp(1.6rem, 3.4vw, 2.25rem); font-weight: 780; letter-spacing: -0.02em; line-height: 1.1; font-variation-settings: "wdth" 110; max-width: 22ch; }
+.progetti { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 44px 56px; }
+.progetto { display: grid; gap: 14px; align-content: start; padding-top: 20px; border-top: 3px solid var(--inchiostro); }
+.progetto h3 { font-size: 1.5rem; font-weight: 760; letter-spacing: -0.01em; font-variation-settings: "wdth" 108; }
+.progetto .per { font-weight: 600; }
+.progetto p { max-width: var(--misura); }
+.progetto .guarda { font-size: 0.9375rem; color: var(--grafite); }
+.azioni { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 4px; }
+.bottone { display: inline-block; text-decoration: none; font-weight: 650; border-radius: 10px; padding: 10px 16px; border: 1.5px solid var(--inchiostro); }
+.bottone.pieno { background: var(--inchiostro); color: var(--foglio); }
+.bottone[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+.azioni .nota { font-size: 0.875rem; color: var(--grafite); }
+
+.prove { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 32px 56px; }
+.prova { display: grid; gap: 8px; align-content: start; }
+.prova dt { font-weight: 700; font-size: 1.125rem; }
+.prova dd { color: var(--grafite); max-width: var(--misura); }
+.prova a { color: var(--inchiostro); }
+.prova code { display: block; margin-top: 10px; font: 0.8125rem/1.5 var(--codice); color: var(--inchiostro); background: var(--foglio); border: 1px solid var(--linea); border-radius: 8px; padding: 10px 12px; overflow-wrap: anywhere; }
+
+footer { display: grid; gap: 6px; font-size: 0.875rem; color: var(--grafite); border-top: 1px solid var(--linea); padding-top: 20px; }
+footer a { color: var(--inchiostro); }
+.nascosto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stato.vivo .punto { animation: none; }
+  .nodo__punto, .sigillo, .pacchetto { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="pagina" id="pagina"></div>
+<script>
+"use strict";
+// Progetti e finestre arrivano da file accanto (progetti.json, finestre.json, scritti da costruisci.py), i numeri di
+// un progetto dal suo numeri.json, lo stato della MI300X da /api/stato. Tutto il testo entra con textContent.
+const T = {
+  en: {
+    titolo: ["Our agents don't write to each other.", "They hand over their memory."],
+    sotto: "Two products for Italian businesses on one engine, running on an AMD Instinct MI300X: a council that reviews contracts, and a counter that checks invoices before they are paid.",
+    vivo: "Live now: the AMD MI300X is on", prossima: "Next live window:", annunciate: "Live windows will be announced here", controllo: "Checking the MI300X…",
+    scenaGruppo: "Show the engine on", riguarda: "Play again",
+    testo: "Writing to each other", testoSotto: "Each agent writes what it understood, for the next one to read.",
+    memoria: "Handing over memory", memoriaSotto: "Each agent passes on its memory of what it read. Only the last one writes.",
+    scritti: "Tokens written", letti: "Tokens read", secondi: "Seconds", trovate: "Clauses found",
+    meno: (p) => `${p}% fewer`, piu: (p) => `${p}% more`, menoTempo: (p) => `${p}% less time`, piuTempo: (p) => `${p}% more time`,
+    di: (a, b) => `${a} of ${b}`,
+    provenienza: (n) => `Averages per contract over ${n.contratti} ${n.fonte} ${n.contratti === 1 ? "contract" : "contracts"}, with ${n.modello}, recorded ${n.registrato}.${n.telepatia.da_trovare ? ` Clauses found counts the ones the ${n.fonte} experts flagged.` : ""}`,
+    senzaNumeri: "The measurements from the AMD MI300X runs will appear here, next to the animation.",
+    riassunto: (s) => `Writing to each other: ${s.ts} tokens written, ${s.tl} read, ${s.tsec} seconds per document. Handing over memory: ${s.ms} written, ${s.ml} read, ${s.msec} seconds.`,
+    progettiTitolo: "Two products, one engine", progettiUno: "What you can try", proveTitolo: "Check that it is real",
+    casi: "Recorded cases", verdetti: "Recorded verdicts", provaVivo: "Try it live", provaSpenta: "Live tests run when the MI300X is on.",
+    codice: "Source code",
+    piede: "AIVolve, for the AMD Developer Hackathon ACT III. Invented companies, invoices and banks: nothing is ever paid. Contracts from public datasets under CC BY 4.0. Your choices stay in your browser.",
+  },
+  it: {
+    titolo: ["I nostri agenti non si scrivono.", "Si passano la memoria."],
+    sotto: "Due prodotti per le imprese italiane su un solo motore, che gira su una AMD Instinct MI300X: un consiglio che rivede i contratti, e uno sportello che controlla le fatture prima di pagarle.",
+    vivo: "Dal vivo adesso: la MI300X è accesa", prossima: "Prossima finestra dal vivo:", annunciate: "Le finestre dal vivo saranno annunciate qui", controllo: "Controllo la MI300X…",
+    scenaGruppo: "Mostra il motore su", riguarda: "Riguarda",
+    testo: "Si scrivono", testoSotto: "Ogni agente scrive quello che ha capito, e il successivo lo legge.",
+    memoria: "Si passano la memoria", memoriaSotto: "Ogni agente passa la memoria di quello che ha letto. Scrive solo l'ultimo.",
+    scritti: "Token scritti", letti: "Token letti", secondi: "Secondi", trovate: "Clausole trovate",
+    meno: (p) => `${p}% in meno`, piu: (p) => `${p}% in più`, menoTempo: (p) => `${p}% in meno`, piuTempo: (p) => `${p}% in più`,
+    di: (a, b) => `${a} su ${b}`,
+    provenienza: (n) => `Medie per contratto su ${n.contratti} ${n.contratti === 1 ? "contratto" : "contratti"} ${n.fonte}, con ${n.modello}, registrati: ${n.registrato}.${n.telepatia.da_trovare ? ` Le clausole trovate contano quelle segnate dagli esperti di ${n.fonte}.` : ""}`,
+    senzaNumeri: "Le misure dei giri sulla AMD MI300X compariranno qui, accanto all'animazione.",
+    riassunto: (s) => `Si scrivono: ${s.ts} token scritti, ${s.tl} letti, ${s.tsec} secondi per documento. Si passano la memoria: ${s.ms} scritti, ${s.ml} letti, ${s.msec} secondi.`,
+    progettiTitolo: "Due prodotti, un solo motore", progettiUno: "Cosa puoi provare", proveTitolo: "Controlla che è vero",
+    casi: "Casi registrati", verdetti: "Verdetti registrati", provaVivo: "Prova dal vivo", provaSpenta: "Le prove dal vivo funzionano quando la MI300X è accesa.",
+    codice: "Codice sorgente",
+    piede: "AIVolve, per l'AMD Developer Hackathon ACT III. Aziende, fatture e banche inventate: non si paga mai niente. Contratti da dataset pubblici con licenza CC BY 4.0. Le tue scelte restano nel tuo browser.",
+  },
+};
+
+// Chi c'è nella staffetta di ogni progetto: chi passa la memoria (lettori) e chi scrive alla fine.
+const SCENE = {
+  consiglio: {
+    colori: ["legale", "finanza", "rischio"],
+    en: { scena: "Contract review", doc: "Contract", lettori: ["Legal", "Finance", "Risk"], ultimo: "Devil's advocate", fine: "Verdict", sigillo: "signed" },
+    it: { scena: "Contratti", doc: "Contratto", lettori: ["Legale", "Finanza", "Rischio"], ultimo: "Avvocato del diavolo", fine: "Verdetto", sigillo: "firmato" },
+  },
+  sportello: {
+    colori: ["legale", "finanza"],
+    en: { scena: "Invoice check", doc: "Invoice", lettori: ["Extractor", "Verifier"], ultimo: "Decider", fine: "Decision", sigillo: "signed" },
+    it: { scena: "Fatture", doc: "Fattura", lettori: ["Estrattore", "Verificatore"], ultimo: "Decisore", fine: "Decisione", sigillo: "firmata" },
+  },
+};
+
+const PROGETTI = {
+  consiglio: {
+    en: {
+      per: "For a small business about to sign a contract.",
+      testo: "Supplier, software and service contracts get signed without a lawyer reading every clause. The council reads the contract as a legal, a finance and a risk expert, then a devil's advocate writes the verdict: sign, negotiate or walk away, with the clauses that matter and the dissent between experts left in view.",
+      guarda: "Every recorded verdict puts the CUAD experts' answers next to the council's, mistakes included.",
+      uno: "The silent council reviews a contract for a small business: legal, finance and risk experts hand over their memory instead of writing to each other, and a devil's advocate writes the verdict, dissent included. It runs on an AMD Instinct MI300X.",
+    },
+    it: {
+      per: "Per una piccola impresa che sta per firmare un contratto.",
+      testo: "Contratti di fornitura, software e servizi si firmano senza che un avvocato legga ogni clausola. Il consiglio legge il contratto come un esperto legale, uno di finanza e uno di rischio, poi un avvocato del diavolo scrive il verdetto: firmare, negoziare o lasciar perdere, con le clausole che contano e il dissenso fra gli esperti in vista.",
+      guarda: "Ogni verdetto registrato mette accanto a quelle del Consiglio le risposte degli esperti di CUAD, errori compresi.",
+      uno: "Il consiglio silenzioso rivede un contratto per una piccola impresa: gli esperti legale, di finanza e di rischio si passano la memoria invece di scriversi, e un avvocato del diavolo scrive il verdetto, dissenso compreso. Gira su una AMD Instinct MI300X.",
+    },
+  },
+  sportello: {
+    en: {
+      per: "For the desk that pays suppliers.",
+      testo: "Invoices arrive by email and get paid. A changed IBAN or an instruction hidden in the PDF is enough to send money to the wrong account. The counter examines each invoice, and a truth machine checks the agents themselves before anything is paid.",
+      guarda: "Every recorded case shows what the truth machine checked, and lets you approve or stop the payment.",
+      uno: "The telepathic counter examines invoices with agents that hand over their memory, and a truth machine checks them before anything is paid. It runs on an AMD Instinct MI300X.",
+    },
+    it: {
+      per: "Per l'ufficio che paga i fornitori.",
+      testo: "Le fatture arrivano per email e si pagano. Basta un IBAN cambiato o un'istruzione nascosta nel PDF per mandare i soldi al conto sbagliato. Lo sportello esamina ogni fattura, e una macchina della verità controlla gli agenti stessi prima di pagare.",
+      guarda: "Ogni caso registrato mostra cosa ha controllato la macchina della verità, e ti fa approvare o fermare il pagamento.",
+      uno: "Lo sportello telepatico esamina le fatture con agenti che si passano la memoria, e una macchina della verità li controlla prima di pagare. Gira su una AMD Instinct MI300X.",
+    },
+  },
+};
+
+// Le prove che non è una messa in scena. "per": vale solo se c'è quel progetto; "repo": solo con il repo pubblico.
+const PROVE = [
+  {
+    per: "consiglio",
+    en: ["Answers we did not write", "The contracts and their right answers come from CUAD, a public dataset of real contracts annotated by law students under lawyers' supervision. Every verdict shows where the council agrees with them and where it does not."],
+    it: ["Risposte che non abbiamo scritto noi", "I contratti e le loro risposte giuste vengono da CUAD, un dataset pubblico di contratti veri annotati da studenti di legge controllati da avvocati. Ogni verdetto mostra dove il Consiglio è d'accordo con loro e dove no."],
+    link: ["CUAD", "https://github.com/TheAtticusProject/cuad"],
+  },
+  {
+    en: ["Signed messages", "Every memory handed between agents carries a cryptographic seal. A tampered message stops the run before a verdict or a payment."],
+    it: ["Messaggi firmati", "Ogni memoria passata fra gli agenti porta un sigillo crittografico. Un messaggio manomesso ferma tutto prima del verdetto o del pagamento."],
+    sportello: {
+      en: "Download a case's log and check the signatures on your own computer:",
+      it: "Scarica il registro di un caso e controlla le firme sul tuo computer:",
+      codice: "python -m motore.verifica registro-<case> --pubbliche registro-<case>/chiavi-pubbliche",
+    },
+  },
+  {
+    repo: true,
+    en: ["Rules fixed before the test", "The evaluation rules and a fingerprint of the test data are committed to the repository before the test runs, so the results cannot be tuned after the fact."],
+    it: ["Regole fissate prima della prova", "Le regole della misura e l'impronta dei dati di prova si salvano nel repository prima della prova, quindi i risultati non si possono aggiustare dopo."],
+  },
+  {
+    en: ["Recorded on AMD", "Every recorded case says when and on which machine it ran. The engine runs Qwen3-14B on an AMD Instinct MI300X with 192 GB of memory, through ROCm."],
+    it: ["Registrato su AMD", "Ogni caso registrato dice quando e su quale macchina è stato fatto. Il motore fa girare Qwen3-14B su una AMD Instinct MI300X da 192 GB di memoria, con ROCm."],
+  },
+];
+
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
+};
+const richiesta = new URLSearchParams(location.search).get("lang");
+let lingua = richiesta === "it" || richiesta === "en" ? richiesta : memoria.leggi("sportello-lingua") === "it" ? "it" : "en";
+let progetti = [], repo = null, finestre = [], stato = null, scena = null, demo = null;
+const numeri = {};
+const fermo = matchMedia("(prefers-reduced-motion: reduce)");
+const caratteri = document.fonts ? Promise.race([document.fonts.ready, new Promise((ok) => setTimeout(ok, 1200))]) : Promise.resolve();
+
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (k === "style") n.style.cssText = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const f of figli.flat()) if (f !== null && f !== undefined && f !== false) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const icona = (d) => { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("aria-hidden", "true"); s.innerHTML = d; return s; };
+const FOGLIO = '<path d="M4 1.5h5.5L12.5 4.5V14.5H4z"/><path d="M6 7h4.5M6 9.5h4.5M6 12h3"/>';
+const ESITO = '<path d="M4 1.5h8.5V14.5H4z"/><path d="M6.2 8.4l1.6 1.6 3.2-3.4"/>';
+const ULTIMO = '<circle cx="8" cy="8" r="3.2"/>';
+const fmt = (n) => Math.round(n).toLocaleString(lingua === "it" ? "it-IT" : "en-GB");
+const quando = (iso) => new Intl.DateTimeFormat(lingua === "it" ? "it-IT" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome", timeZoneName: "short" }).format(new Date(iso));
+const prossima = () => finestre.map((f) => ({ ...f, i: new Date(f.inizio), f: new Date(f.fine) })).filter((f) => f.f > new Date()).sort((a, b) => a.i - b.i)[0];
+const liscia = (x) => x * x * (3 - 2 * x);
+
+/* ---------- la dimostrazione ---------- */
+
+// Una corsia: documento, lettori, ultimo agente, esito. Il pacchetto passa da un agente all'altro: righe di testo che si
+// accumulano, oppure una tessera di memoria con una fila per lettore. I tempi sono in millisecondi; dimostrazione() li
+// scala perché le due corsie durino nel rapporto dei giri registrati.
+function corsia(modo, s, testi, misure, massimi, confronto) {
+  const t = T[lingua];
+  const L = testi.lettori.length;
+  const nodi = [
+    el("div", { class: "nodo" }, el("span", { class: "nodo__punto" }, icona(FOGLIO)), el("span", { class: "nodo__nome", text: testi.doc })),
+    ...testi.lettori.map((nome, i) => el("div", { class: "nodo", "data-ruolo": s.colori[i], style: `--c: var(--${s.colori[i]})` },
+      el("span", { class: "nodo__punto" }), el("span", { class: "nodo__nome", text: nome }))),
+    el("div", { class: "nodo", style: "--c: var(--ultimo)" }, el("span", { class: "nodo__punto" }, icona(ULTIMO)), el("span", { class: "nodo__nome", text: testi.ultimo })),
+    el("div", { class: "nodo nodo--fine" }, el("span", { class: "nodo__punto" }, icona(ESITO)), el("span", { class: "nodo__nome", text: testi.fine }),
+      el("span", { class: "sigillo", text: `✓ ${testi.sigillo}` })),
+  ];
+  const pacchetto = el("div", { class: "pacchetto", "aria-hidden": "true" });
+  const catena = el("div", { class: "catena", style: `--n: ${nodi.length}` }, nodi, pacchetto);
+  const righe = [], file = [];
+  if (modo === "testo") {
+    const bolla = el("div", { class: "bolla" });
+    for (let i = 0; i < 2 * L; i++) { const r = el("i"); righe.push(r); bolla.append(r); }
+    pacchetto.append(bolla);
+  } else {
+    const tessera = el("div", { class: "tessera" });
+    for (let i = 0; i < L; i++) { const f = el("div", { style: `--c: var(--${s.colori[i]})` }, [0, 1, 2, 3].map(() => el("i"))); file.push(f); tessera.append(f); }
+    pacchetto.append(tessera);
+  }
+
+  // Leggere, scrivere (o passare la memoria), spostarsi al nodo dopo; alla fine l'ultimo agente legge e scrive l'esito.
+  const passi = [];
+  for (let i = 0; i < L; i++) {
+    passi.push({ tipo: "leggi", nodo: 1 + i, durata: modo === "testo" ? 650 + 280 * i : 650 });
+    passi.push({ tipo: "scrivi", nodo: 1 + i, lettore: i, durata: modo === "testo" ? 1250 : 260 });
+    passi.push({ tipo: "muovi", da: 1 + i, a: 2 + i, durata: 520 });
+  }
+  passi.push({ tipo: "leggi", nodo: L + 1, durata: modo === "testo" ? 280 * L + 400 : 400 });
+  passi.push({ tipo: "esito", nodo: L + 1, durata: 900 });
+  let totale = passi.reduce((somma, p) => somma + p.durata, 0);
+
+  const voci = [];
+  const dl = el("dl", { class: "misure" });
+  const misura = (chiave, etichetta, valore, massimo) => {
+    const asta = el("span"), numero = el("span", { class: "valore" }), delta = el("span", { class: "delta" });
+    voci.push({ chiave, valore, massimo, asta, numero, delta });
+    dl.append(el("div", { class: "misura" }, el("dt", { text: etichetta }), el("dd", {}, el("span", { class: "asta" }, asta), numero, delta)));
+  };
+  if (misure) {
+    misura("token_generati", t.scritti, misure.token_generati, massimi.token_generati);
+    misura("token_letti", t.letti, misure.token_letti, massimi.token_letti);
+    misura("secondi", t.secondi, misure.secondi, massimi.secondi);
+    if (misure.da_trovare) misura("trovate", t.trovate, misure.trovate, misure.da_trovare);
+  }
+  const nodo = el("section", { class: "corsia", "data-modo": modo, "aria-hidden": "true" },
+    el("div", { class: "corsia__testa" }, el("h2", { text: modo === "testo" ? t.testo : t.memoria }), el("p", { text: modo === "testo" ? t.testoSotto : t.memoriaSotto })),
+    catena, misure ? dl : null);
+
+  const centro = (i) => { const a = catena.getBoundingClientRect(), b = nodi[i].firstChild.getBoundingClientRect(); return b.left + b.width / 2 - a.left; };
+
+  // Lo stato della corsia al tempo ms dall'inizio.
+  function disegna(ms) {
+    let inizio = 0, corrente = null, scritte = 0, strati = 0;
+    for (const p of passi) {
+      if (ms < inizio) break;
+      const q = Math.min(1, (ms - inizio) / p.durata);
+      if (p.tipo === "scrivi") { if (modo === "testo") scritte = 2 * p.lettore + Math.ceil(2 * q); else strati = p.lettore + 1; }
+      corrente = { p, q };
+      inizio += p.durata;
+    }
+    const finito = ms >= totale;
+    let attivo = -1, x = centro(1), leggeIlDocumento = false;
+    if (corrente) {
+      const { p, q } = corrente;
+      if (p.tipo === "muovi") { attivo = q < 1 ? -1 : p.a; x = centro(p.da) + (centro(p.a) - centro(p.da)) * liscia(q); }
+      else { attivo = p.nodo; x = centro(p.nodo); leggeIlDocumento = p.tipo === "leggi" && p.nodo <= L && q < 1; }
+    }
+    nodi.forEach((n, i) => n.classList.toggle("attivo", !finito && (i === attivo || (i === 0 && leggeIlDocumento))));
+    nodi[nodi.length - 1].classList.toggle("fatto", finito);
+    righe.forEach((r, i) => { r.style.visibility = i < scritte ? "visible" : "hidden"; });
+    file.forEach((f, i) => { f.style.display = i < strati ? "" : "none"; });
+    // Sotto i nomi degli agenti, anche quando vanno a capo.
+    const giu = Math.max(...nodi.map((n) => n.getBoundingClientRect().bottom)) - catena.getBoundingClientRect().top;
+    pacchetto.style.top = `${Math.round(giu + 12)}px`;
+    pacchetto.style.transform = `translateX(${x - pacchetto.firstChild.getBoundingClientRect().width / 2}px)`;
+    // Alla fine il pacchetto resta sotto l'ultimo agente: a fermo si vedono ancora le righe contro la tessera.
+    pacchetto.style.opacity = scritte === 0 && strati === 0 ? "0" : "1";
+    const avanzamento = finito ? 1 : liscia(Math.min(1, ms / totale));
+    for (const v of voci) {
+      v.asta.style.width = `${v.massimo ? (100 * v.valore * avanzamento) / v.massimo : 0}%`;
+      if (v.chiave === "trovate") { v.numero.textContent = t.di(finito ? v.valore : Math.round(v.valore * avanzamento), v.massimo); continue; }
+      v.numero.textContent = fmt(v.valore * avanzamento);
+      const altro = confronto && confronto[v.chiave];
+      if (finito && altro) {
+        const p = Math.round(100 * (1 - v.valore / altro));
+        v.delta.textContent = v.chiave === "secondi" ? (p >= 0 ? t.menoTempo(p) : t.piuTempo(-p)) : p >= 0 ? t.meno(p) : t.piu(-p);
+      } else v.delta.textContent = "";
+    }
+  }
+  return { nodo, disegna, get totale() { return totale; }, scala(f) { for (const p of passi) p.durata *= f; totale *= f; } };
+}
+
+function dimostrazione(id, n) {
+  const s = SCENE[id], testi = s[lingua], t = T[lingua];
+  const testo = n ? n.testo : null, mem = n ? n.telepatia : null;
+  const massimi = n ? Object.fromEntries(["token_generati", "token_letti", "secondi"].map((k) => [k, Math.max(testo[k], mem[k])])) : null;
+  const a = corsia("testo", s, testi, testo, massimi, null), b = corsia("memoria", s, testi, mem, massimi, testo);
+  // Le due corsie durano come nei giri registrati: la più veloce finisce prima, davanti al giudice.
+  const rapporto = n ? Math.min(3, Math.max(0.4, testo.secondi / mem.secondi)) : 1.6;
+  a.scala((b.totale * rapporto) / a.totale);
+  const durata = Math.max(a.totale, b.totale);
+  let avvio = 0, giro = 0, finita = false;
+  const tutto = () => { a.disegna(Infinity); b.disegna(Infinity); };
+  const riguarda = el("button", { type: "button", class: "riguarda", text: t.riguarda, hidden: true, onclick: () => parti() });
+  function fotogramma(ora) {
+    const ms = Math.max(0, ora - avvio);
+    a.disegna(ms); b.disegna(ms);
+    if (ms < durata) giro = requestAnimationFrame(fotogramma);
+    else { finita = true; riguarda.hidden = false; }
+  }
+  function parti() {
+    cancelAnimationFrame(giro);
+    riguarda.hidden = true;
+    finita = false;
+    if (fermo.matches) { finita = true; tutto(); return; }
+    a.disegna(0); b.disegna(0);
+    avvio = performance.now() + 400;
+    giro = requestAnimationFrame(fotogramma);
+  }
+  const riassunto = n ? t.riassunto({ ts: fmt(testo.token_generati), tl: fmt(testo.token_letti), tsec: fmt(testo.secondi), ms: fmt(mem.token_generati), ml: fmt(mem.token_letti), msec: fmt(mem.secondi) }) : "";
+  a.disegna(0); b.disegna(0);
+  return {
+    nodo: el("div", { class: "corsie" }, a.nodo, b.nodo, riassunto ? el("p", { class: "nascosto", text: riassunto }) : null),
+    provenienza: el("p", { class: "provenienza", text: n ? t.provenienza(n) : t.senzaNumeri }),
+    riguarda, parti,
+    ridisegna() { if (finita) tutto(); },
+    ferma() { cancelAnimationFrame(giro); },
+  };
+}
+
+/* ---------- la pagina ---------- */
+
+// Lo Sportello e il Consiglio hanno ognuno il suo server sulla MI300X: le prove di ognuno si accendono con il suo.
+const vivoDi = (id) => Boolean(id === "consiglio" ? stato?.consiglio?.dal_vivo : stato?.dal_vivo);
+
+function pillola() {
+  const t = T[lingua], f = prossima();
+  if (stato === null) return el("span", { class: "stato", role: "status" }, el("span", { class: "punto" }), t.controllo);
+  if (stato.dal_vivo || stato.consiglio?.dal_vivo) return el("span", { class: "stato vivo", role: "status" }, el("span", { class: "punto" }), t.vivo);
+  return el("span", { class: "stato", role: "status" }, el("span", { class: "punto" }), f ? `${t.prossima} ${quando(f.inizio)} – ${quando(f.fine)}` : t.annunciate);
+}
+
+function disegna() {
+  const t = T[lingua];
+  document.documentElement.lang = lingua;
+  if (demo) demo.ferma();
+  demo = null;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+  const uno = progetti.length === 1 ? progetti[0] : null;
+
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l && l !== lingua) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  pagina.append(el("header", { class: "barra" },
+    el("a", { class: "marchio", href: "./" }, "AIVolve", el("span", { text: "AMD Developer Hackathon ACT III" })),
+    el("div", { class: "barra__destra" }, el("span", { id: "pillola" }, pillola()), lingue)));
+
+  // Apertura e dimostrazione: si parte dal progetto che ha già i numeri.
+  const conScena = progetti.filter((p) => SCENE[p.id]);
+  if (!conScena.some((p) => p.id === scena)) scena = (conScena.find((p) => numeri[p.id]) || conScena[0] || {}).id || null;
+  const apertura = el("section", { class: "apertura", "aria-labelledby": "titolo" },
+    el("h1", { id: "titolo" }, t.titolo.map((frase) => el("span", { text: frase }))),
+    el("p", { class: "sotto", text: uno ? PROGETTI[uno.id]?.[lingua]?.uno || uno[lingua] || uno.en : t.sotto }));
+  if (scena) {
+    demo = dimostrazione(scena, numeri[scena]);
+    const comandi = el("div", { class: "demo__comandi" });
+    comandi.append(conScena.length > 1
+      ? el("div", { class: "scene", role: "group", "aria-label": t.scenaGruppo }, conScena.map((p) => el("button", {
+          type: "button", "aria-pressed": String(p.id === scena), text: SCENE[p.id][lingua].scena,
+          onclick: () => { if (p.id !== scena) { scena = p.id; disegna(); } } })))
+      : el("span"));
+    comandi.append(demo.riguarda);
+    apertura.append(el("div", { class: "demo" }, comandi, demo.nodo, demo.provenienza));
+  }
+  pagina.append(apertura);
+
+  // I progetti.
+  pagina.append(el("section", { class: "sezione", "aria-labelledby": "progetti" },
+    el("h2", { id: "progetti", text: uno ? t.progettiUno : t.progettiTitolo }),
+    el("div", { class: "progetti" }, progetti.map((p) => {
+      const c = PROGETTI[p.id]?.[lingua] || { testo: p[lingua] || p.en };
+      const vivo = vivoDi(p.id);
+      return el("article", { class: "progetto" },
+        el("h3", { text: p.nome }), c.per ? el("p", { class: "per", text: c.per }) : null, el("p", { text: c.testo }),
+        c.guarda ? el("p", { class: "guarda", text: c.guarda }) : null,
+        el("div", { class: "azioni" },
+          el("a", { class: "bottone pieno", href: p.casi, text: p.id === "consiglio" ? t.verdetti : t.casi }),
+          p.prova ? el("a", { class: "bottone vivo", "data-progetto": p.id, href: p.prova, "aria-disabled": String(!vivo), tabindex: vivo ? null : "-1", text: t.provaVivo }) : null,
+          p.prova ? el("span", { class: "nota", "data-progetto": p.id, hidden: vivo, text: t.provaSpenta }) : null));
+    }))));
+
+  // Le prove che non è una messa in scena.
+  const ids = new Set(progetti.map((p) => p.id));
+  pagina.append(el("section", { class: "sezione", "aria-labelledby": "prove" },
+    el("h2", { id: "prove", text: t.proveTitolo }),
+    el("dl", { class: "prove" }, PROVE.filter((p) => (!p.per || ids.has(p.per)) && (!p.repo || repo)).map((p) => el("div", { class: "prova" },
+      el("dt", { text: p[lingua][0] }),
+      el("dd", {}, p[lingua][1],
+        p.link ? [" ", el("a", { href: p.link[1], target: "_blank", rel: "noopener", text: p.link[0] })] : null,
+        p.repo && repo ? [" ", el("a", { href: repo, target: "_blank", rel: "noopener", text: t.codice })] : null,
+        p.sportello && ids.has("sportello") ? [" ", p.sportello[lingua], el("code", { text: p.sportello.codice })] : null))))));
+
+  pagina.append(el("footer", {}, el("p", { text: t.piede }), repo ? el("p", {}, el("a", { href: repo, text: t.codice })) : null));
+  const questa = demo;
+  if (questa) caratteri.then(() => { if (questa === demo) questa.parti(); });
+}
+
+function aggiornaStato() {
+  // Cambiano solo la pillola e i bottoni dal vivo: la dimostrazione non riparte.
+  const posto = document.getElementById("pillola");
+  if (posto) posto.replaceChildren(pillola());
+  document.querySelectorAll(".bottone.vivo").forEach((a) => {
+    const vivo = vivoDi(a.dataset.progetto);
+    a.setAttribute("aria-disabled", String(!vivo));
+    if (vivo) a.removeAttribute("tabindex"); else a.setAttribute("tabindex", "-1");
+  });
+  document.querySelectorAll(".azioni .nota").forEach((n) => { n.hidden = vivoDi(n.dataset.progetto); });
+}
+
+async function carica(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  const [casa, f] = await Promise.all([carica("progetti.json"), carica("finestre.json")]);
+  ({ progetti = [], repo = null } = casa || {});
+  finestre = f || [];
+  const letti = await Promise.all(progetti.map((p) => (p.numeri ? carica(p.numeri) : null)));
+  progetti.forEach((p, i) => { if (letti[i]?.telepatia && letti[i]?.testo) numeri[p.id] = letti[i]; });
+  disegna();
+  stato = (await carica("/api/stato")) || { dal_vivo: false };
+  aggiornaStato();
+})();
+addEventListener("resize", () => { if (demo) demo.ridisegna(); });
+fermo.addEventListener("change", () => { if (demo) demo.parti(); });
+</script>
+</body>
+</html>

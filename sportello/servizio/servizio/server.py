@@ -22,7 +22,7 @@ import inspect
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlsplit
 
 import anyio.to_thread
@@ -34,7 +34,10 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
-from .gestore import MAX_PDF, Rifiuto, Sportello
+from .gestore import MAX_PDF, Occupato, Rifiuto, Sportello
+
+if TYPE_CHECKING:
+    from .prove import Prove
 
 log = logging.getLogger("sportello.servizio")
 MAX_CORPO = 16 * 2**20  # un PDF di 10 MB in base64, più i campi
@@ -133,10 +136,16 @@ async def campi(request: Request) -> tuple[dict, bool]:
 
 
 def crea_app(
-    sportello: Sportello, segreto: str, *, host_pubblici: tuple[str, ...] = (), host_pdf: tuple[str, ...] = ()
+    sportello: Sportello,
+    segreto: str,
+    *,
+    host_pubblici: tuple[str, ...] = (),
+    host_pdf: tuple[str, ...] = (),
+    prove: Prove | None = None,
 ) -> Starlette:
     """`host_pubblici`: i nomi con cui il server si raggiunge da fuori (per esempio dietro Caddy con TLS); senza, MCP
-    accetta solo richieste a 127.0.0.1 e localhost (protezione dal DNS rebinding dell'SDK)."""
+    accetta solo richieste a 127.0.0.1 e localhost (protezione dal DNS rebinding dell'SDK). Con `prove` (modalità
+    demo) ci sono anche le prove dal vivo della casa per i giudici."""
     ammessi_pdf = frozenset(h.lower() for h in host_pdf)
     mcp = MCPServer("sportello", instructions=ISTRUZIONI)
 
@@ -187,6 +196,8 @@ def crea_app(
                 if da_modulo and nel_modulo:
                     dati = {k: v() for k, v in nel_modulo.items()} | {k: v for k, v in dati.items() if v}
                 return JSONResponse(await azione(**dati))
+            except Occupato as errore:
+                return JSONResponse({"errore": str(errore)}, status_code=409)
             except Rifiuto as errore:
                 return JSONResponse({"errore": str(errore)}, status_code=400)
             except Exception:
@@ -203,6 +214,21 @@ def crea_app(
     }
     mcp.custom_route("/esamina_fattura", methods=["POST"])(http(esamina, dall_email, se_mancano))
     mcp.custom_route("/registra_decisione", methods=["POST"])(http(decidi))
+
+    if prove is not None:
+
+        async def fattura_dal_vivo(id=None, modalita="telepatia", livello2=True) -> dict:
+            return await anyio.to_thread.run_sync(prove.fattura, id, modalita, livello2)
+
+        async def attacco_dal_vivo(numero=None, modalita="telepatia", livello2=True) -> dict:
+            return await anyio.to_thread.run_sync(prove.attacco, numero, modalita, livello2)
+
+        async def inganna_dal_vivo(id=None, testo=None, modalita="telepatia", livello2=True) -> dict:
+            return await anyio.to_thread.run_sync(prove.inganna, id, testo, modalita, livello2)
+
+        mcp.custom_route("/prove/fattura", methods=["POST"])(http(fattura_dal_vivo))
+        mcp.custom_route("/prove/attacco", methods=["POST"])(http(attacco_dal_vivo))
+        mcp.custom_route("/prove/inganna", methods=["POST"])(http(inganna_dal_vivo))
 
     @mcp.custom_route("/casi", methods=["GET"])
     async def casi(request: Request) -> Response:
@@ -225,7 +251,7 @@ def crea_app(
 
     @mcp.custom_route("/salute", methods=["GET"])
     async def salute(request: Request) -> Response:
-        return JSONResponse({"pronto": True, "esame_in_corso": sportello.lucchetto.locked()})
+        return JSONResponse({"pronto": True, "esame_in_corso": sportello.lucchetto.locked(), "demo": prove is not None})
 
     sicurezza = None
     if host_pubblici:
