@@ -6,140 +6,191 @@
 <title>Consiglio silenzioso · AIVolve</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
 <style>
-/* L'indice del Consiglio nel sito per i giudici: stessi colori e caratteri della home (casa/sorgenti/index.html). */
+/* L'indice del Consiglio nel sito per i giudici: una riga per contratto, con telepatia e testo affiancati.
+   Stessi caratteri e colori della home (casa/sorgenti/index.html): il verde acqua è solo della memoria. */
 :root {
-  --carta: #f4f6f9; --foglio: #ffffff; --inchiostro: #121826; --tenue: #5b6474; --linea: #dde2ea;
-  --accento: #2b4acb; --accento-tenue: #e6ebfb; --vivo: #1f7a4d; --vivo-tenue: #e3f3ea; --attesa: #9a5b0b; --attesa-tenue: #fbf0dc;
-  --rosso: #b42318; --rosso-tenue: #fde7e4;
-  --display: "Manrope", "Segoe UI", system-ui, sans-serif; --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --carta: #f6f7f9; --foglio: #ffffff; --inchiostro: #151a30; --grafite: #565d70; --linea: #dcdfe6;
+  --memoria: #087a6d; --memoria-pieno: #12a594;
+  --firmare: #1f7a4d; --negoziare: #8a5208; --rifiutare: #b42318;
+  --titoli: "Archivo", "Segoe UI", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
-    --accento-tenue: #222b44; --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14;
-    --rosso: #f2867c; --rosso-tenue: #3a1916; color-scheme: dark;
+    --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --grafite: #a4aabb; --linea: #2b3350;
+    --memoria: #4fd1bf; --memoria-pieno: #35c2ae; --firmare: #5bc48e; --negoziare: #e6b35e; --rifiutare: #f08a7f; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
-  --accento-tenue: #222b44; --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14;
-  --rosso: #f2867c; --rosso-tenue: #3a1916; color-scheme: dark;
+  --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --grafite: #a4aabb; --linea: #2b3350;
+  --memoria: #4fd1bf; --memoria-pieno: #35c2ae; --firmare: #5bc48e; --negoziare: #e6b35e; --rifiutare: #f08a7f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding: 24px 16px 64px; }
-.foglio { max-width: 960px; margin-inline: auto; display: grid; gap: 24px; }
-h1, h2 { font-family: var(--display); margin: 0; line-height: 1.15; }
-h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); font-weight: 800; letter-spacing: -0.01em; }
-h2 { font-size: 1.15rem; }
-p { margin: 0; }
-a { color: var(--accento); }
-a:focus-visible, button:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
-.tenue { color: var(--tenue); }
-.barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
-.lingue button { font: inherit; cursor: pointer; border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 400 1rem/1.6 var(--titoli); font-variation-settings: "wdth" 100; padding: 20px 16px 72px; }
+.foglio { max-width: 1120px; margin-inline: auto; display: grid; gap: 36px; }
+p, h1, h2 { margin: 0; }
+a { color: inherit; text-underline-offset: 0.18em; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--memoria); outline-offset: 3px; border-radius: 4px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.tenue { color: var(--grafite); }
+.barra { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+.barra a { font-weight: 600; font-size: 0.9375rem; text-decoration: none; }
+.lingue { display: inline-flex; border: 1px solid var(--linea); border-radius: 999px; padding: 2px; background: var(--foglio); }
+.lingue button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
 .lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
-.testa { display: grid; gap: 10px; }
-.testa .sotto { font-size: 1.05rem; color: var(--tenue); max-width: 62ch; }
-.verdetti { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.verdetto { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
-/* I nomi dei contratti CUAD sono lunghi e senza spazi: vanno a capo dove serve. */
-.verdetto h2 { overflow-wrap: anywhere; }
-.etichette { display: flex; flex-wrap: wrap; gap: 6px; }
-.etichetta { border-radius: 999px; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; background: var(--carta); border: 1px solid var(--linea); }
-.racc { font-family: var(--display); font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.02em; }
-.racc.firmare { color: var(--vivo); } .racc.negoziare { color: var(--attesa); } .racc.non-firmare { color: var(--rosso); }
-.numeri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.numero { background: var(--carta); border-radius: 10px; padding: 8px 10px; min-width: 0; overflow-wrap: anywhere; }
-.numero b { display: block; font-family: var(--dati); font-size: 1.1rem; }
-.numero span { font-size: 0.78rem; color: var(--tenue); }
-.sigillo.integro { color: var(--vivo); } .sigillo.rotto { color: var(--rosso); }
-.accordo { font-weight: 600; }
-.costo { font-family: var(--dati); font-size: 0.82rem; color: var(--tenue); }
-.bottone { justify-self: start; display: inline-block; text-decoration: none; font-weight: 600; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); }
-.vuoto { background: var(--foglio); border: 1px dashed var(--linea); border-radius: 14px; padding: 20px; }
-footer { font-size: 0.88rem; }
+.testa { display: grid; gap: 14px; }
+.testa h1 { font-weight: 820; font-size: clamp(2.1rem, 5.4vw, 3.6rem); line-height: 1.04; letter-spacing: -0.025em; font-variation-settings: "wdth" 112; }
+.testa .sotto { font-size: clamp(1.05rem, 1.8vw, 1.2rem); line-height: 1.5; color: var(--grafite); max-width: 44rem; }
+.testa .piccolo { font-size: 0.9375rem; color: var(--grafite); max-width: 52rem; }
+.testa .piccolo a { color: var(--inchiostro); }
+
+.elenco { display: grid; }
+.intestazione, .contratto { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
+.intestazione { font-weight: 700; font-size: 0.9375rem; padding-bottom: 10px; border-bottom: 2px solid var(--inchiostro); }
+.intestazione .memoria { color: var(--memoria); }
+.contratto { padding: 22px 0; border-bottom: 1px solid var(--linea); align-items: start; }
+.contratto h2 { font-size: 1.15rem; font-weight: 720; line-height: 1.25; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.contratto .id { font-size: 0.8125rem; color: var(--grafite); overflow-wrap: anywhere; margin-top: 4px; }
+.cella { display: grid; gap: 6px; align-content: start; min-width: 0; }
+.cella .modo { display: none; font-weight: 700; font-size: 0.875rem; }
+.cella.memoria .modo { color: var(--memoria); }
+.racc { font-weight: 800; font-size: 1.35rem; line-height: 1.1; letter-spacing: -0.015em; font-variation-settings: "wdth" 110; }
+.racc.firmare { color: var(--firmare); } .racc.negoziare { color: var(--negoziare); } .racc.non-firmare { color: var(--rifiutare); }
+.racc.nessuna { color: var(--grafite); font-size: 1.05rem; }
+.cella .riga { font-size: 0.9375rem; }
+.cella .riga b { font-variant-numeric: tabular-nums; }
+.cella .costo { font-size: 0.875rem; color: var(--grafite); }
+.cella .rotto { font-size: 0.875rem; font-weight: 600; color: var(--rifiutare); }
+.apri { justify-self: start; margin-top: 4px; display: inline-block; text-decoration: none; font-weight: 650; font-size: 0.9375rem; border-radius: 10px; padding: 7px 14px; border: 1.5px solid var(--inchiostro); }
+.cella.memoria .apri { background: var(--inchiostro); color: var(--foglio); }
+.vuoto { padding: 22px 0; color: var(--grafite); border-bottom: 1px solid var(--linea); }
+footer { font-size: 0.875rem; color: var(--grafite); }
+
+@media (max-width: 760px) {
+  .intestazione { display: none; }
+  .contratto { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 20px; }
+  .contratto > div:first-child { grid-column: 1 / -1; }
+  .cella .modo { display: block; }
+}
+@media (max-width: 460px) {
+  .contratto { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
 </head>
 <body>
 <main class="foglio" id="pagina"></main>
 <script id="dati" type="application/json">null</script>
 <script>
+"use strict";
 // I verdetti arrivano dal blocco "dati", scritto da revisione/vetrina.py. Tutto il testo entra con textContent.
 const T = {
   en: {
-    casa: "← Home", titolo: "Consiglio silenzioso", sotto: "Four agents review a contract for an Italian small business: legal, finance and risk experts pass each other their memory instead of text, and a devil's advocate writes the verdict with its dissent.",
-    registrato: "Recorded", nota: "Verdict pages are in Italian, like the ones the client receives.",
-    fonti: "We did not write these contracts, nor the right answers. They come from public datasets annotated by legal experts:", fontiDopo: "Every verdict shows the experts' answer next to the council's, mistakes included.",
-    accordo: (n, m, f) => `Agrees with the ${f} experts on ${n} of ${m} clauses`, trovate: (n, m) => `found ${n} of the ${m} the experts flagged`, accordoAttese: (n, m) => `Matches the pre-registered answers on ${n} of ${m} clauses`,
-    telepatia: "Telepathy", testo: "Text", apri: "Open the verdict",
+    casa: "← Home", titolo: "Consiglio silenzioso",
+    sotto: "A legal, a finance and a risk expert review a contract for an Italian small business by handing over their memory instead of writing to each other. A devil's advocate writes the verdict, dissent included.",
+    registrato: (q) => `Recorded ${q}.`,
+    fonti: "We did not write these contracts, nor their right answers. They come from public datasets annotated by legal experts:", fontiDopo: "Every verdict shows the experts' answers next to the council's, mistakes included.",
+    nota: "Verdict pages open in English. The council writes its reasoning in Italian, for the Italian business it works for.",
+    contratto: "Contract", memoria: "Handing over memory", testo: "Writing to each other",
     racc: { "firmare": "Sign", "negoziare": "Negotiate", "non firmare": "Do not sign" }, nessuna: "No valid verdict",
-    segnalate: "flagged clauses", gravi: "strong dissents", lievi: "mild dissents",
-    integro: "🔒 Expert communication intact", rotto: "⚠ Seal broken: no verdict",
-    costo: (t, s) => `${t.toLocaleString("en-GB")} tokens written · ${s} s`, nessunVerdetto: "No verdicts recorded yet.",
-    piede: "Invented companies and public benchmark contracts. Your choices on dissents stay in your browser.",
+    trovate: (a, b) => [`Found `, el("b", { text: String(a) }), ` of the `, el("b", { text: String(b) }), ` clauses the experts flagged`],
+    nienteDaTrovare: "The experts flagged nothing in this contract",
+    accordo: (a, b) => [`Agrees with them on `, el("b", { text: String(a) }), ` of `, el("b", { text: String(b) }), ` clauses`],
+    costo: (t, s) => `${t.toLocaleString("en-GB")} tokens written in ${s} s`,
+    rotto: "⚠ Seal broken: the council stopped",
+    apri: "Open the verdict", manca: "Not recorded in this mode", da: (f) => `From ${f}`,
+    vuoto: "No verdicts recorded yet.", lingue: "Language",
+    piede: "Contracts from public datasets under CC BY 4.0. Your choices on the dissents stay in your browser.",
   },
   it: {
-    casa: "← Home", titolo: "Consiglio silenzioso", sotto: "Quattro agenti rivedono un contratto per una piccola impresa italiana: gli esperti legale, di finanza e di rischio si passano la memoria invece del testo, e un avvocato del diavolo scrive il verdetto con il suo dissenso.",
-    registrato: "Registrato", nota: "Le pagine del verdetto sono in italiano, come quelle che riceve il cliente.",
-    fonti: "Questi contratti non li abbiamo scritti noi, e nemmeno le risposte giuste. Vengono da dataset pubblici annotati da esperti di diritto:", fontiDopo: "Ogni verdetto mostra la risposta degli esperti accanto a quella del Consiglio, errori compresi.",
-    accordo: (n, m, f) => `D'accordo con gli esperti di ${f} su ${n} clausole su ${m}`, trovate: (n, m) => `trovate ${n} delle ${m} segnate dagli esperti`, accordoAttese: (n, m) => `Come le risposte attese pre-registrate su ${n} clausole su ${m}`,
-    telepatia: "Telepatia", testo: "Testo", apri: "Apri il verdetto",
+    casa: "← Home", titolo: "Consiglio silenzioso",
+    sotto: "Un esperto legale, uno di finanza e uno di rischio rivedono un contratto per una piccola impresa italiana passandosi la memoria invece di scriversi. Un avvocato del diavolo scrive il verdetto, dissenso compreso.",
+    registrato: (q) => `Registrati: ${q}.`,
+    fonti: "Questi contratti non li abbiamo scritti noi, e nemmeno le risposte giuste. Vengono da dataset pubblici annotati da esperti di diritto:", fontiDopo: "Ogni verdetto mostra le risposte degli esperti accanto a quelle del Consiglio, errori compresi.",
+    nota: "Le pagine del verdetto si aprono in inglese. Il Consiglio scrive i suoi ragionamenti in italiano, per l'impresa italiana per cui lavora.",
+    contratto: "Contratto", memoria: "Si passano la memoria", testo: "Si scrivono",
     racc: { "firmare": "Firmare", "negoziare": "Negoziare", "non firmare": "Non firmare" }, nessuna: "Nessun verdetto valido",
-    segnalate: "clausole segnalate", gravi: "dissensi gravi", lievi: "dissensi lievi",
-    integro: "🔒 Comunicazione tra esperti integra", rotto: "⚠ Sigillo rotto: nessun verdetto",
-    costo: (t, s) => `${t.toLocaleString("it-IT")} token scritti · ${s} s`, nessunVerdetto: "Non ci sono ancora verdetti registrati.",
-    piede: "Aziende inventate e contratti di benchmark pubblici. Le tue scelte sui dissensi restano nel tuo browser.",
+    trovate: (a, b) => [`Trovate `, el("b", { text: String(a) }), ` delle `, el("b", { text: String(b) }), ` clausole segnate dagli esperti`],
+    nienteDaTrovare: "Gli esperti non hanno segnato niente in questo contratto",
+    accordo: (a, b) => [`D'accordo con loro su `, el("b", { text: String(a) }), ` clausole su `, el("b", { text: String(b) })],
+    costo: (t, s) => `${t.toLocaleString("it-IT")} token scritti in ${s} s`,
+    rotto: "⚠ Sigillo rotto: il Consiglio si è fermato",
+    apri: "Apri il verdetto", manca: "Non registrato in questa modalità", da: (f) => `Da ${f}`,
+    vuoto: "Non ci sono ancora verdetti registrati.", lingue: "Lingua",
+    piede: "Contratti da dataset pubblici con licenza CC BY 4.0. Le tue scelte sui dissensi restano nel tuo browser.",
   },
 };
+const FONTI = { CUAD: "https://github.com/TheAtticusProject/cuad", ContractNLI: "https://stanfordnlp.github.io/contract-nli/",
+  CLAUDETTE: "https://github.com/lt-nlp-lab-unibo/Multilingual-Unfair-Clause-Detection" };
+const NOMI_BENCHMARK = { cuad: "CUAD", contractnli: "ContractNLI", claudette: "CLAUDETTE", dimostrativo: { en: "the demo set", it: "il set dimostrativo" } };
 const memoria = {
   leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
 };
 // La stessa chiave della home: la lingua scelta lì vale anche qui.
-let lingua = new URLSearchParams(location.search).get("lang") || memoria.leggi("sportello-lingua") || "en";
+const chiesta = new URLSearchParams(location.search).get("lang");
+let lingua = chiesta === "it" || chiesta === "en" ? chiesta : memoria.leggi("sportello-lingua") === "it" ? "it" : "en";
 const dati = JSON.parse(document.getElementById("dati").textContent || "null") || { verdetti: [] };
 const el = (tag, attr = {}, ...figli) => {
   const n = document.createElement(tag);
   for (const [k, v] of Object.entries(attr)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined) n.setAttribute(k, v); }
-  for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  for (const f of figli.flat()) if (f !== null && f !== undefined && f !== false) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
   return n;
 };
-const FONTI = { CUAD: "https://github.com/TheAtticusProject/cuad", ContractNLI: "https://stanfordnlp.github.io/contract-nli/",
-  CLAUDETTE: "https://github.com/lt-nlp-lab-unibo/Multilingual-Unfair-Clause-Detection" };
-const numero = (valore, etichetta) => el("div", { class: "numero" }, el("b", { text: String(valore) }), el("span", { text: etichetta }));
+
+function cella(t, v, modo) {
+  const etichetta = el("span", { class: "modo", text: modo === "telepatia" ? t.memoria : t.testo });
+  if (!v) return el("div", { class: `cella ${modo === "telepatia" ? "memoria" : ""}` }, etichetta, el("p", { class: "tenue", text: t.manca }));
+  const classe = (v.raccomandazione || "").replace(" ", "-");
+  return el("div", { class: `cella ${modo === "telepatia" ? "memoria" : ""}` }, etichetta,
+    el("p", { class: `racc ${v.raccomandazione ? classe : "nessuna"}`, text: v.raccomandazione ? t.racc[v.raccomandazione] : t.nessuna }),
+    v.confrontate !== null && v.confrontate !== undefined
+      ? [el("p", { class: "riga" }, v.da_trovare ? t.trovate(v.trovate, v.da_trovare) : t.nienteDaTrovare),
+         v.confrontate ? el("p", { class: "riga" }, t.accordo(v.d_accordo, v.confrontate)) : null]
+      : null,
+    v.sigillo_integro ? null : el("p", { class: "rotto", text: t.rotto }),
+    el("p", { class: "costo", text: t.costo(v.token_generati, v.secondi) }),
+    el("a", { class: "apri", href: v.pagina, text: t.apri }));
+}
 
 function disegna() {
-  const t = T[lingua] || T.en;
+  const t = T[lingua];
   document.documentElement.lang = lingua;
   const pagina = document.getElementById("pagina");
   pagina.replaceChildren();
-  const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": t.lingue },
     ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
-  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l && l !== lingua) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
   pagina.append(el("div", { class: "barra" }, el("a", { href: "../index.html", text: t.casa }), lingue));
-  pagina.append(el("header", { class: "testa" }, el("h1", { text: t.titolo }), el("p", { class: "sotto", text: t.sotto }),
-    dati.registrato ? el("p", { class: "tenue", text: `${t.registrato}: ${dati.registrato}` }) : null,
-    el("p", { class: "tenue", text: t.nota })));
+
   const voci = dati.verdetti || [];
   const usate = [...new Set(voci.map((v) => v.fonte).filter((f) => FONTI[f]))];
-  if (usate.length) pagina.append(el("p", { class: "tenue" }, t.fonti, " ",
-    usate.flatMap((f, i) => [i ? ", " : "", el("a", { href: FONTI[f], target: "_blank", rel: "noopener", text: f })]), ". ", t.fontiDopo));
-  if (!voci.length) pagina.append(el("p", { class: "vuoto tenue", text: t.nessunVerdetto }));
-  pagina.append(el("section", { class: "verdetti" }, voci.map((v) => el("article", { class: "verdetto" },
-    el("div", { class: "etichette" }, el("span", { class: "etichetta", text: v.modalita === "testo" ? t.testo : t.telepatia }),
-      el("span", { class: "etichetta", text: v.benchmark === "dimostrativo" ? "Demo" : v.benchmark.toUpperCase() })),
-    el("h2", { text: v.titolo }),
-    el("p", { class: `racc ${(v.raccomandazione || "").replace(" ", "-")}`, text: v.raccomandazione ? t.racc[v.raccomandazione] : t.nessuna }),
-    el("div", { class: "numeri" }, numero(`${v.segnalate}/${v.categorie}`, t.segnalate), numero(v.dissensi_gravi, t.gravi), numero(v.dissensi_lievi, t.lievi)),
-    v.confrontate ? el("p", { class: "accordo", text: (FONTI[v.fonte] ? t.accordo(v.d_accordo, v.confrontate, v.fonte) : t.accordoAttese(v.d_accordo, v.confrontate))
-      + (v.da_trovare ? ` · ${t.trovate(v.trovate, v.da_trovare)}` : "") }) : null,
-    el("p", { class: `sigillo ${v.sigillo_integro ? "integro" : "rotto"}`, text: v.sigillo_integro ? t.integro : t.rotto }),
-    el("p", { class: "costo", text: `${v.modello} · ${t.costo(v.token_generati, v.secondi)}` }),
-    el("a", { class: "bottone", href: v.pagina, text: t.apri })))));
-  pagina.append(el("footer", { class: "tenue", text: t.piede }));
+  pagina.append(el("header", { class: "testa" }, el("h1", { text: t.titolo }), el("p", { class: "sotto", text: t.sotto }),
+    dati.registrato ? el("p", { class: "piccolo", text: t.registrato(dati.registrato) }) : null,
+    usate.length ? el("p", { class: "piccolo" }, t.fonti, " ",
+      usate.flatMap((f, i) => [i ? ", " : "", el("a", { href: FONTI[f], target: "_blank", rel: "noopener", text: f })]), ". ", t.fontiDopo) : null,
+    el("p", { class: "piccolo", text: t.nota })));
+
+  // Una riga per contratto, nell'ordine dei giri: telepatia e testo affiancati.
+  const contratti = new Map();
+  for (const v of voci) {
+    const chiave = `${v.benchmark}/${v.contratto}`;
+    if (!contratti.has(chiave)) contratti.set(chiave, { v, modi: {} });
+    contratti.get(chiave).modi[v.modalita] = v;
+  }
+  const elenco = el("section", { class: "elenco", "aria-label": t.titolo },
+    el("div", { class: "intestazione", "aria-hidden": "true" }, el("span", { text: t.contratto }), el("span", { class: "memoria", text: t.memoria }), el("span", { text: t.testo })));
+  if (!contratti.size) elenco.append(el("p", { class: "vuoto", text: t.vuoto }));
+  for (const { v, modi } of contratti.values()) {
+    const fonte = NOMI_BENCHMARK[v.benchmark];
+    const nome = typeof fonte === "object" ? fonte[lingua] : fonte || v.benchmark;
+    elenco.append(el("article", { class: "contratto" },
+      el("div", {}, el("h2", { text: v.titolo }), el("p", { class: "id", text: v.benchmark === "dimostrativo" ? t.da(nome) : `${t.da(nome)}: ${v.contratto}` })),
+      cella(t, modi.telepatia, "telepatia"), cella(t, modi.testo, "testo")));
+  }
+  pagina.append(elenco);
+  pagina.append(el("footer", { text: t.piede }));
 }
 disegna();
 </script>

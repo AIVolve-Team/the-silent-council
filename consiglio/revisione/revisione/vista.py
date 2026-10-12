@@ -136,8 +136,8 @@ def vista(
 
     confrontate = [r for r in righe if r["esperti"] and r["esperti"]["d_accordo"] is not None]
     # Il conto severo: l'accordo da solo è alto anche per chi risponde sempre "niente", perché le clausole presenti
-    # sono poche.
-    da_trovare = [r for r in confrontate if r["esperti"]["da_segnalare"]]
+    # sono poche. Una clausola senza risposta del Consiglio (verdetto mancante) conta come non trovata.
+    da_trovare = [r for r in righe if r["esperti"] and r["esperti"]["da_segnalare"]]
     fermata = revisione.get("fermata")
     return {
         "titolo": titolo,
