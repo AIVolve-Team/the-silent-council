@@ -30,6 +30,7 @@ Per un contratto:
 | `revisione/cieca.py` | il controllo a mano alla cieca: fogli neutri e mescolati, scheda da compilare e conti con la chiave |
 | `revisione/taratura.py` | sceglie i passi latenti e propone le soglie di confidenza dai giri di sviluppo |
 | `pagina/verdetto.html` | la pagina del verdetto per la persona |
+| `revisione/vetrina.py` e `pagina/vetrina.html` | la parte del Consiglio nel sito per i giudici: indice dei contratti in inglese e italiano e pagine del verdetto, per `casa/costruisci.py --consiglio` |
 
 ## Uso
 

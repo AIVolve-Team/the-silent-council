@@ -14,7 +14,12 @@ Rotte della persona, con la chiave del suo link e senza segreto:
 - `GET /verdetto/{id}?chiave=…`: la pagina del verdetto;
 - `POST /verdetto/{id}/scelte?chiave=…`: le scelte sui dissensi, dalla pagina.
 
-`GET /salute` è aperta: dice se il Consiglio sta esaminando un contratto.
+Rotte delle prove dal vivo dei giudici, con il segreto, solo con il catalogo acceso (`--dal-vivo`):
+- `GET /prove/contratti`: i contratti che il giudice può scegliere;
+- `POST /prove/contratto`: `{"contratto": "<benchmark>:<id>", "modalita": "telepatia"}`, esaminato adesso; 409 se il
+  Consiglio è già occupato.
+
+`GET /salute` è aperta: dice se il Consiglio sta esaminando un contratto e se le prove dal vivo sono accese.
 """
 
 from __future__ import annotations
@@ -36,7 +41,7 @@ from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
-from .gestore import Revisore, Rifiuto
+from .gestore import Occupato, Revisore, Rifiuto
 
 log = logging.getLogger("consiglio.servizio")
 MAX_CORPO = 16 * 2**20  # un PDF di 10 MB in base64, più i campi
@@ -228,9 +233,36 @@ def crea_app(revisore: Revisore, segreto: str, *, host_pubblici: tuple[str, ...]
         except Rifiuto as errore:
             return JSONResponse({"errore": str(errore)}, status_code=400)
 
+    if revisore.catalogo is not None:
+
+        @mcp.custom_route("/prove/contratti", methods=["GET"])
+        async def prove_contratti(request: Request) -> Response:
+            return JSONResponse(revisore.prove_contratti())
+
+        @mcp.custom_route("/prove/contratto", methods=["POST"])
+        async def prova_contratto(request: Request) -> Response:
+            try:
+                dati, _ = await campi(request)
+                if in_piu := sorted(set(dati) - {"contratto", "modalita"}):
+                    raise Rifiuto(f"campi non previsti: {', '.join(in_piu)}")
+                return JSONResponse(
+                    await anyio.to_thread.run_sync(
+                        revisore.prova_dal_vivo, dati.get("contratto"), dati.get("modalita", "telepatia")
+                    )
+                )
+            except Occupato as errore:
+                return JSONResponse({"errore": str(errore)}, status_code=409)
+            except Rifiuto as errore:
+                return JSONResponse({"errore": str(errore)}, status_code=400)
+            except Exception:
+                log.exception("guasto in una prova dal vivo")
+                return JSONResponse({"errore": GUASTO}, status_code=500)
+
     @mcp.custom_route("/salute", methods=["GET"])
     async def salute(request: Request) -> Response:
-        return JSONResponse({"pronto": True, "esame_in_corso": revisore.lucchetto.locked()})
+        return JSONResponse(
+            {"pronto": True, "esame_in_corso": revisore.lucchetto.locked(), "prove": revisore.catalogo is not None}
+        )
 
     sicurezza = None
     if host_pubblici:

@@ -4,6 +4,9 @@
     python -m revisore --modello Qwen/Qwen3-14B --passi 10 \\
         --link "https://consiglio.example.org/verdetto/{id}?chiave={chiave}" --host-pubblico consiglio.example.org
 
+Per le prove dal vivo dei giudici si aggiunge `--dal-vivo sviluppo` (e `test` solo dopo l'esame di «Eval del Consiglio»;
+`--con-dimostrativo` solo alla consegna). Su un Mac piccolo, `--max-token 14000` lascia fuori i contratti lunghi.
+
 Il TLS lo fa Caddy davanti (`caddy reverse-proxy --from consiglio.example.org --to 127.0.0.1:8001`), oppure uvicorn
 con `--ssl-certfile`, `--ssl-keyfile` e `--host 0.0.0.0`. Ogni caso si salva in `--casi/<id>/`: revisione, vista,
 pagina del verdetto e scelte della persona. Il testo del contratto non si salva.
@@ -21,8 +24,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "revisione"))
 
 import torch
 import uvicorn
-from motore import TELEPATIA, TESTO, Modello, Motore
+from motore import Modello, Motore
 from revisione import BENCHMARK, Consiglio
+from revisione.dal_vivo import INSIEMI, catalogo
 from revisione.esegui import MODELLI
 
 from .gestore import Revisore
@@ -44,6 +48,14 @@ def main() -> None:
     parser.add_argument("--host-pubblico", action="append", default=[], help="il nome con cui si raggiunge da fuori")
     parser.add_argument("--ssl-certfile", default=None)
     parser.add_argument("--ssl-keyfile", default=None)
+    parser.add_argument(
+        "--dal-vivo",
+        nargs="+",
+        choices=INSIEMI,
+        help="accende le prove dal vivo dei giudici con i contratti CUAD di questi insiemi",
+    )
+    parser.add_argument("--con-dimostrativo", action="store_true", help="solo alla consegna: anche il set dimostrativo")
+    parser.add_argument("--max-token", type=int, help="prove dal vivo: lascia fuori i contratti più lunghi")
     argomenti = parser.parse_args()
 
     segreto = os.environ.get("CONSIGLIO_SEGRETO", "")
@@ -58,15 +70,26 @@ def main() -> None:
         riallinea=not argomenti.senza_riallineamento,
     )
     motore = Motore(modello, registro=argomenti.casi / "registro")
-    consigli = {
-        m: Consiglio(motore, BENCHMARK["dimostrativo"], modalita=m, passi_latenti=argomenti.passi)
-        for m in (TELEPATIA, TESTO)
-    }
+    consigli: dict[tuple[str, str], Consiglio] = {}
 
-    def revisiona(id_caso: str, testo: str, modalita: str) -> dict:
-        return consigli[modalita].revisiona(id_caso, testo).come_dict()
+    def revisiona(id_caso: str, testo: str, modalita: str, benchmark: str = "dimostrativo") -> dict:
+        # Un Consiglio per benchmark e modalità: i contratti CUAD delle prove dal vivo con le regole di CUAD.
+        if (benchmark, modalita) not in consigli:
+            consigli[(benchmark, modalita)] = Consiglio(
+                motore, BENCHMARK[benchmark], modalita=modalita, passi_latenti=argomenti.passi
+            )
+        return consigli[(benchmark, modalita)].revisiona(id_caso, testo).come_dict()
 
-    revisore = Revisore(revisiona, argomenti.casi, segreto=segreto, link=argomenti.link)
+    voci = None
+    if argomenti.dal_vivo:
+        voci = catalogo(
+            tuple(argomenti.dal_vivo),
+            con_dimostrativo=argomenti.con_dimostrativo,
+            lunghezza=lambda testo: len(modello.tokenizer.encode(testo, add_special_tokens=False)),
+            max_token=argomenti.max_token,
+        )
+        print(f"Prove dal vivo accese: {len(voci)} contratti", flush=True)
+    revisore = Revisore(revisiona, argomenti.casi, segreto=segreto, link=argomenti.link, catalogo=voci)
     app = crea_app(revisore, segreto, host_pubblici=tuple(argomenti.host_pubblico))
     uvicorn.run(app, host=argomenti.host, port=argomenti.porta, ssl_certfile=argomenti.ssl_certfile,
                 ssl_keyfile=argomenti.ssl_keyfile)  # fmt: skip

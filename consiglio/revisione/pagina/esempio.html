@@ -6,117 +6,137 @@
 <title>Verdetto del Consiglio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
 <style>
-/* Pagina del verdetto (regole di «Verdetto e dissenso»): un documento da leggere dall'alto, la raccomandazione prima di tutto. */
+/* Pagina del verdetto (regole di «Verdetto e dissenso»): un documento da leggere dall'alto, la raccomandazione prima di tutto.
+   Stessi caratteri e colori della casa per i giudici: Archivo per la pagina, Source Serif per le parole del
+   contratto, un colore per esperto. In italiano per la PMI cliente, in inglese per i giudici. */
 :root {
-  --carta: #f4f6f9;
-  --foglio: #ffffff;
-  --inchiostro: #121826;
-  --tenue: #5b6474;
-  --linea: #dde2ea;
-  --accento: #2b4acb;
-  --accento-tenue: #e6ebfb;
-  --firmare: #1f7a4d;
-  --firmare-tenue: #e3f3ea;
-  --negoziare: #9a5b0b;
-  --negoziare-tenue: #fbf0dc;
-  --rifiutare: #b42318;
-  --rifiutare-tenue: #fde7e4;
-  --grave: #b42318;
-  --lieve: #9a5b0b;
-  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
-  --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --carta: #f6f7f9; --foglio: #ffffff; --inchiostro: #151a30; --tenue: #565d70; --linea: #dcdfe6;
+  --accento: #087a6d; --accento-tenue: #ddf3ef;
+  --legale: #2f62c8; --finanza: #12a594; --rischio: #7458d6;
+  --firmare: #1f7a4d; --firmare-tenue: #e3f3ea; --negoziare: #8a5208; --negoziare-tenue: #fbf0dc;
+  --rifiutare: #b42318; --rifiutare-tenue: #fde7e4; --grave: #b42318; --lieve: #8a5208;
+  --pagina: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --contratto: "Source Serif 4", Georgia, serif;
+  --codice: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140;
-    --accento: #8ea3f2; --accento-tenue: #222b44;
+    --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --tenue: #a4aabb; --linea: #2b3350;
+    --accento: #4fd1bf; --accento-tenue: #123833; --legale: #7aa2f2; --finanza: #35c2ae; --rischio: #a893f2;
     --firmare: #5bc48e; --firmare-tenue: #16301f; --negoziare: #e6b35e; --negoziare-tenue: #362a14;
     --rifiutare: #f08a7f; --rifiutare-tenue: #3a1a17; --grave: #f08a7f; --lieve: #e6b35e;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140;
-  --accento: #8ea3f2; --accento-tenue: #222b44;
+  --carta: #0e1324; --foglio: #161c31; --inchiostro: #e8ebf4; --tenue: #a4aabb; --linea: #2b3350;
+  --accento: #4fd1bf; --accento-tenue: #123833; --legale: #7aa2f2; --finanza: #35c2ae; --rischio: #a893f2;
   --firmare: #5bc48e; --firmare-tenue: #16301f; --negoziare: #e6b35e; --negoziare-tenue: #362a14;
   --rifiutare: #f08a7f; --rifiutare-tenue: #3a1a17; --grave: #f08a7f; --lieve: #e6b35e;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding-inline: 16px; padding-block: 28px 64px; }
-.foglio { max-width: 920px; margin-inline: auto; display: grid; gap: 28px; }
-h1, h2, h3 { font-family: var(--display); line-height: 1.15; margin: 0; text-wrap: balance; }
-h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; letter-spacing: -0.01em; }
-h2 { font-size: 1.15rem; font-weight: 700; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 400 1rem/1.6 var(--pagina); font-variation-settings: "wdth" 100; padding-inline: 16px; padding-block: 20px 72px; }
+.foglio { max-width: 920px; margin-inline: auto; display: grid; gap: 32px; }
+h1, h2, h3 { line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(1.7rem, 4.2vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "wdth" 108; overflow-wrap: anywhere; }
+h2 { font-size: 1.2rem; font-weight: 740; letter-spacing: -0.01em; font-variation-settings: "wdth" 106; }
+h3 { font-size: 1.05rem; font-weight: 700; }
 p { margin: 0; }
-button { font: inherit; cursor: pointer; }
-button:focus-visible, summary:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
-.eyebrow { font: 500 0.72rem/1 var(--dati); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tenue); }
+a { color: inherit; text-underline-offset: 0.18em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accento); outline-offset: 3px; border-radius: 4px; }
 .tenue { color: var(--tenue); }
+.etichetta { font-size: 0.875rem; font-weight: 600; color: var(--tenue); }
+
+/* barra */
+.barra { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.barra a { font-weight: 600; font-size: 0.9375rem; text-decoration: none; }
+.lingue { display: inline-flex; border: 1px solid var(--linea); border-radius: 999px; padding: 2px; background: var(--foglio); margin-left: auto; }
+.lingue button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
 
 /* intestazione */
-.testa { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-start; }
-.testa .titoli { display: grid; gap: 8px; min-width: 0; flex: 1 1 420px; }
-.sigillo { border: 1px solid var(--linea); background: var(--foglio); border-radius: 10px; padding: 10px 14px; display: grid; gap: 2px; min-width: 220px; text-align: left; color: inherit; }
-.sigillo strong { font-family: var(--display); font-size: 0.95rem; }
+.testa { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: flex-start; }
+.testa .titoli { display: grid; gap: 10px; min-width: 0; flex: 1 1 420px; }
+.sigillo { border: 1px solid var(--linea); background: var(--foglio); border-radius: 12px; padding: 10px 14px; display: grid; gap: 4px; min-width: 230px; color: inherit; }
+.sigillo summary { cursor: pointer; display: grid; gap: 2px; }
+.sigillo strong { font-size: 0.95rem; }
 .sigillo.integro strong { color: var(--firmare); }
 .sigillo.rotto { border-color: var(--rifiutare); background: var(--rifiutare-tenue); }
 .sigillo.rotto strong { color: var(--rifiutare); }
-.impronte { font: 0.75rem/1.5 var(--dati); color: var(--tenue); overflow-wrap: anywhere; }
+.impronte { font: 0.75rem/1.5 var(--codice); color: var(--tenue); overflow-wrap: anywhere; }
+.lingua-modello { font-size: 0.9375rem; color: var(--tenue); border-left: 3px solid var(--linea); padding-left: 12px; }
 
 /* raccomandazione */
-.raccomandazione { background: var(--foglio); border: 1px solid var(--linea); border-left: 8px solid var(--colore); border-radius: 12px; padding: 22px 24px; display: grid; gap: 10px; }
-.raccomandazione .valore { font: 800 clamp(2rem, 6vw, 3rem)/1 var(--display); color: var(--colore); text-transform: uppercase; letter-spacing: 0.01em; }
+.raccomandazione { background: var(--foglio); border: 1px solid var(--linea); border-top: 6px solid var(--colore); border-radius: 14px; padding: 22px 24px 24px; display: grid; gap: 12px; }
+.raccomandazione .valore { font-weight: 850; font-size: clamp(2.4rem, 7vw, 3.6rem); line-height: 1; letter-spacing: -0.03em; font-variation-settings: "wdth" 116; color: var(--colore); }
 .raccomandazione.firmare { --colore: var(--firmare); }
 .raccomandazione.negoziare { --colore: var(--negoziare); }
 .raccomandazione.non-firmare { --colore: var(--rifiutare); }
-.avviso-rosso { background: var(--rifiutare-tenue); border: 2px solid var(--rifiutare); color: var(--inchiostro); border-radius: 12px; padding: 20px 22px; display: grid; gap: 8px; }
+.raccomandazione .motivo { max-width: 46rem; }
+.avviso-rosso { background: var(--rifiutare-tenue); border: 2px solid var(--rifiutare); border-radius: 14px; padding: 20px 22px; display: grid; gap: 8px; }
 .avviso-rosso h2 { color: var(--rifiutare); }
-.numeri { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 0.92rem; color: var(--tenue); }
+.numeri { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 0.9375rem; color: var(--tenue); }
 .numeri b { color: var(--inchiostro); font-variant-numeric: tabular-nums; }
 
+/* confronto con le risposte giuste del dataset: solo nel sito dei giudici */
+.confronto { border-left: 3px solid var(--accento); padding: 4px 0 4px 16px; display: grid; gap: 6px; }
+.confronto .conto { font-weight: 700; font-size: 1.1rem; }
+.confronto a { color: var(--inchiostro); }
+
 /* obiezioni */
-.obiezioni { display: grid; gap: 8px; }
-.obiezioni ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.obiezioni { display: grid; gap: 10px; }
+.obiezioni ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 
 /* righe */
 .gruppo { display: grid; gap: 10px; }
-.gruppo > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--linea); padding-bottom: 6px; }
+.gruppo > header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; border-bottom: 2px solid var(--c); padding-bottom: 6px; }
+.gruppo > header h2 { display: flex; align-items: center; gap: 10px; }
+.gruppo > header h2::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; }
 .righe { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-.riga { background: var(--foglio); border: 1px solid var(--linea); border-radius: 10px; padding: 12px 16px; display: grid; gap: 8px; min-width: 0; }
-.riga.segnalata { border-left: 4px solid var(--accento); }
+.riga { background: var(--foglio); border: 1px solid var(--linea); border-radius: 10px; padding: 12px 16px; display: grid; gap: 10px; min-width: 0; }
+.riga.segnalata { border-left: 4px solid var(--c); }
 .riga .capo { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; }
-.riga .nome { font-weight: 600; }
-.riga .chiave { font: 0.75rem var(--dati); color: var(--tenue); }
+.riga .nome { font-weight: 650; }
+.riga .chiave { font-size: 0.8125rem; color: var(--tenue); margin-left: 6px; }
 .pillole { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.pillola { font: 500 0.75rem/1 var(--dati); padding: 5px 8px; border-radius: 999px; border: 1px solid var(--linea); color: var(--tenue); white-space: nowrap; }
-.pillola.si { background: var(--accento-tenue); color: var(--accento); border-color: transparent; }
+.pillola { font-size: 0.8125rem; font-weight: 600; line-height: 1; padding: 6px 9px; border-radius: 999px; border: 1px solid var(--linea); color: var(--tenue); white-space: nowrap; }
+.pillola.si { background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--inchiostro); border-color: transparent; }
 .pillola.ok { color: var(--firmare); }
 .pillola.no-trovata { color: var(--rifiutare); border-color: var(--rifiutare); }
-.citazione { margin: 0; padding: 8px 12px; border-left: 3px solid var(--linea); color: var(--inchiostro); font-style: italic; overflow-wrap: anywhere; }
+.citazione { margin: 0; padding: 4px 0 4px 14px; border-left: 3px solid var(--linea); font: 400 1.0625rem/1.55 var(--contratto); color: var(--inchiostro); overflow-wrap: anywhere; }
 .motivazione { color: var(--tenue); }
+.esperti { border-radius: 8px; padding: 8px 12px; display: grid; gap: 6px; background: var(--carta); font-size: 0.9375rem; }
+.esperti.diverso { background: var(--rifiutare-tenue); }
+.esperti .esito { font-weight: 600; }
+.esperti.uguale .esito { color: var(--firmare); }
+.esperti.diverso .esito { color: var(--rifiutare); }
+.esperti details > summary { cursor: pointer; color: var(--tenue); }
+.esperti .citazione { margin-top: 6px; }
 .dissenso { border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; background: var(--negoziare-tenue); }
 .dissenso.grave { background: var(--rifiutare-tenue); }
 .dissenso .chi { font-weight: 600; }
 .dissenso.grave .chi { color: var(--grave); }
-.scelta { display: flex; flex-wrap: wrap; gap: 8px; }
-.scelta button { border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 8px; padding: 6px 12px; }
-.scelta button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); border-color: var(--inchiostro); }
 details.dissenso > summary { cursor: pointer; font-weight: 600; color: var(--lieve); }
 details.dissenso.grave > summary { color: var(--grave); }
+.scelta { display: flex; flex-wrap: wrap; gap: 8px; }
+.scelta button { border: 1px solid var(--linea); background: var(--foglio); border-radius: 8px; padding: 6px 12px; }
+.scelta button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); border-color: var(--inchiostro); }
 
-/* note degli esperti */
+/* azioni e note degli esperti */
 .azioni { display: flex; flex-wrap: wrap; gap: 10px; }
-.azioni button { border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 8px; padding: 9px 16px; font-weight: 600; }
+.azioni button { border: 1.5px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 10px; padding: 9px 16px; font-weight: 650; }
 .azioni button.secondario { background: transparent; color: var(--inchiostro); }
 .note { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
-.nota { background: var(--foglio); border: 1px solid var(--linea); border-radius: 10px; padding: 14px 16px; display: grid; gap: 8px; align-content: start; min-width: 0; }
-.nota ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 0.92rem; }
-footer { font-size: 0.85rem; color: var(--tenue); border-top: 1px solid var(--linea); padding-top: 14px; display: grid; gap: 6px; }
-.carica { background: var(--foglio); border: 2px dashed var(--linea); border-radius: 12px; padding: 28px; text-align: center; display: grid; gap: 10px; }
+.nota { background: var(--foglio); border: 1px solid var(--linea); border-top: 3px solid var(--c, var(--linea)); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.nota ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 0.9375rem; }
+footer { font-size: 0.875rem; color: var(--tenue); border-top: 1px solid var(--linea); padding-top: 16px; display: grid; gap: 6px; }
+footer code { font: 0.8125rem var(--codice); }
+.carica { background: var(--foglio); border: 2px dashed var(--linea); border-radius: 14px; padding: 28px; text-align: center; display: grid; gap: 10px; }
 
 /* riepilogo da stampare in PDF: raccomandazione, clausole segnalate, dissensi e scelte della persona */
 .solo-stampa { display: none; }
@@ -139,25 +159,127 @@ footer { font-size: 0.85rem; color: var(--tenue); border-top: 1px solid var(--li
   </section>
 </main>
 
-<script id="dati" type="application/json">{"titolo": "Contratto di fornitura di componenti (esempio)", "contratto": "esempio-fornitura", "benchmark": "dimostrativo", "modalita": "telepatia", "modello": "Qwen/Qwen3-14B", "raccomandazione": {"valore": "negoziare", "motivazione": "Tre anni di esclusiva con un minimo di 180.000 euro l'anno, mentre il fornitore può uscire con 30 giorni e risponde al massimo per il 10%: da riequilibrare prima di firmare."}, "obiezioni": [{"chiave": "Change Of Control", "nome": "Cambio di controllo", "obiezione": "Il rischio segnala il cambio di controllo, ma la clausola dà al fornitore solo un diritto di risoluzione: va pesato."}], "sigillo": {"integro": true, "messaggi": 3, "impronte": ["7f3a000000000000000000000000000000000000000000000000000000000000", "c91e111111111111111111111111111111111111111111111111111111111111", "52bd222222222222222222222222222222222222222222222222222222222222"], "controllo": null, "motivo": null}, "righe": [{"chiave": "Uncapped Liability", "nome": "Responsabilità illimitata", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Cap On Liability", "nome": "Tetto alla responsabilità", "ruolo": "legale", "segnalare": true, "confidenza": "alta", "citazione": "non potrà superare il 10% dei corrispettivi pagati dal Cliente", "citazione_trovata": true, "motivazione": "Il fornitore risponde al massimo per il 10% di quanto pagato nell'anno.", "dissenso": null}, {"chiave": "Ip Ownership Assignment", "nome": "Cessione della proprietà intellettuale", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Joint Ip Ownership", "nome": "Proprietà intellettuale condivisa", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Irrevocable Or Perpetual License", "nome": "Licenza irrevocabile o perpetua", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Covenant Not To Sue", "nome": "Rinuncia a fare causa", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Non-Disparagement", "nome": "Divieto di denigrazione", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Liquidated Damages", "nome": "Penale predeterminata", "ruolo": "finanza", "segnalare": true, "confidenza": "alta", "citazione": "a titolo di penale, € 2.500,00 per ogni settimana di ritardo", "citazione_trovata": true, "motivazione": "Una penale di 2.500 euro a settimana se l'impresa non ritira la merce.", "dissenso": null}, {"chiave": "Minimum Commitment", "nome": "Minimo d'acquisto", "ruolo": "finanza", "segnalare": true, "confidenza": "alta", "citazione": "Componenti per un importo complessivo non inferiore a € 180.000,00", "citazione_trovata": true, "motivazione": "Un minimo di 180.000 euro l'anno, con la differenza da pagare se non si raggiunge.", "dissenso": null}, {"chiave": "Volume Restriction", "nome": "Limite di volume", "ruolo": "finanza", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Most Favored Nation", "nome": "Cliente più favorito", "ruolo": "finanza", "segnalare": true, "confidenza": "bassa", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": {"tipo": "lieve", "ruolo": "finanza", "nome_ruolo": "Finanza", "esperto_dice": false, "confidenza_esperto": "bassa", "confidenza_verdetto": "alta", "citazione_esperto": null, "citazione_esperto_trovata": null, "in_evidenza": false}}, {"chiave": "Change Of Control", "nome": "Cambio di controllo", "ruolo": "rischio", "segnalare": false, "confidenza": "bassa", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": {"tipo": "grave", "ruolo": "rischio", "nome_ruolo": "Rischio", "esperto_dice": true, "confidenza_esperto": "alta", "confidenza_verdetto": "bassa", "citazione_esperto": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto", "citazione_esperto_trovata": true, "in_evidenza": true}}, {"chiave": "Anti-Assignment", "nome": "Divieto di cessione", "ruolo": "rischio", "segnalare": true, "confidenza": "alta", "citazione": "Il Cliente non può cedere il contratto senza il consenso scritto", "citazione_trovata": false, "motivazione": "L'impresa non può cedere il contratto, il fornitore sì.", "dissenso": null}, {"chiave": "Rofr/Rofo/Rofn", "nome": "Diritto di prelazione", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Termination For Convenience", "nome": "Recesso senza motivo", "ruolo": "rischio", "segnalare": true, "confidenza": "alta", "citazione": "Il Fornitore potrà recedere dal contratto in qualsiasi momento, senza obbligo di motivazione", "citazione_trovata": true, "motivazione": "Solo il fornitore può uscire con 30 giorni di preavviso.", "dissenso": null}, {"chiave": "Non-Compete", "nome": "Non concorrenza", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "Exclusivity", "nome": "Esclusiva", "ruolo": "rischio", "segnalare": true, "confidenza": "alta", "citazione": "si impegna ad acquistare i Componenti esclusivamente dal Fornitore", "citazione_trovata": true, "motivazione": "Per tre anni l'impresa non può comprare i componenti da nessun altro.", "dissenso": null}, {"chiave": "No-Solicit Of Customers", "nome": "Divieto di sottrarre clienti", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}, {"chiave": "No-Solicit Of Employees", "nome": "Divieto di assumere dipendenti", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null}], "note": [{"ruolo": "legale", "nome": "Legale", "valida": true, "righe": [{"chiave": "Uncapped Liability", "nome": "Responsabilità illimitata", "segnalare": false, "confidenza": null}, {"chiave": "Cap On Liability", "nome": "Tetto alla responsabilità", "segnalare": true, "confidenza": "alta"}, {"chiave": "Ip Ownership Assignment", "nome": "Cessione della proprietà intellettuale", "segnalare": false, "confidenza": null}, {"chiave": "Joint Ip Ownership", "nome": "Proprietà intellettuale condivisa", "segnalare": false, "confidenza": null}, {"chiave": "Irrevocable Or Perpetual License", "nome": "Licenza irrevocabile o perpetua", "segnalare": false, "confidenza": null}, {"chiave": "Covenant Not To Sue", "nome": "Rinuncia a fare causa", "segnalare": false, "confidenza": null}, {"chiave": "Non-Disparagement", "nome": "Divieto di denigrazione", "segnalare": false, "confidenza": null}], "citazioni": [{"chiave": "Cap On Liability", "nome": "Tetto alla responsabilità", "testo": "non potrà superare il 10% dei corrispettivi pagati dal Cliente", "trovata": true}], "importi_date_parti": ["10% dei corrispettivi"]}, {"ruolo": "finanza", "nome": "Finanza", "valida": true, "righe": [{"chiave": "Liquidated Damages", "nome": "Penale predeterminata", "segnalare": true, "confidenza": "alta"}, {"chiave": "Minimum Commitment", "nome": "Minimo d'acquisto", "segnalare": true, "confidenza": "alta"}, {"chiave": "Volume Restriction", "nome": "Limite di volume", "segnalare": false, "confidenza": null}, {"chiave": "Most Favored Nation", "nome": "Cliente più favorito", "segnalare": false, "confidenza": "bassa"}], "citazioni": [{"chiave": "Minimum Commitment", "nome": "Minimo d'acquisto", "testo": "non inferiore a € 180.000,00", "trovata": true}], "importi_date_parti": ["€ 180.000,00 l'anno", "€ 2.500,00 a settimana"]}, {"ruolo": "rischio", "nome": "Rischio", "valida": true, "righe": [{"chiave": "Change Of Control", "nome": "Cambio di controllo", "segnalare": true, "confidenza": "alta"}, {"chiave": "Anti-Assignment", "nome": "Divieto di cessione", "segnalare": true, "confidenza": "alta"}, {"chiave": "Rofr/Rofo/Rofn", "nome": "Diritto di prelazione", "segnalare": false, "confidenza": null}, {"chiave": "Termination For Convenience", "nome": "Recesso senza motivo", "segnalare": true, "confidenza": "alta"}, {"chiave": "Non-Compete", "nome": "Non concorrenza", "segnalare": false, "confidenza": null}, {"chiave": "Exclusivity", "nome": "Esclusiva", "segnalare": true, "confidenza": "alta"}, {"chiave": "No-Solicit Of Customers", "nome": "Divieto di sottrarre clienti", "segnalare": false, "confidenza": null}, {"chiave": "No-Solicit Of Employees", "nome": "Divieto di assumere dipendenti", "segnalare": false, "confidenza": null}], "citazioni": [{"chiave": "Change Of Control", "nome": "Cambio di controllo", "testo": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto", "trovata": true}], "importi_date_parti": ["tre anni", "preavviso di 30 giorni"]}], "costo": {"token_generati": 1120, "token_letti": 18300, "posizioni_latenti": 30, "secondi": 41.2}}</script>
+<script id="dati" type="application/json">{"titolo": "Contratto di fornitura di componenti (esempio)", "contratto": "esempio-fornitura", "benchmark": "dimostrativo", "modalita": "telepatia", "modello": "Qwen/Qwen3-14B", "raccomandazione": {"valore": "negoziare", "motivazione": "Tre anni di esclusiva con un minimo di 180.000 euro l'anno, mentre il fornitore può uscire con 30 giorni e risponde al massimo per il 10%: da riequilibrare prima di firmare."}, "obiezioni": [{"chiave": "Change Of Control", "nome": "Cambio di controllo", "obiezione": "Il rischio segnala il cambio di controllo, ma la clausola dà al fornitore solo un diritto di risoluzione: va pesato."}], "sigillo": {"integro": true, "messaggi": 3, "impronte": ["7f3a000000000000000000000000000000000000000000000000000000000000", "c91e111111111111111111111111111111111111111111111111111111111111", "52bd222222222222222222222222222222222222222222222222222222222222"], "controllo": null, "motivo": null}, "righe": [{"chiave": "Uncapped Liability", "nome": "Responsabilità illimitata", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Cap On Liability", "nome": "Tetto alla responsabilità", "ruolo": "legale", "segnalare": true, "confidenza": "alta", "citazione": "non potrà superare il 10% dei corrispettivi pagati dal Cliente", "citazione_trovata": true, "motivazione": "Il fornitore risponde al massimo per il 10% di quanto pagato nell'anno.", "dissenso": null, "esperti": null}, {"chiave": "Ip Ownership Assignment", "nome": "Cessione della proprietà intellettuale", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Joint Ip Ownership", "nome": "Proprietà intellettuale condivisa", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Irrevocable Or Perpetual License", "nome": "Licenza irrevocabile o perpetua", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Covenant Not To Sue", "nome": "Rinuncia a fare causa", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Non-Disparagement", "nome": "Divieto di denigrazione", "ruolo": "legale", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Liquidated Damages", "nome": "Penale predeterminata", "ruolo": "finanza", "segnalare": true, "confidenza": "alta", "citazione": "a titolo di penale, € 2.500,00 per ogni settimana di ritardo", "citazione_trovata": true, "motivazione": "Una penale di 2.500 euro a settimana se l'impresa non ritira la merce.", "dissenso": null, "esperti": null}, {"chiave": "Minimum Commitment", "nome": "Minimo d'acquisto", "ruolo": "finanza", "segnalare": true, "confidenza": "alta", "citazione": "Componenti per un importo complessivo non inferiore a € 180.000,00", "citazione_trovata": true, "motivazione": "Un minimo di 180.000 euro l'anno, con la differenza da pagare se non si raggiunge.", "dissenso": null, "esperti": null}, {"chiave": "Volume Restriction", "nome": "Limite di volume", "ruolo": "finanza", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Most Favored Nation", "nome": "Cliente più favorito", "ruolo": "finanza", "segnalare": true, "confidenza": "bassa", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": {"tipo": "lieve", "ruolo": "finanza", "nome_ruolo": "Finanza", "esperto_dice": false, "confidenza_esperto": "bassa", "confidenza_verdetto": "alta", "citazione_esperto": null, "citazione_esperto_trovata": null, "in_evidenza": false}, "esperti": null}, {"chiave": "Change Of Control", "nome": "Cambio di controllo", "ruolo": "rischio", "segnalare": false, "confidenza": "bassa", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": {"tipo": "grave", "ruolo": "rischio", "nome_ruolo": "Rischio", "esperto_dice": true, "confidenza_esperto": "alta", "confidenza_verdetto": "bassa", "citazione_esperto": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto", "citazione_esperto_trovata": true, "in_evidenza": true}, "esperti": null}, {"chiave": "Anti-Assignment", "nome": "Divieto di cessione", "ruolo": "rischio", "segnalare": true, "confidenza": "alta", "citazione": "Il Cliente non può cedere il contratto senza il consenso scritto", "citazione_trovata": false, "motivazione": "L'impresa non può cedere il contratto, il fornitore sì.", "dissenso": null, "esperti": null}, {"chiave": "Rofr/Rofo/Rofn", "nome": "Diritto di prelazione", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Termination For Convenience", "nome": "Recesso senza motivo", "ruolo": "rischio", "segnalare": true, "confidenza": "alta", "citazione": "Il Fornitore potrà recedere dal contratto in qualsiasi momento, senza obbligo di motivazione", "citazione_trovata": true, "motivazione": "Solo il fornitore può uscire con 30 giorni di preavviso.", "dissenso": null, "esperti": null}, {"chiave": "Non-Compete", "nome": "Non concorrenza", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "Exclusivity", "nome": "Esclusiva", "ruolo": "rischio", "segnalare": true, "confidenza": "alta", "citazione": "si impegna ad acquistare i Componenti esclusivamente dal Fornitore", "citazione_trovata": true, "motivazione": "Per tre anni l'impresa non può comprare i componenti da nessun altro.", "dissenso": null, "esperti": null}, {"chiave": "No-Solicit Of Customers", "nome": "Divieto di sottrarre clienti", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}, {"chiave": "No-Solicit Of Employees", "nome": "Divieto di assumere dipendenti", "ruolo": "rischio", "segnalare": false, "confidenza": "alta", "citazione": null, "citazione_trovata": null, "motivazione": null, "dissenso": null, "esperti": null}], "confronto": null, "note": [{"ruolo": "legale", "nome": "Legale", "valida": true, "righe": [{"chiave": "Uncapped Liability", "nome": "Responsabilità illimitata", "segnalare": false, "confidenza": null}, {"chiave": "Cap On Liability", "nome": "Tetto alla responsabilità", "segnalare": true, "confidenza": "alta"}, {"chiave": "Ip Ownership Assignment", "nome": "Cessione della proprietà intellettuale", "segnalare": false, "confidenza": null}, {"chiave": "Joint Ip Ownership", "nome": "Proprietà intellettuale condivisa", "segnalare": false, "confidenza": null}, {"chiave": "Irrevocable Or Perpetual License", "nome": "Licenza irrevocabile o perpetua", "segnalare": false, "confidenza": null}, {"chiave": "Covenant Not To Sue", "nome": "Rinuncia a fare causa", "segnalare": false, "confidenza": null}, {"chiave": "Non-Disparagement", "nome": "Divieto di denigrazione", "segnalare": false, "confidenza": null}], "citazioni": [{"chiave": "Cap On Liability", "nome": "Tetto alla responsabilità", "testo": "non potrà superare il 10% dei corrispettivi pagati dal Cliente", "trovata": true}], "importi_date_parti": ["10% dei corrispettivi"]}, {"ruolo": "finanza", "nome": "Finanza", "valida": true, "righe": [{"chiave": "Liquidated Damages", "nome": "Penale predeterminata", "segnalare": true, "confidenza": "alta"}, {"chiave": "Minimum Commitment", "nome": "Minimo d'acquisto", "segnalare": true, "confidenza": "alta"}, {"chiave": "Volume Restriction", "nome": "Limite di volume", "segnalare": false, "confidenza": null}, {"chiave": "Most Favored Nation", "nome": "Cliente più favorito", "segnalare": false, "confidenza": "bassa"}], "citazioni": [{"chiave": "Minimum Commitment", "nome": "Minimo d'acquisto", "testo": "non inferiore a € 180.000,00", "trovata": true}], "importi_date_parti": ["€ 180.000,00 l'anno", "€ 2.500,00 a settimana"]}, {"ruolo": "rischio", "nome": "Rischio", "valida": true, "righe": [{"chiave": "Change Of Control", "nome": "Cambio di controllo", "segnalare": true, "confidenza": "alta"}, {"chiave": "Anti-Assignment", "nome": "Divieto di cessione", "segnalare": true, "confidenza": "alta"}, {"chiave": "Rofr/Rofo/Rofn", "nome": "Diritto di prelazione", "segnalare": false, "confidenza": null}, {"chiave": "Termination For Convenience", "nome": "Recesso senza motivo", "segnalare": true, "confidenza": "alta"}, {"chiave": "Non-Compete", "nome": "Non concorrenza", "segnalare": false, "confidenza": null}, {"chiave": "Exclusivity", "nome": "Esclusiva", "segnalare": true, "confidenza": "alta"}, {"chiave": "No-Solicit Of Customers", "nome": "Divieto di sottrarre clienti", "segnalare": false, "confidenza": null}, {"chiave": "No-Solicit Of Employees", "nome": "Divieto di assumere dipendenti", "segnalare": false, "confidenza": null}], "citazioni": [{"chiave": "Change Of Control", "nome": "Cambio di controllo", "testo": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto", "trovata": true}], "importi_date_parti": ["tre anni", "preavviso di 30 giorni"]}], "costo": {"token_generati": 1120, "token_letti": 18300, "posizioni_latenti": 30, "secondi": 41.2}}</script>
 <script>
 "use strict";
-const ESPERTI = { legale: "Legale", finanza: "Finanza", rischio: "Rischio" };
-const CHI = { legale: "il legale", finanza: "l'esperto di finanza", rischio: "l'esperto di rischio" };
-const GRUPPI = { legale: "Categorie del legale", finanza: "Categorie della finanza", rischio: "Categorie del rischio" };
+const RUOLI = ["legale", "finanza", "rischio"];
 const RACCOMANDAZIONI = { "firmare": "firmare", "negoziare": "negoziare", "non firmare": "non-firmare" };
+const T = {
+  it: {
+    chi: { legale: "il legale", finanza: "l'esperto di finanza", rischio: "l'esperto di rischio" },
+    esperto: { legale: "Legale", finanza: "Finanza", rischio: "Rischio" },
+    gruppo: { legale: "Clausole del legale", finanza: "Clausole della finanza", rischio: "Clausole del rischio" },
+    racc: { "firmare": "Firmare", "negoziare": "Negoziare", "non firmare": "Non firmare" },
+    livello: { alta: "alta", media: "media", bassa: "bassa" },
+    confidenza: (l) => `confidenza ${l}`, confidenzaTitolo: "Quanto era sicuro il modello",
+    trovata: "✓ trovata nel contratto", trovataTitolo: "La citazione compare parola per parola nel contratto",
+    nonTrovata: "⚠ non trovata nel contratto", nonTrovataTitolo: "La citazione non compare nel contratto: va controllata",
+    dissensoGrave: (chi) => `${chi} non è d'accordo: secondo l'esperto questa clausola va segnalata.`,
+    dissensoLieve: (chi) => `${chi} non l'aveva segnalata: è il relatore ad averla trovata.`,
+    confidenze: (e, v) => `Confidenza dell'esperto: ${e}. Confidenza del verdetto: ${v}.`, nonNota: "non nota",
+    apriGrave: "⚠ Un esperto non è d'accordo", apriLieve: "⚠ Dissenso lieve",
+    chiHaRagione: "Chi ha ragione?", haRagione: (chi) => `Ha ragione ${chi}`, haRagioneVerdetto: "Ha ragione il verdetto",
+    daSegnalare: "da segnalare", nessunProblema: "nessun problema", nonDeciso: "non deciso",
+    vaSegnalata: "va segnalata", niente: "non c'è niente da segnalare",
+    accordoRiga: (chi, loro) => `✓ D'accordo con ${chi}: ${loro}.`, disaccordoRiga: (chi, loro) => `✗ Non d'accordo con ${chi}: per loro ${loro}.`, soloLoro: (chi, loro) => `Per ${chi} ${loro}.`,
+    pezzo: "Il pezzo segnato da loro", pezzi: "I pezzi segnati da loro",
+    notaNonValida: "La nota non è valida.", citazioni: "Citazioni", importi: "Importi, date e parti", si: "da segnalare", no: "no",
+    stampaTitolo: "Le scelte della persona sui dissensi", stampaRagione: (chi) => `ha ragione ${chi}`, stampaVerdetto: "ha ragione il verdetto", stampaNessuna: "nessuna scelta", nessunDissenso: "Nessun dissenso.",
+    revisione: "Revisione del Consiglio silenzioso",
+    testo: (n) => `Versione a testo, per confronto: ${n} esperti e il relatore si sono scritti.`,
+    telepatia: (n) => `${n} esperti e il relatore si sono passati la memoria invece di scriversi.`,
+    integro: "🔒 Comunicazione tra esperti integra", rotto: "⛔ Comunicazione tra esperti alterata",
+    firmati: (n) => `${n} messaggi latenti firmati e verificati`, controllo: (c) => `controllo: ${c}`, messaggio: (i, h) => `messaggio ${i}: ${h}…`,
+    perTe: "Consiglio per la tua impresa",
+    segnalate: (a, b) => [el("b", {}, a), " clausole da segnalare su ", el("b", {}, b)],
+    dissensi: (n, g) => [el("b", {}, n), n === 1 ? " dissenso" : " dissensi", g ? [" (", el("b", {}, g), g === 1 ? " grave)" : " gravi)"] : ""],
+    nonEmesso: "Verdetto non emesso", nonEmessoTesto: "Un messaggio fra gli esperti non ha superato i controlli della macchina della verità, quindi il Consiglio si è fermato.",
+    controlloMotivo: (c, m) => `Controllo: ${c}. ${m}`, nonValido: "verdetto non valido",
+    confronto: (nome) => `Confronto con ${nome}`, accordo: (chi, a, b) => `D'accordo con ${chi} su ${a} clausole su ${b}.`,
+    trovate: (a, b) => `Delle ${a} clausole che per loro vanno segnalate, il Consiglio ne ha trovate ${b}.`,
+    nienteQui: "Per loro in questo contratto non c'è niente da segnalare.", fonte: "Vedi la fonte",
+    ogniRiga: "In ogni riga trovi la loro risposta accanto a quella del Consiglio, anche dove il Consiglio sbaglia.",
+    obiezioni: "Le obiezioni dell'avvocato del diavolo",
+    mostraNote: "Mostra cosa ha pensato ogni esperto", nascondiNote: "Nascondi le note degli esperti", noteTitolo: "Cosa ha pensato ogni esperto",
+    stampa: "Scarica il riepilogo (PDF)", salva: "Salva le scelte",
+    invia: "Invia le scelte", inviaPrima: "Scegli prima chi ha ragione su almeno un dissenso.", inviaInCorso: "Invio in corso…",
+    inviate: (n) => `Scelte inviate: ${n}.`, nonInviate: (e) => `Non inviate: ${e}`, nonRisponde: "Non inviate: il server non risponde. Riprova, oppure salva le scelte.",
+    costo: (v) => `Modello ${v.modello}, modalità ${v.modalita}: ${v.costo.token_generati} token scritti, ${v.costo.posizioni_latenti} pensieri latenti, ${v.costo.secondi} secondi.`,
+    piede: ["Le citazioni sono controllate parola per parola nel contratto. Le firme dei messaggi si verificano con ", "python -m motore.verifica", "."],
+    titolo: (t) => `Verdetto: ${t}`, indice: "Tutti i verdetti", indiceDalVivo: "Le prove dal vivo", lingueGruppo: "Lingua", linguaModello: null,
+    dalVivo: (q) => `Revisione dal vivo, ${new Date(q).toLocaleString("it-IT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
+    nonQui: "Questa prova dal vivo non è in questo browser: le prove restano nel browser dove sono state fatte.",
+  },
+  en: {
+    chi: { legale: "the legal expert", finanza: "the finance expert", rischio: "the risk expert" },
+    esperto: { legale: "Legal", finanza: "Finance", rischio: "Risk" },
+    gruppo: { legale: "Legal expert's clauses", finanza: "Finance expert's clauses", rischio: "Risk expert's clauses" },
+    racc: { "firmare": "Sign", "negoziare": "Negotiate", "non firmare": "Do not sign" },
+    livello: { alta: "high", media: "medium", bassa: "low" },
+    confidenza: (l) => `${l} confidence`, confidenzaTitolo: "How sure the model was",
+    trovata: "✓ found in the contract", trovataTitolo: "The quote appears word for word in the contract",
+    nonTrovata: "⚠ not found in the contract", nonTrovataTitolo: "The quote does not appear in the contract: check it",
+    dissensoGrave: (chi) => `${chi} disagrees: according to the expert this clause should be flagged.`,
+    dissensoLieve: (chi) => `${chi} had not flagged it: the devil's advocate found it.`,
+    confidenze: (e, v) => `Expert's confidence: ${e}. Verdict's confidence: ${v}.`, nonNota: "unknown",
+    apriGrave: "⚠ An expert disagrees", apriLieve: "⚠ Mild dissent",
+    chiHaRagione: "Who is right?", haRagione: (chi) => `${chi.charAt(0).toUpperCase()}${chi.slice(1)} is right`, haRagioneVerdetto: "The verdict is right",
+    daSegnalare: "flag it", nessunProblema: "no issue", nonDeciso: "undecided",
+    vaSegnalata: "it should be flagged", niente: "there is nothing to flag",
+    accordoRiga: (chi, loro) => `✓ Agrees with ${chi}: ${loro}.`, disaccordoRiga: (chi, loro) => `✗ Disagrees with ${chi}: for them ${loro}.`, soloLoro: (chi, loro) => `For ${chi} ${loro}.`,
+    pezzo: "The passage they marked", pezzi: "The passages they marked",
+    notaNonValida: "This note is not valid.", citazioni: "Quotes", importi: "Amounts, dates and parties", si: "flag it", no: "no",
+    stampaTitolo: "The person's choices on the dissents", stampaRagione: (chi) => `${chi} is right`, stampaVerdetto: "the verdict is right", stampaNessuna: "no choice", nessunDissenso: "No dissent.",
+    revisione: "Review by the silent council",
+    testo: (n) => `Text version, for comparison: ${n} experts and the devil's advocate wrote to each other.`,
+    telepatia: (n) => `${n} experts and the devil's advocate handed over their memory instead of writing to each other.`,
+    integro: "🔒 Communication between experts intact", rotto: "⛔ Communication between experts tampered with",
+    firmati: (n) => `${n} latent messages signed and verified`, controllo: (c) => `check: ${c}`, messaggio: (i, h) => `message ${i}: ${h}…`,
+    perTe: "Advice for your business",
+    segnalate: (a, b) => [el("b", {}, a), " of ", el("b", {}, b), " clauses to flag"],
+    dissensi: (n, g) => [el("b", {}, n), n === 1 ? " dissent" : " dissents", g ? [" (", el("b", {}, g), " strong)"] : ""],
+    nonEmesso: "No verdict", nonEmessoTesto: "A message between experts failed the truth machine's checks, so the council stopped.",
+    controlloMotivo: (c, m) => `Check: ${c}. ${m}`, nonValido: "invalid verdict",
+    confronto: (nome) => `Compared with ${nome}`, accordo: (chi, a, b) => `Agrees with ${chi} on ${a} of ${b} clauses.`,
+    trovate: (a, b) => `Of the ${a} clauses they say should be flagged, the council found ${b}.`,
+    nienteQui: "For them there is nothing to flag in this contract.", fonte: "See the source",
+    ogniRiga: "Each row shows their answer next to the council's, including where the council is wrong.",
+    obiezioni: "The devil's advocate's objections",
+    mostraNote: "Show what each expert thought", nascondiNote: "Hide the experts' notes", noteTitolo: "What each expert thought",
+    stampa: "Download the summary (PDF)", salva: "Save the choices",
+    invia: "Send the choices", inviaPrima: "First choose who is right on at least one dissent.", inviaInCorso: "Sending…",
+    inviate: (n) => `Choices sent: ${n}.`, nonInviate: (e) => `Not sent: ${e}`, nonRisponde: "Not sent: the server does not answer. Try again, or save the choices.",
+    costo: (v) => `Model ${v.modello}, ${v.modalita === "testo" ? "text" : "telepathy"} mode: ${v.costo.token_generati} tokens written, ${v.costo.posizioni_latenti} latent thoughts, ${v.costo.secondi} seconds.`,
+    piede: ["Quotes are checked word for word against the contract. Message signatures can be verified with ", "python -m motore.verifica", "."],
+    titolo: (t) => `Verdict: ${t}`, indice: "All verdicts", indiceDalVivo: "Live reviews", lingueGruppo: "Language",
+    dalVivo: (q) => `Live review, ${new Date(q).toLocaleString("en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
+    nonQui: "This live review is not in this browser: live reviews stay in the browser where they were made.",
+    linguaModello: "The council writes its reasoning in Italian, for the Italian business it works for. Quotes are in the contract's own language.",
+  },
+};
+let lingua = "it";
 
 function el(tag, attributi = {}, ...figli) {
   const nodo = document.createElement(tag);
   for (const [k, v] of Object.entries(attributi)) {
     if (v === null || v === undefined || v === false) continue;
     if (k === "class") nodo.className = v;
+    else if (k === "style") nodo.style.cssText = v;
     else if (k.startsWith("on")) nodo.addEventListener(k.slice(2), v);
     else nodo.setAttribute(k, v === true ? "" : v);
   }
   for (const f of figli.flat()) if (f !== null && f !== undefined && f !== false) nodo.append(f.nodeType ? f : String(f));
   return nodo;
 }
+const t = () => T[lingua];
+const maiuscola = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// In inglese le categorie si chiamano con il loro nome CUAD; in italiano con il nome italiano.
+const nomeDi = (r) => (lingua === "en" ? r.chiave : r.nome);
+const chiDi = (d) => t().chi[d.ruolo] ?? d.nome_ruolo;
+const coloreDi = (ruolo) => (RUOLI.includes(ruolo) ? `--c: var(--${ruolo})` : null);
+const testoFonte = (x) => (x && typeof x === "object" ? x[lingua] ?? x.it : x);
+// Lo schema tronca i testi del modello alla lunghezza massima: una frase tagliata finisce con i puntini.
+const intero = (x) => (typeof x === "string" && x.trim() && !/[.!?…»”")\]]\s*$/.test(x) ? `${x.trimEnd()}…` : x);
 
 function chiaveScelte(vista) { return `consiglio-scelte:${vista.benchmark}/${vista.contratto}`; }
 function leggiScelte(vista) {
@@ -168,36 +290,33 @@ function salvaScelte(vista, scelte) {
 }
 
 function pillolaConfidenza(livello) {
-  return livello ? el("span", { class: "pillola", title: "Quanto era sicuro il modello" }, `confidenza ${livello}`) : null;
+  return livello ? el("span", { class: "pillola", title: t().confidenzaTitolo }, t().confidenza(t().livello[livello] ?? livello)) : null;
 }
 function pillolaCitazione(trovata) {
   if (trovata === null || trovata === undefined) return null;
   return trovata
-    ? el("span", { class: "pillola ok", title: "La citazione compare parola per parola nel contratto" }, "✓ trovata nel contratto")
-    : el("span", { class: "pillola no-trovata", title: "La citazione non compare nel contratto: va controllata" }, "⚠ non trovata nel contratto");
+    ? el("span", { class: "pillola ok", title: t().trovataTitolo }, t().trovata)
+    : el("span", { class: "pillola no-trovata", title: t().nonTrovataTitolo }, t().nonTrovata);
 }
 
 function bloccoDissenso(vista, riga, scelte) {
   const d = riga.dissenso;
-  const chi = CHI[d.ruolo] ?? d.nome_ruolo;
-  const Chi = chi.charAt(0).toUpperCase() + chi.slice(1);
-  const frase = d.esperto_dice
-    ? `${Chi} non è d'accordo: secondo l'esperto questa clausola va segnalata.`
-    : `${Chi} non l'aveva segnalata: è il relatore ad averla trovata.`;
+  const Chi = maiuscola(chiDi(d));
+  const livello = (l) => (l ? t().livello[l] ?? l : t().nonNota);
   const corpo = [
-    el("p", { class: "chi" }, frase),
-    el("p", { class: "tenue" }, `Confidenza dell'esperto: ${d.confidenza_esperto ?? "non nota"} · del verdetto: ${d.confidenza_verdetto ?? "non nota"}`),
-    d.citazione_esperto ? el("blockquote", { class: "citazione" }, `“${d.citazione_esperto}”`) : null,
+    el("p", { class: "chi" }, d.esperto_dice ? t().dissensoGrave(Chi) : t().dissensoLieve(Chi)),
+    el("p", { class: "tenue" }, t().confidenze(livello(d.confidenza_esperto), livello(d.confidenza_verdetto))),
+    d.citazione_esperto ? el("blockquote", { class: "citazione" }, `“${intero(d.citazione_esperto)}”`) : null,
     d.citazione_esperto ? el("div", { class: "pillole" }, pillolaCitazione(d.citazione_esperto_trovata)) : null,
     sceltaPersona(vista, riga, scelte),
   ];
   if (d.in_evidenza) return el("div", { class: `dissenso ${d.tipo}`, role: "note" }, corpo);
-  return el("details", { class: `dissenso ${d.tipo}` }, el("summary", {}, d.tipo === "grave" ? "⚠ Un esperto non è d'accordo" : "⚠ Dissenso lieve"), ...corpo);
+  return el("details", { class: `dissenso ${d.tipo}` }, el("summary", {}, d.tipo === "grave" ? t().apriGrave : t().apriLieve), ...corpo);
 }
 
 function sceltaPersona(vista, riga, scelte) {
-  const contenitore = el("div", { class: "scelta", role: "group", "aria-label": "Chi ha ragione?" });
-  const opzioni = [["esperto", `Ha ragione ${CHI[riga.dissenso.ruolo] ?? riga.dissenso.nome_ruolo}`], ["verdetto", "Ha ragione il verdetto"]];
+  const contenitore = el("div", { class: "scelta", role: "group", "aria-label": t().chiHaRagione });
+  const opzioni = [["esperto", t().haRagione(chiDi(riga.dissenso))], ["verdetto", t().haRagioneVerdetto]];
   for (const [valore, etichetta] of opzioni) {
     const bottone = el("button", {
       type: "button",
@@ -214,36 +333,51 @@ function sceltaPersona(vista, riga, scelte) {
   return contenitore;
 }
 
+function bloccoEsperti(vista, r) {
+  const e = r.esperti;
+  if (!e) return null;
+  const chi = testoFonte(vista.confronto?.chi) ?? "gli esperti";
+  const loro = e.da_segnalare ? t().vaSegnalata : t().niente;
+  const esito = e.d_accordo === true ? t().accordoRiga(chi, loro) : e.d_accordo === false ? t().disaccordoRiga(chi, loro) : t().soloLoro(chi, loro);
+  return el("div", { class: `esperti${e.d_accordo === true ? " uguale" : e.d_accordo === false ? " diverso" : ""}` },
+    el("p", { class: "esito" }, esito),
+    e.da_segnalare && e.prove.length
+      ? el("details", {}, el("summary", {}, e.prove.length === 1 ? t().pezzo : t().pezzi),
+          e.prove.map(p => el("blockquote", { class: "citazione" }, `“${p}”`)))
+      : null);
+}
+
 function riga(vista, r, scelte) {
   const segnalata = r.segnalare === true;
-  return el("li", { class: `riga${segnalata ? " segnalata" : ""}${r.dissenso ? " con-dissenso" : ""}` },
+  return el("li", { class: `riga${segnalata ? " segnalata" : ""}${r.dissenso ? " con-dissenso" : ""}`, style: coloreDi(r.ruolo) },
     el("div", { class: "capo" },
-      el("div", {}, el("span", { class: "nome" }, r.nome), " ", el("span", { class: "chiave" }, r.chiave)),
+      el("div", {}, el("span", { class: "nome" }, nomeDi(r)), lingua === "en" ? null : el("span", { class: "chiave" }, r.chiave)),
       el("div", { class: "pillole" },
-        el("span", { class: `pillola${segnalata ? " si" : ""}` }, segnalata ? "da segnalare" : r.segnalare === false ? "nessun problema" : "non deciso"),
+        el("span", { class: `pillola${segnalata ? " si" : ""}` }, segnalata ? t().daSegnalare : r.segnalare === false ? t().nessunProblema : t().nonDeciso),
         pillolaConfidenza(r.confidenza))),
-    segnalata && r.citazione ? el("blockquote", { class: "citazione" }, `“${r.citazione}”`) : null,
+    segnalata && r.citazione ? el("blockquote", { class: "citazione" }, `“${intero(r.citazione)}”`) : null,
     segnalata && r.citazione ? el("div", { class: "pillole" }, pillolaCitazione(r.citazione_trovata)) : null,
-    segnalata && r.motivazione ? el("p", { class: "motivazione" }, r.motivazione) : null,
+    segnalata && r.motivazione ? el("p", { class: "motivazione" }, intero(r.motivazione)) : null,
+    bloccoEsperti(vista, r),
     r.dissenso ? bloccoDissenso(vista, r, scelte) : null);
 }
 
 function note(vista) {
-  return el("div", { class: "note" }, vista.note.map(n => el("article", { class: "nota" },
-    el("h3", {}, n.nome),
-    n.valida ? null : el("p", { class: "tenue" }, "La nota non è valida."),
-    el("ul", {}, n.righe.map(r => el("li", {}, `${r.nome}: ${r.segnalare ? "da segnalare" : "no"}${r.confidenza ? ` (${r.confidenza})` : ""}`))),
-    n.citazioni.length ? el("div", {}, el("p", { class: "eyebrow" }, "Citazioni"),
-      n.citazioni.map(c => el("div", {}, el("blockquote", { class: "citazione" }, `“${c.testo}”`), el("div", { class: "pillole" }, pillolaCitazione(c.trovata))))) : null,
-    n.importi_date_parti.length ? el("div", {}, el("p", { class: "eyebrow" }, "Importi, date e parti"), el("ul", {}, n.importi_date_parti.map(x => el("li", {}, x)))) : null)));
+  return el("div", { class: "note" }, vista.note.map(n => el("article", { class: "nota", style: coloreDi(n.ruolo) },
+    el("h3", {}, t().esperto[n.ruolo] ?? n.nome),
+    n.valida ? null : el("p", { class: "tenue" }, t().notaNonValida),
+    el("ul", {}, n.righe.map(r => el("li", {}, `${nomeDi(r)}: ${r.segnalare ? t().si : t().no}${r.confidenza ? ` (${t().livello[r.confidenza] ?? r.confidenza})` : ""}`))),
+    n.citazioni.length ? el("div", {}, el("p", { class: "etichetta" }, t().citazioni),
+      n.citazioni.map(c => el("div", {}, el("blockquote", { class: "citazione" }, `“${intero(c.testo)}”`), el("div", { class: "pillole" }, pillolaCitazione(c.trovata))))) : null,
+    n.importi_date_parti.length ? el("div", {}, el("p", { class: "etichetta" }, t().importi), el("ul", {}, n.importi_date_parti.map(x => el("li", {}, x)))) : null)));
 }
 
 function aggiornaStampa(vista, scelte) {
   const nodo = document.getElementById("scelte-stampa");
   if (!nodo) return;
   const con = vista.righe.filter(r => r.dissenso);
-  nodo.replaceChildren(el("h2", {}, "Le scelte della persona sui dissensi"),
-    con.length ? el("ul", {}, con.map(r => el("li", {}, `${r.nome}: ${scelte[r.chiave] === "esperto" ? `ha ragione ${CHI[r.dissenso.ruolo] ?? r.dissenso.nome_ruolo}` : scelte[r.chiave] === "verdetto" ? "ha ragione il verdetto" : "nessuna scelta"}`))) : el("p", {}, "Nessun dissenso."));
+  nodo.replaceChildren(el("h2", {}, t().stampaTitolo),
+    con.length ? el("ul", {}, con.map(r => el("li", {}, `${nomeDi(r)}: ${scelte[r.chiave] === "esperto" ? t().stampaRagione(chiDi(r.dissenso)) : scelte[r.chiave] === "verdetto" ? t().stampaVerdetto : t().stampaNessuna}`))) : el("p", {}, t().nessunDissenso));
 }
 
 function scaricaScelte(vista, scelte) {
@@ -255,18 +389,19 @@ function scaricaScelte(vista, scelte) {
 // Con il server del Consiglio la pagina manda le scelte al suo indirizzo, con la chiave del link della persona.
 async function inviaScelte(vista, scelte, esito) {
   const da_mandare = Object.fromEntries(Object.entries(scelte).filter(([k]) => vista.righe.some(r => r.chiave === k && r.dissenso)));
-  if (!Object.keys(da_mandare).length) { esito.textContent = "Scegli prima chi ha ragione su almeno un dissenso."; return; }
-  esito.textContent = "Invio in corso…";
+  if (!Object.keys(da_mandare).length) { esito.textContent = t().inviaPrima; return; }
+  esito.textContent = t().inviaInCorso;
   try {
     const risposta = await fetch(vista.invio_scelte, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scelte: da_mandare }) });
     const dati = await risposta.json();
-    esito.textContent = risposta.ok ? `Scelte inviate: ${dati.registrate}.` : `Non inviate: ${dati.errore}`;
+    esito.textContent = risposta.ok ? t().inviate(dati.registrate) : t().nonInviate(dati.errore);
   } catch {
-    esito.textContent = "Non inviate: il server non risponde. Riprova, oppure salva le scelte.";
+    esito.textContent = t().nonRisponde;
   }
 }
 
 function mostra(vista) {
+  document.documentElement.lang = lingua;
   const pagina = document.getElementById("pagina");
   const scelte = leggiScelte(vista);
   const segnalate = vista.righe.filter(r => r.segnalare === true).length;
@@ -274,67 +409,102 @@ function mostra(vista) {
   const gravi = dissensi.filter(r => r.dissenso.tipo === "grave").length;
   const s = vista.sigillo;
   const sigillo = el("details", { class: `sigillo ${s.integro ? "integro" : "rotto"}` },
-    el("summary", {}, el("strong", {}, s.integro ? "🔒 Comunicazione tra esperti integra" : "⛔ Comunicazione tra esperti alterata"),
-      el("div", { class: "tenue" }, s.integro ? `${s.messaggi} messaggi latenti firmati e verificati` : `controllo: ${s.controllo}`)),
-    el("div", { class: "impronte" }, s.integro ? s.impronte.map((h, i) => el("div", {}, `messaggio ${i + 1}: ${h.slice(0, 16)}…`)) : s.motivo));
+    el("summary", {}, el("strong", {}, s.integro ? t().integro : t().rotto),
+      el("span", { class: "tenue" }, s.integro ? t().firmati(s.messaggi) : t().controllo(s.controllo))),
+    el("div", { class: "impronte" }, s.integro ? s.impronte.map((h, i) => el("div", {}, t().messaggio(i + 1, h.slice(0, 16)))) : s.motivo));
 
-  const gruppi = Object.keys(ESPERTI).filter(ruolo => vista.righe.some(r => r.ruolo === ruolo)).map(ruolo => {
+  const gruppi = RUOLI.filter(ruolo => vista.righe.some(r => r.ruolo === ruolo)).map(ruolo => {
     const proprie = vista.righe.filter(r => r.ruolo === ruolo);
-    return el("section", { class: "gruppo" },
-      el("header", {}, el("h2", {}, GRUPPI[ruolo]),
-        el("span", { class: "tenue" }, `${proprie.filter(r => r.segnalare).length} da segnalare su ${proprie.length}`)),
+    return el("section", { class: "gruppo", style: coloreDi(ruolo) },
+      el("header", {}, el("h2", {}, t().gruppo[ruolo]),
+        el("span", { class: "tenue" }, t().segnalate(proprie.filter(r => r.segnalare).length, proprie.length))),
       el("ul", { class: "righe" }, proprie.map(r => riga(vista, r, scelte))));
   });
 
-  const pannelloNote = el("section", { class: "non-stampare", hidden: true, id: "pannello-note" }, el("h2", {}, "Cosa ha pensato ogni esperto"), note(vista));
+  const pannelloNote = el("section", { class: "non-stampare", hidden: true, id: "pannello-note" }, el("h2", {}, t().noteTitolo), note(vista));
   const bottoneNote = el("button", { type: "button", class: "secondario", "aria-expanded": "false", "aria-controls": "pannello-note",
-    onclick: e => { const aperto = pannelloNote.hidden; pannelloNote.hidden = !aperto; e.currentTarget.setAttribute("aria-expanded", String(aperto)); e.currentTarget.textContent = aperto ? "Nascondi le note degli esperti" : "Mostra cosa ha pensato ogni esperto"; } },
-    "Mostra cosa ha pensato ogni esperto");
+    onclick: e => { const aperto = pannelloNote.hidden; pannelloNote.hidden = !aperto; e.currentTarget.setAttribute("aria-expanded", String(aperto)); e.currentTarget.textContent = aperto ? t().nascondiNote : t().mostraNote; } },
+    t().mostraNote);
+
+  // La lingua: la sceglie chi legge; la PMI parte dall'italiano, il sito dei giudici dall'inglese (vista.lingua).
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": t().lingueGruppo },
+    ["en", "it"].map(l => el("button", { type: "button", "aria-pressed": String(l === lingua), onclick: () => {
+      if (l === lingua) return;
+      lingua = l;
+      try { localStorage.setItem("sportello-lingua", JSON.stringify(l)); } catch { /* vale per questa visita */ }
+      mostra(vista);
+    } }, l === "en" ? "English" : "Italiano")));
 
   const r = vista.raccomandazione;
+  const c = vista.confronto;
   pagina.replaceChildren(
+    el("div", { class: "barra non-stampare" }, vista.indice ? el("a", { href: vista.indice }, `← ${vista.dal_vivo ? t().indiceDalVivo : t().indice}`) : null, lingue),
     el("header", { class: "testa" },
-      el("div", { class: "titoli" }, el("span", { class: "eyebrow" }, "Revisione del Consiglio silenzioso"), el("h1", {}, vista.titolo),
-        el("p", { class: "tenue" }, vista.modalita === "testo"
-          ? `Versione a testo, per confronto: ${vista.note.length} esperti e il relatore si sono scritti.`
-          : `${vista.note.length} esperti e il relatore si sono passati la memoria invece di scriversi.`)),
+      el("div", { class: "titoli" }, el("span", { class: "etichetta" }, t().revisione), el("h1", {}, vista.titolo),
+        el("p", { class: "tenue" }, vista.modalita === "testo" ? t().testo(vista.note.length) : t().telepatia(vista.note.length)),
+        vista.dal_vivo ? el("p", { class: "etichetta" }, t().dalVivo(vista.dal_vivo)) : null),
       sigillo),
+    t().linguaModello ? el("p", { class: "lingua-modello" }, t().linguaModello) : null,
     s.integro && r
       ? el("section", { class: `raccomandazione ${RACCOMANDAZIONI[r.valore]}` },
-          el("span", { class: "eyebrow" }, "Consiglio per la tua impresa"), el("div", { class: "valore" }, r.valore), el("p", {}, r.motivazione),
-          el("div", { class: "numeri" }, el("span", {}, el("b", {}, segnalate), " clausole da segnalare su ", el("b", {}, vista.righe.length)),
-            el("span", {}, el("b", {}, dissensi.length), dissensi.length === 1 ? " dissenso" : " dissensi",
-              gravi ? [" (", el("b", {}, gravi), gravi === 1 ? " grave)" : " gravi)"] : "")))
-      : el("section", { class: "avviso-rosso", role: "alert" }, el("h2", {}, "Verdetto non emesso"),
-          el("p", {}, "Un messaggio fra gli esperti non ha superato i controlli della macchina della verità, quindi il Consiglio si è fermato."),
-          el("p", { class: "tenue" }, `Controllo: ${s.controllo ?? "verdetto non valido"} · ${s.motivo ?? ""}`)),
-    vista.obiezioni.length ? el("section", { class: "obiezioni" }, el("h2", {}, "Le obiezioni dell'avvocato del diavolo"),
-      el("ul", {}, vista.obiezioni.map(o => el("li", {}, el("b", {}, o.nome), `: ${o.obiezione}`)))) : null,
+          el("span", { class: "etichetta" }, t().perTe), el("div", { class: "valore" }, t().racc[r.valore] ?? r.valore), el("p", { class: "motivo" }, intero(r.motivazione)),
+          el("div", { class: "numeri" }, el("span", {}, t().segnalate(segnalate, vista.righe.length)), el("span", {}, t().dissensi(dissensi.length, gravi))))
+      : el("section", { class: "avviso-rosso", role: "alert" }, el("h2", {}, t().nonEmesso),
+          el("p", {}, t().nonEmessoTesto),
+          el("p", { class: "tenue" }, t().controlloMotivo(s.controllo ?? t().nonValido, s.motivo ?? ""))),
+    c && r ? el("section", { class: "confronto" },
+      el("span", { class: "etichetta" }, t().confronto(c.nome)),
+      el("p", { class: "conto" }, t().accordo(testoFonte(c.chi), c.d_accordo, c.confrontate)),
+      c.da_trovare ? el("p", {}, t().trovate(c.da_trovare, c.trovate)) : el("p", {}, t().nienteQui),
+      el("p", { class: "tenue" }, testoFonte(c.spiegazione) ?? "", c.link ? [" ", el("a", { href: c.link, target: "_blank", rel: "noopener" }, t().fonte)] : null),
+      el("p", { class: "tenue" }, t().ogniRiga)) : null,
+    vista.obiezioni.length ? el("section", { class: "obiezioni" }, el("h2", {}, t().obiezioni),
+      el("ul", {}, vista.obiezioni.map(o => el("li", {}, el("b", {}, lingua === "en" ? o.chiave : o.nome), `: ${intero(o.obiezione)}`)))) : null,
     ...(r ? gruppi : []),
     el("div", { class: "azioni non-stampare" },
       bottoneNote,
-      el("button", { type: "button", onclick: () => window.print() }, "Scarica il riepilogo (PDF)"),
-      vista.invio_scelte ? el("button", { type: "button", onclick: () => inviaScelte(vista, scelte, document.getElementById("esito-invio")) }, "Invia le scelte") : null,
-      el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, "Salva le scelte"),
+      el("button", { type: "button", onclick: () => window.print() }, t().stampa),
+      vista.invio_scelte ? el("button", { type: "button", onclick: () => inviaScelte(vista, scelte, document.getElementById("esito-invio")) }, t().invia) : null,
+      el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, t().salva),
       vista.invio_scelte ? el("span", { id: "esito-invio", role: "status", class: "tenue" }) : null),
     pannelloNote,
     el("section", { class: "solo-stampa", id: "scelte-stampa" }),
-    el("footer", {}, el("span", {}, `Modello ${vista.modello} · modalità ${vista.modalita} · ${vista.costo.token_generati} token scritti, ${vista.costo.posizioni_latenti} pensieri latenti, ${vista.costo.secondi} s`),
-      el("span", {}, "Le citazioni sono controllate parola per parola nel contratto. Le firme dei messaggi si verificano con python -m motore.verifica.")));
+    el("footer", {}, el("span", {}, t().costo(vista)), el("span", {}, t().piede[0], el("code", {}, t().piede[1]), t().piede[2])));
   aggiornaStampa(vista, scelte);
-  document.title = `Verdetto: ${vista.titolo}`;
+  document.title = t().titolo(vista.titolo);
+}
+
+function scegliLingua(vista) {
+  const chiesta = new URLSearchParams(location.search).get("lang");
+  let salvata = null;
+  try { salvata = JSON.parse(localStorage.getItem("sportello-lingua")); } catch { /* niente */ }
+  for (const l of [chiesta, salvata, vista.lingua, "it"]) if (l === "it" || l === "en") return l;
+  return "it";
 }
 
 async function avvia() {
+  const vedi = (vista) => { lingua = scegliLingua(vista); mostra(vista); };
   const incorporati = JSON.parse(document.getElementById("dati").textContent);
-  if (incorporati) return mostra(incorporati);
+  if (incorporati) return vedi(incorporati);
+  // Una prova dal vivo del giudice (casa/sorgenti/consiglio/prova.html): la vista è nel suo browser.
+  const dalVivo = new URLSearchParams(location.search).get("dal-vivo");
+  if (dalVivo) {
+    let fatte = [];
+    try { fatte = JSON.parse(localStorage.getItem("consiglio-dal-vivo")) || []; } catch { /* niente */ }
+    const voce = Array.isArray(fatte) ? fatte.find(f => f && f.id_caso === dalVivo) : null;
+    if (voce) return vedi(voce.vista);
+    lingua = scegliLingua({});
+    document.getElementById("carica").replaceChildren(el("h1", {}, maiuscola(t().indiceDalVivo)), el("p", { class: "tenue" }, t().nonQui),
+      el("p", {}, el("a", { href: "prova.html" }, `← ${t().indiceDalVivo}`)));
+    return;
+  }
   const percorso = new URLSearchParams(location.search).get("vista");
   if (percorso) {
-    try { return mostra(await (await fetch(percorso)).json()); } catch (e) { console.error(e); }
+    try { return vedi(await (await fetch(percorso)).json()); } catch (e) { console.error(e); }
   }
   document.getElementById("file").addEventListener("change", async e => {
     const file = e.target.files[0];
-    if (file) mostra(JSON.parse(await file.text()));
+    if (file) vedi(JSON.parse(await file.text()));
   });
 }
 avvia();

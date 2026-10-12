@@ -76,6 +76,20 @@ def risposte_grado_3(insieme: str) -> dict[tuple[str, str], bool]:
     return {(r["contratto"], r["categoria"]): r["da_segnalare_grado_3"] for r in _righe("claudette", insieme)}
 
 
+@cache
+def risposte_esperti(benchmark: str) -> dict[str, dict[str, dict]]:
+    """contratto → categoria → {"da_segnalare", "prove"}: le risposte dei dataset, con i pezzi annotati, di tutti gli
+    insiemi. Servono al sito dei giudici, per mostrare accanto al verdetto cosa hanno detto gli esperti."""
+    esperti: dict[str, dict[str, dict]] = {}
+    for r in map(json.loads, (DATI / "set-di-misura" / "risposte-giuste.jsonl").open()):
+        if r["benchmark"] == benchmark:
+            esperti.setdefault(r["contratto"], {})[r["categoria"]] = {
+                "da_segnalare": r["da_segnalare"],
+                "prove": r["prove"],
+            }
+    return esperti
+
+
 def cartella_dimostrativo() -> Path:
     """Il set dimostrativo resta fuori dal repo: di default `dati/set-dimostrativo`, oppure
     `CONSIGLIO_SET_DIMOSTRATIVO`."""

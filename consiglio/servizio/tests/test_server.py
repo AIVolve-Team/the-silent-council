@@ -9,7 +9,7 @@ from starlette.testclient import TestClient
 from revisore.gestore import chiave_del_caso
 from revisore.server import crea_app
 
-from .conftest import CONTRATTO, ESEMPIO, SEGRETO, email, pdf_con_testo
+from .conftest import CATALOGO, CONTRATTO, ESEMPIO, SEGRETO, email, pdf_con_testo
 
 CHIAVE = {"Authorization": f"Bearer {SEGRETO}"}
 
@@ -26,7 +26,7 @@ def anyio_backend():
 
 def test_senza_il_segreto_si_entra_solo_nella_salute(app):
     with TestClient(app) as http:
-        assert http.get("/salute").json() == {"pronto": True, "esame_in_corso": False}
+        assert http.get("/salute").json() == {"pronto": True, "esame_in_corso": False, "prove": False}
         assert http.post("/revisiona_contratto", json=email(testo=CONTRATTO)).status_code == 401
         assert http.get("/casi").status_code == 401
         assert http.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "tools/list"}).status_code == 401
@@ -89,3 +89,25 @@ def test_la_persona_apre_il_verdetto_e_manda_le_scelte_con_il_suo_link(app, revi
     assert pagina.status_code == 200 and pagina.headers["content-type"].startswith("text/html")
     assert sbagliata.status_code == inesistente.status_code == senza_chiave.status_code == 404
     assert scelte.status_code == 200 and caso["scelte"][0]["chi"] == "persona, dalla pagina del verdetto"
+
+
+def test_prove_dal_vivo_solo_con_il_catalogo_e_con_il_segreto(revisore, dal_vivo):
+    with TestClient(crea_app(revisore, SEGRETO)) as http:
+        assert http.get("/prove/contratti", headers=CHIAVE).status_code == 404
+    with TestClient(crea_app(dal_vivo, SEGRETO)) as http:
+        assert http.get("/salute").json()["prove"] is True
+        assert http.get("/prove/contratti").status_code == 401
+        elenco = http.get("/prove/contratti", headers=CHIAVE).json()
+        assert [c["chiave"] for c in elenco] == list(CATALOGO) and "testo" not in elenco[0]
+        assert http.post("/prove/contratto", json={"contratto": "cuad:altro"}, headers=CHIAVE).status_code == 400
+        inpiu = http.post("/prove/contratto", json={"contratto": next(iter(CATALOGO)), "testo": "x"}, headers=CHIAVE)
+        assert inpiu.status_code == 400 and "campi non previsti" in inpiu.json()["errore"]
+        r = http.post("/prove/contratto", json={"contratto": next(iter(CATALOGO)), "modalita": "testo"}, headers=CHIAVE)
+        assert r.status_code == 200 and r.json()["vista"]["confronto"]["nome"] == "CUAD"
+
+
+def test_una_prova_dal_vivo_alla_volta(dal_vivo):
+    with TestClient(crea_app(dal_vivo, SEGRETO)) as http:
+        with dal_vivo.lucchetto:
+            r = http.post("/prove/contratto", json={"contratto": next(iter(CATALOGO))}, headers=CHIAVE)
+        assert r.status_code == 409 and "riprova" in r.json()["errore"]
