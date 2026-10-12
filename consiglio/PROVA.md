@@ -5,9 +5,10 @@ Un comando prepara tutto, fa girare il Consiglio sui contratti e apre la pagina 
 ```bash
 git clone https://github.com/AIVolve-Team/the-silent-council.git
 cd the-silent-council
-git checkout feat/pagina-verdetto
 ./consiglio/prova.sh
 ```
+
+Dal 12/10/2026 tutto il lavoro sta su `main`, il ramo su cui parte il clone. Chi aveva già clonato il repo passa a `main` con `git fetch origin && git checkout -B main origin/main`, anche se il suo `main` era rimasto indietro; se ci sono modifiche non salvate git si ferma, e prima serve `git stash`.
 
 Su Mac c'è anche `consiglio/prova.command`: con un doppio clic nel Finder la prova parte in una finestra del Terminale tutta sua, che alla fine resta aperta con il riepilogo. Per farla partire da Claude Code vedi [Con Claude Code](#con-claude-code).
 
@@ -113,7 +114,6 @@ Se la prova la chiedi a Claude Code, queste sono le regole per lui:
   ```bash
   CARTELLA=~/consiglio-prova-$(date +%Y%m%d-%H%M)
   git clone https://github.com/AIVolve-Team/the-silent-council.git "$CARTELLA"
-  git -C "$CARTELLA" checkout feat/pagina-verdetto
   ```
 
   Il modello non si riscarica, perché sta nella cache di Hugging Face fuori dal clone, e il set dimostrativo lo riprende da solo lo script dal repo privato. Se invece il set te l'avevano passato a mano, va copiato in `consiglio/dati/set-dimostrativo/` del clone nuovo.

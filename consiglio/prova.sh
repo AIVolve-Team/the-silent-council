@@ -213,7 +213,7 @@ passo "8/8 Pagine del verdetto"
 if [ "$DIAGNOSI" = 1 ]; then
   echo "Nella diagnosi le pagine non servono: contano i numeri del riepilogo."
 elif [ ! -f "$CONSIGLIO/revisione/revisione/vista.py" ]; then
-  echo "La pagina del verdetto arriva con «Pagina del verdetto e flusso Evolus» (ramo feat/63-pagina-verdetto): per ora ci sono solo i .jsonl."
+  echo "In questa versione del repo manca la pagina del verdetto: per ora ci sono solo i .jsonl."
 else
 (cd "$CONSIGLIO/revisione" && "$PY" - "$USCITA" "$DEMO" <<'PAGINE'
 import json, sys
