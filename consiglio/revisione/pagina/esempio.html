@@ -202,6 +202,8 @@ const T = {
     obiezioni: "Le obiezioni dell'avvocato del diavolo",
     mostraNote: "Mostra cosa ha pensato ogni esperto", nascondiNote: "Nascondi le note degli esperti", noteTitolo: "Cosa ha pensato ogni esperto",
     stampa: "Scarica il riepilogo (PDF)", salva: "Salva le scelte",
+    invia: "Invia le scelte", inviaPrima: "Scegli prima chi ha ragione su almeno un dissenso.", inviaInCorso: "Invio in corso…",
+    inviate: (n) => `Scelte inviate: ${n}.`, nonInviate: (e) => `Non inviate: ${e}`, nonRisponde: "Non inviate: il server non risponde. Riprova, oppure salva le scelte.",
     costo: (v) => `Modello ${v.modello}, modalità ${v.modalita}: ${v.costo.token_generati} token scritti, ${v.costo.posizioni_latenti} pensieri latenti, ${v.costo.secondi} secondi.`,
     piede: ["Le citazioni sono controllate parola per parola nel contratto. Le firme dei messaggi si verificano con ", "python -m motore.verifica", "."],
     titolo: (t) => `Verdetto: ${t}`, indice: "Tutti i verdetti", lingueGruppo: "Lingua", linguaModello: null,
@@ -243,6 +245,8 @@ const T = {
     obiezioni: "The devil's advocate's objections",
     mostraNote: "Show what each expert thought", nascondiNote: "Hide the experts' notes", noteTitolo: "What each expert thought",
     stampa: "Download the summary (PDF)", salva: "Save the choices",
+    invia: "Send the choices", inviaPrima: "First choose who is right on at least one dissent.", inviaInCorso: "Sending…",
+    inviate: (n) => `Choices sent: ${n}.`, nonInviate: (e) => `Not sent: ${e}`, nonRisponde: "Not sent: the server does not answer. Try again, or save the choices.",
     costo: (v) => `Model ${v.modello}, ${v.modalita === "testo" ? "text" : "telepathy"} mode: ${v.costo.token_generati} tokens written, ${v.costo.posizioni_latenti} latent thoughts, ${v.costo.secondi} seconds.`,
     piede: ["Quotes are checked word for word against the contract. Message signatures can be verified with ", "python -m motore.verifica", "."],
     titolo: (t) => `Verdict: ${t}`, indice: "All verdicts", lingueGruppo: "Language",
@@ -378,6 +382,20 @@ function scaricaScelte(vista, scelte) {
   document.body.append(link); link.click(); link.remove();
 }
 
+// Con il server del Consiglio la pagina manda le scelte al suo indirizzo, con la chiave del link della persona.
+async function inviaScelte(vista, scelte, esito) {
+  const da_mandare = Object.fromEntries(Object.entries(scelte).filter(([k]) => vista.righe.some(r => r.chiave === k && r.dissenso)));
+  if (!Object.keys(da_mandare).length) { esito.textContent = t().inviaPrima; return; }
+  esito.textContent = t().inviaInCorso;
+  try {
+    const risposta = await fetch(vista.invio_scelte, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scelte: da_mandare }) });
+    const dati = await risposta.json();
+    esito.textContent = risposta.ok ? t().inviate(dati.registrate) : t().nonInviate(dati.errore);
+  } catch {
+    esito.textContent = t().nonRisponde;
+  }
+}
+
 function mostra(vista) {
   document.documentElement.lang = lingua;
   const pagina = document.getElementById("pagina");
@@ -441,7 +459,9 @@ function mostra(vista) {
     el("div", { class: "azioni non-stampare" },
       bottoneNote,
       el("button", { type: "button", onclick: () => window.print() }, t().stampa),
-      el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, t().salva)),
+      vista.invio_scelte ? el("button", { type: "button", onclick: () => inviaScelte(vista, scelte, document.getElementById("esito-invio")) }, t().invia) : null,
+      el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, t().salva),
+      vista.invio_scelte ? el("span", { id: "esito-invio", role: "status", class: "tenue" }) : null),
     pannelloNote,
     el("section", { class: "solo-stampa", id: "scelte-stampa" }),
     el("footer", {}, el("span", {}, t().costo(vista)), el("span", {}, t().piede[0], el("code", {}, t().piede[1]), t().piede[2])));
