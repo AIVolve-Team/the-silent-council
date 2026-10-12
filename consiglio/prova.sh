@@ -12,6 +12,7 @@
 #                                                 senza riallineamento con 0 e 10 passi, e testo, con il codice di
 #                                                 oggi; i risultati vanno in consiglio/risultati-prova/diagnosi-cuad
 #   MODELLO=Qwen/Qwen3-8B ./consiglio/prova.sh    sceglie il modello invece di lasciarlo decidere allo script
+#   TORCH_DI_SISTEMA=1 ./consiglio/prova.sh       sulla MI300X, nel container di G1: usa il torch ROCm dell'immagine
 #
 # Funziona su macOS (Apple Silicon) e su Linux con una GPU NVIDIA; su Windows va lanciato dentro WSL2.
 # Rilanciarlo è sicuro: quello che è già scaricato non si riscarica.
@@ -28,7 +29,7 @@ for argomento in "$@"; do
     --veloce) VELOCE=1 ;;
     --diagnosi) DIAGNOSI=1 ;;
     --diagnosi-cuad) DIAGNOSI=1; DIAGNOSI_CUAD=1 ;;
-    -h | --help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "Opzione sconosciuta: $argomento (vedi --help)"; exit 2 ;;
   esac
 done
@@ -95,19 +96,27 @@ fi
 [ "$DISPOSITIVO" = "cpu" ] && echo "Attenzione: senza GPU il giro è molto lento (anche ore per contratto)."
 
 passo "2/8 Python e librerie (la prima volta qualche minuto)"
-if ! command -v uv >/dev/null 2>&1; then
-  echo "Installo uv, il gestore di Python, nella cartella dell'utente (niente sudo)."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
-fi
-[ -x "$VENV/bin/python" ] || uv venv -q -p 3.12 "$VENV"
+LIBRERIE=("transformers==4.57.6" "safetensors==0.8.0" "huggingface-hub==0.36.2" "lm-format-enforcer==0.11.3" \
+  "cryptography==50.0.2" "tokenizers==0.22.2" "pytest==9.1.1" -e "$RADICE/motore")
 PY="$VENV/bin/python"
-if [ "$DISPOSITIVO" = "rocm" ]; then
-  [ -n "${TORCH_INDEX_URL:-}" ] || ferma "Su GPU AMD indica la build ROCm di torch: TORCH_INDEX_URL=https://download.pytorch.org/whl/rocm... ./consiglio/prova.sh"
-  uv pip install -q -p "$PY" --index-url "$TORCH_INDEX_URL" "torch==2.14.1"
+if [ "${TORCH_DI_SISTEMA:-0}" = 1 ]; then
+  # Sulla MI300X, dentro il container del motore di G1 (vllm/vllm-openai-rocm, g1/README.md passo 3): torch resta
+  # quello ROCm dell'immagine, lo stesso che G1 controlla con fp32 contro bf16; il resto sta nel venv.
+  [ -x "$PY" ] || python3 -m venv --system-site-packages "$VENV" || ferma "Il venv non si crea."
+  "$PY" -m pip install -q "${LIBRERIE[@]}" || ferma "Le librerie non si installano."
+else
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "Installo uv, il gestore di Python, nella cartella dell'utente (niente sudo)."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  [ -x "$PY" ] || uv venv -q -p 3.12 "$VENV"
+  if [ "$DISPOSITIVO" = "rocm" ]; then
+    [ -n "${TORCH_INDEX_URL:-}" ] || ferma "Su GPU AMD: TORCH_DI_SISTEMA=1 nel container di G1, oppure TORCH_INDEX_URL=https://download.pytorch.org/whl/rocm... ./consiglio/prova.sh"
+    uv pip install -q -p "$PY" --index-url "$TORCH_INDEX_URL" "torch==2.14.1"
+  fi
+  uv pip install -q -p "$PY" "torch==2.14.1" "${LIBRERIE[@]}"
 fi
-uv pip install -q -p "$PY" "torch==2.14.1" "transformers==4.57.6" "safetensors==0.8.0" "huggingface-hub==0.36.2" \
-  "lm-format-enforcer==0.11.3" "cryptography==50.0.2" "tokenizers==0.22.2" "pytest==9.1.1" -e "$RADICE/motore"
 "$PY" -c "import torch, transformers; print('torch', torch.__version__, '| transformers', transformers.__version__, '| GPU:', 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'nessuna'))"
 # Qwen3 è addestrato in bf16: in float16 i modelli Qwen possono andare in overflow e scrivere token senza senso,
 # senza errori. Il float16 resta solo per le GPU che il bf16 non lo fanno, e lo si scopre provandolo.
