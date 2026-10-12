@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consiglio silenzioso · AIVolve</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* L'indice del Consiglio nel sito per i giudici: stessi colori e caratteri della home (casa/sorgenti/index.html). */
+:root {
+  --carta: #f4f6f9; --foglio: #ffffff; --inchiostro: #121826; --tenue: #5b6474; --linea: #dde2ea;
+  --accento: #2b4acb; --accento-tenue: #e6ebfb; --vivo: #1f7a4d; --vivo-tenue: #e3f3ea; --attesa: #9a5b0b; --attesa-tenue: #fbf0dc;
+  --rosso: #b42318; --rosso-tenue: #fde7e4;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif; --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+    --accento-tenue: #222b44; --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14;
+    --rosso: #f2867c; --rosso-tenue: #3a1916; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+  --accento-tenue: #222b44; --vivo: #5bc48e; --vivo-tenue: #16301f; --attesa: #e6b35e; --attesa-tenue: #362a14;
+  --rosso: #f2867c; --rosso-tenue: #3a1916; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding: 24px 16px 64px; }
+.foglio { max-width: 960px; margin-inline: auto; display: grid; gap: 24px; }
+h1, h2 { font-family: var(--display); margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; }
+p { margin: 0; }
+a { color: var(--accento); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.tenue { color: var(--tenue); }
+.barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.lingue button { font: inherit; cursor: pointer; border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+.testa { display: grid; gap: 10px; }
+.testa .sotto { font-size: 1.05rem; color: var(--tenue); max-width: 62ch; }
+.verdetti { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.verdetto { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 20px; display: grid; gap: 10px; align-content: start; }
+.etichette { display: flex; flex-wrap: wrap; gap: 6px; }
+.etichetta { border-radius: 999px; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; background: var(--carta); border: 1px solid var(--linea); }
+.racc { font-family: var(--display); font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.racc.firmare { color: var(--vivo); } .racc.negoziare { color: var(--attesa); } .racc.non-firmare { color: var(--rosso); }
+.numeri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.numero { background: var(--carta); border-radius: 10px; padding: 8px 10px; }
+.numero b { display: block; font-family: var(--dati); font-size: 1.1rem; }
+.numero span { font-size: 0.78rem; color: var(--tenue); }
+.sigillo.integro { color: var(--vivo); } .sigillo.rotto { color: var(--rosso); }
+.costo { font-family: var(--dati); font-size: 0.82rem; color: var(--tenue); }
+.bottone { justify-self: start; display: inline-block; text-decoration: none; font-weight: 600; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); }
+.vuoto { background: var(--foglio); border: 1px dashed var(--linea); border-radius: 14px; padding: 20px; }
+footer { font-size: 0.88rem; }
+</style>
+</head>
+<body>
+<main class="foglio" id="pagina"></main>
+<script id="dati" type="application/json">null</script>
+<script>
+// I verdetti arrivano dal blocco "dati", scritto da revisione/vetrina.py. Tutto il testo entra con textContent.
+const T = {
+  en: {
+    casa: "← Home", titolo: "Consiglio silenzioso", sotto: "Four agents review a contract for an Italian small business: legal, finance and risk experts pass each other their memory instead of text, and a devil's advocate writes the verdict with its dissent.",
+    registrato: "Recorded", nota: "Verdict pages are in Italian, like the ones the client receives.",
+    telepatia: "Telepathy", testo: "Text", apri: "Open the verdict",
+    racc: { "firmare": "Sign", "negoziare": "Negotiate", "non firmare": "Do not sign" }, nessuna: "No valid verdict",
+    segnalate: "flagged clauses", gravi: "strong dissents", lievi: "mild dissents",
+    integro: "🔒 Expert communication intact", rotto: "⚠ Seal broken: no verdict",
+    costo: (t, s) => `${t.toLocaleString("en-GB")} tokens written · ${s} s`, nessunVerdetto: "No verdicts recorded yet.",
+    piede: "Invented companies and public benchmark contracts. Your choices on dissents stay in your browser.",
+  },
+  it: {
+    casa: "← Home", titolo: "Consiglio silenzioso", sotto: "Quattro agenti rivedono un contratto per una piccola impresa italiana: gli esperti legale, di finanza e di rischio si passano la memoria invece del testo, e un avvocato del diavolo scrive il verdetto con il suo dissenso.",
+    registrato: "Registrato", nota: "Le pagine del verdetto sono in italiano, come quelle che riceve il cliente.",
+    telepatia: "Telepatia", testo: "Testo", apri: "Apri il verdetto",
+    racc: { "firmare": "Firmare", "negoziare": "Negoziare", "non firmare": "Non firmare" }, nessuna: "Nessun verdetto valido",
+    segnalate: "clausole segnalate", gravi: "dissensi gravi", lievi: "dissensi lievi",
+    integro: "🔒 Comunicazione tra esperti integra", rotto: "⚠ Sigillo rotto: nessun verdetto",
+    costo: (t, s) => `${t.toLocaleString("it-IT")} token scritti · ${s} s`, nessunVerdetto: "Non ci sono ancora verdetti registrati.",
+    piede: "Aziende inventate e contratti di benchmark pubblici. Le tue scelte sui dissensi restano nel tuo browser.",
+  },
+};
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
+};
+// La stessa chiave della home: la lingua scelta lì vale anche qui.
+let lingua = new URLSearchParams(location.search).get("lang") || memoria.leggi("sportello-lingua") || "en";
+const dati = JSON.parse(document.getElementById("dati").textContent || "null") || { verdetti: [] };
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined) n.setAttribute(k, v); }
+  for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const numero = (valore, etichetta) => el("div", { class: "numero" }, el("b", { text: String(valore) }), el("span", { text: etichetta }));
+
+function disegna() {
+  const t = T[lingua] || T.en;
+  document.documentElement.lang = lingua;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  pagina.append(el("div", { class: "barra" }, el("a", { href: "../index.html", text: t.casa }), lingue));
+  pagina.append(el("header", { class: "testa" }, el("h1", { text: t.titolo }), el("p", { class: "sotto", text: t.sotto }),
+    dati.registrato ? el("p", { class: "tenue", text: `${t.registrato}: ${dati.registrato}` }) : null,
+    el("p", { class: "tenue", text: t.nota })));
+  const voci = dati.verdetti || [];
+  if (!voci.length) pagina.append(el("p", { class: "vuoto tenue", text: t.nessunVerdetto }));
+  pagina.append(el("section", { class: "verdetti" }, voci.map((v) => el("article", { class: "verdetto" },
+    el("div", { class: "etichette" }, el("span", { class: "etichetta", text: v.modalita === "testo" ? t.testo : t.telepatia }),
+      el("span", { class: "etichetta", text: v.benchmark === "dimostrativo" ? "Demo" : v.benchmark.toUpperCase() })),
+    el("h2", { text: v.titolo }),
+    el("p", { class: `racc ${(v.raccomandazione || "").replace(" ", "-")}`, text: v.raccomandazione ? t.racc[v.raccomandazione] : t.nessuna }),
+    el("div", { class: "numeri" }, numero(`${v.segnalate}/${v.categorie}`, t.segnalate), numero(v.dissensi_gravi, t.gravi), numero(v.dissensi_lievi, t.lievi)),
+    el("p", { class: `sigillo ${v.sigillo_integro ? "integro" : "rotto"}`, text: v.sigillo_integro ? t.integro : t.rotto }),
+    el("p", { class: "costo", text: `${v.modello} · ${t.costo(v.token_generati, v.secondi)}` }),
+    el("a", { class: "bottone", href: v.pagina, text: t.apri })))));
+  pagina.append(el("footer", { class: "tenue", text: t.piede }));
+}
+disegna();
+</script>
+</body>
+</html>

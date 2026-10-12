@@ -25,6 +25,7 @@ Per un contratto:
 | `revisione/dati.py` | legge contratti, risposte giuste e set dimostrativo da `consiglio/dati` |
 | `revisione/vista.py` | dalla revisione alla vista della pagina del verdetto, e la pagina con i dati dentro |
 | `pagina/verdetto.html` | la pagina del verdetto per la persona |
+| `revisione/vetrina.py` e `pagina/vetrina.html` | la parte del Consiglio nel sito per i giudici: indice dei contratti in inglese e italiano e pagine del verdetto, per `casa/costruisci.py --consiglio` |
 
 ## Uso
 
