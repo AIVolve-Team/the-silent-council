@@ -280,6 +280,18 @@ const coloreDi = (ruolo) => (RUOLI.includes(ruolo) ? `--c: var(--${ruolo})` : nu
 const testoFonte = (x) => (x && typeof x === "object" ? x[lingua] ?? x.it : x);
 // Lo schema tronca i testi del modello alla lunghezza massima: una frase tagliata finisce con i puntini.
 const intero = (x) => (typeof x === "string" && x.trim() && !/[.!?…»”")\]]\s*$/.test(x) ? `${x.trimEnd()}…` : x);
+// Link e indirizzi arrivano dai dati della vista: solo http(s) o lo schema della pagina (file: se è aperta dal disco), mai
+// javascript: o data:. La vista di ?vista= e l'invio delle scelte restano sullo stesso sito: altrimenti un link potrebbe far
+// mostrare alla pagina, sul nostro dominio, un verdetto preparato da altri.
+const sicuro = (u) => {
+  if (typeof u !== "string" || !u) return null;
+  try { const x = new URL(u, location.href); return ["http:", "https:", location.protocol].includes(x.protocol) ? x.href : null; } catch { return null; }
+};
+const stessoSito = (u) => {
+  if (typeof u !== "string" || !u) return false;
+  // Lo schema va confrontato a parte: aperta dal disco, la pagina ha origine "null" come javascript: e data:.
+  try { const x = new URL(u, location.href); return x.protocol === location.protocol && x.origin === location.origin; } catch { return false; }
+};
 
 function chiaveScelte(vista) { return `consiglio-scelte:${vista.benchmark}/${vista.contratto}`; }
 function leggiScelte(vista) {
@@ -437,8 +449,11 @@ function mostra(vista) {
 
   const r = vista.raccomandazione;
   const c = vista.confronto;
+  const indice = sicuro(vista.indice);
+  const fonte = c ? sicuro(c.link) : null;
+  const invio = stessoSito(vista.invio_scelte);
   pagina.replaceChildren(
-    el("div", { class: "barra non-stampare" }, vista.indice ? el("a", { href: vista.indice }, `← ${vista.dal_vivo ? t().indiceDalVivo : t().indice}`) : null, lingue),
+    el("div", { class: "barra non-stampare" }, indice ? el("a", { href: indice }, `← ${vista.dal_vivo ? t().indiceDalVivo : t().indice}`) : null, lingue),
     el("header", { class: "testa" },
       el("div", { class: "titoli" }, el("span", { class: "etichetta" }, t().revisione), el("h1", {}, vista.titolo),
         el("p", { class: "tenue" }, vista.modalita === "testo" ? t().testo(vista.note.length) : t().telepatia(vista.note.length)),
@@ -456,7 +471,7 @@ function mostra(vista) {
       el("span", { class: "etichetta" }, t().confronto(c.nome)),
       el("p", { class: "conto" }, t().accordo(testoFonte(c.chi), c.d_accordo, c.confrontate)),
       c.da_trovare ? el("p", {}, t().trovate(c.da_trovare, c.trovate)) : el("p", {}, t().nienteQui),
-      el("p", { class: "tenue" }, testoFonte(c.spiegazione) ?? "", c.link ? [" ", el("a", { href: c.link, target: "_blank", rel: "noopener" }, t().fonte)] : null),
+      el("p", { class: "tenue" }, testoFonte(c.spiegazione) ?? "", fonte ? [" ", el("a", { href: fonte, target: "_blank", rel: "noopener" }, t().fonte)] : null),
       el("p", { class: "tenue" }, t().ogniRiga)) : null,
     vista.obiezioni.length ? el("section", { class: "obiezioni" }, el("h2", {}, t().obiezioni),
       el("ul", {}, vista.obiezioni.map(o => el("li", {}, el("b", {}, lingua === "en" ? o.chiave : o.nome), `: ${intero(o.obiezione)}`)))) : null,
@@ -464,9 +479,9 @@ function mostra(vista) {
     el("div", { class: "azioni non-stampare" },
       bottoneNote,
       el("button", { type: "button", onclick: () => window.print() }, t().stampa),
-      vista.invio_scelte ? el("button", { type: "button", onclick: () => inviaScelte(vista, scelte, document.getElementById("esito-invio")) }, t().invia) : null,
+      invio ? el("button", { type: "button", onclick: () => inviaScelte(vista, scelte, document.getElementById("esito-invio")) }, t().invia) : null,
       el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, t().salva),
-      vista.invio_scelte ? el("span", { id: "esito-invio", role: "status", class: "tenue" }) : null),
+      invio ? el("span", { id: "esito-invio", role: "status", class: "tenue" }) : null),
     pannelloNote,
     el("section", { class: "solo-stampa", id: "scelte-stampa" }),
     el("footer", {}, el("span", {}, t().costo(vista)), el("span", {}, t().piede[0], el("code", {}, t().piede[1]), t().piede[2])));
@@ -499,7 +514,7 @@ async function avvia() {
     return;
   }
   const percorso = new URLSearchParams(location.search).get("vista");
-  if (percorso) {
+  if (percorso && stessoSito(percorso)) {
     try { return vedi(await (await fetch(percorso)).json()); } catch (e) { console.error(e); }
   }
   document.getElementById("file").addEventListener("change", async e => {
