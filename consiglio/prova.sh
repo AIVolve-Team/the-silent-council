@@ -8,7 +8,11 @@
 #   ./consiglio/prova.sh --diagnosi               dove si rompe la telepatia: solo telepatia sul set
 #                                                 dimostrativo, senza riallineamento, con 0, 10 e 40 passi latenti;
 #                                                 i risultati vanno in consiglio/risultati-prova/diagnosi
+#   ./consiglio/prova.sh --diagnosi-cuad          la stessa verifica sui CUAD di sviluppo: telepatia
+#                                                 senza riallineamento con 0 e 10 passi, e testo, con il codice di
+#                                                 oggi; i risultati vanno in consiglio/risultati-prova/diagnosi-cuad
 #   MODELLO=Qwen/Qwen3-8B ./consiglio/prova.sh    sceglie il modello invece di lasciarlo decidere allo script
+#   TORCH_DI_SISTEMA=1 ./consiglio/prova.sh       sulla MI300X, nel container di G1: usa il torch ROCm dell'immagine
 #
 # Funziona su macOS (Apple Silicon) e su Linux con una GPU NVIDIA; su Windows va lanciato dentro WSL2.
 # Rilanciarlo è sicuro: quello che è già scaricato non si riscarica.
@@ -19,16 +23,20 @@ CONSIGLIO="$RADICE/consiglio"
 VENV="$CONSIGLIO/.venv"
 VELOCE=0
 DIAGNOSI=0
+DIAGNOSI_CUAD=0
 for argomento in "$@"; do
   case "$argomento" in
     --veloce) VELOCE=1 ;;
     --diagnosi) DIAGNOSI=1 ;;
-    -h | --help) sed -n '2,14p' "$0"; exit 0 ;;
+    --diagnosi-cuad) DIAGNOSI=1; DIAGNOSI_CUAD=1 ;;
+    -h | --help) sed -n '2,18p' "$0"; exit 0 ;;
     *) echo "Opzione sconosciuta: $argomento (vedi --help)"; exit 2 ;;
   esac
 done
 USCITA="$CONSIGLIO/risultati-prova"
-[ "$DIAGNOSI" = 1 ] && USCITA="$USCITA/diagnosi"
+NOME_DIAGNOSI="diagnosi"
+[ "$DIAGNOSI_CUAD" = 1 ] && NOME_DIAGNOSI="diagnosi-cuad"
+[ "$DIAGNOSI" = 1 ] && USCITA="$USCITA/$NOME_DIAGNOSI"
 mkdir -p "$USCITA"
 exec > >(tee -a "$USCITA/prova.log") 2>&1
 
@@ -88,19 +96,27 @@ fi
 [ "$DISPOSITIVO" = "cpu" ] && echo "Attenzione: senza GPU il giro è molto lento (anche ore per contratto)."
 
 passo "2/8 Python e librerie (la prima volta qualche minuto)"
-if ! command -v uv >/dev/null 2>&1; then
-  echo "Installo uv, il gestore di Python, nella cartella dell'utente (niente sudo)."
-  curl -LsSf https://astral.sh/uv/install.sh | sh
-  export PATH="$HOME/.local/bin:$PATH"
-fi
-[ -x "$VENV/bin/python" ] || uv venv -q -p 3.12 "$VENV"
+LIBRERIE=("transformers==4.57.6" "safetensors==0.8.0" "huggingface-hub==0.36.2" "lm-format-enforcer==0.11.3" \
+  "cryptography==50.0.2" "tokenizers==0.22.2" "pytest==9.1.1" -e "$RADICE/motore")
 PY="$VENV/bin/python"
-if [ "$DISPOSITIVO" = "rocm" ]; then
-  [ -n "${TORCH_INDEX_URL:-}" ] || ferma "Su GPU AMD indica la build ROCm di torch: TORCH_INDEX_URL=https://download.pytorch.org/whl/rocm... ./consiglio/prova.sh"
-  uv pip install -q -p "$PY" --index-url "$TORCH_INDEX_URL" "torch==2.14.1"
+if [ "${TORCH_DI_SISTEMA:-0}" = 1 ]; then
+  # Sulla MI300X, dentro il container del motore di G1 (vllm/vllm-openai-rocm, g1/README.md passo 3): torch resta
+  # quello ROCm dell'immagine, lo stesso che G1 controlla con fp32 contro bf16; il resto sta nel venv.
+  [ -x "$PY" ] || python3 -m venv --system-site-packages "$VENV" || ferma "Il venv non si crea."
+  "$PY" -m pip install -q "${LIBRERIE[@]}" || ferma "Le librerie non si installano."
+else
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "Installo uv, il gestore di Python, nella cartella dell'utente (niente sudo)."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  [ -x "$PY" ] || uv venv -q -p 3.12 "$VENV"
+  if [ "$DISPOSITIVO" = "rocm" ]; then
+    [ -n "${TORCH_INDEX_URL:-}" ] || ferma "Su GPU AMD: TORCH_DI_SISTEMA=1 nel container di G1, oppure TORCH_INDEX_URL=https://download.pytorch.org/whl/rocm... ./consiglio/prova.sh"
+    uv pip install -q -p "$PY" --index-url "$TORCH_INDEX_URL" "torch==2.14.1"
+  fi
+  uv pip install -q -p "$PY" "torch==2.14.1" "${LIBRERIE[@]}"
 fi
-uv pip install -q -p "$PY" "torch==2.14.1" "transformers==4.57.6" "safetensors==0.8.0" "huggingface-hub==0.36.2" \
-  "lm-format-enforcer==0.11.3" "cryptography==50.0.2" "tokenizers==0.22.2" "pytest==9.1.1" -e "$RADICE/motore"
 "$PY" -c "import torch, transformers; print('torch', torch.__version__, '| transformers', transformers.__version__, '| GPU:', 'mps' if torch.backends.mps.is_available() else ('cuda' if torch.cuda.is_available() else 'nessuna'))"
 # Qwen3 è addestrato in bf16: in float16 i modelli Qwen possono andare in overflow e scrivere token senza senso,
 # senza errori. Il float16 resta solo per le GPU che il bf16 non lo fanno, e lo si scopre provandolo.
@@ -145,7 +161,7 @@ sys.exit("Il set dimostrativo non coincide con le impronte del repo: " + ", ".jo
 else
   echo "Set dimostrativo non trovato: il giro usa solo CUAD (vedi PROVA.md per averlo)."
 fi
-if [ "$DIAGNOSI" = 1 ] && [ "$CON_DEMO" = 0 ]; then
+if [ "$DIAGNOSI" = 1 ] && [ "$DIAGNOSI_CUAD" = 0 ] && [ "$CON_DEMO" = 0 ]; then
   ferma "La diagnosi gira sul set dimostrativo verificato, che qui manca (vedi PROVA.md per averlo)."
 fi
 
@@ -154,28 +170,36 @@ REVISIONE="$(cd "$CONSIGLIO/revisione" && "$PY" -c "from revisione.esegui import
 "$PY" -c "import sys; from huggingface_hub import snapshot_download; snapshot_download(sys.argv[1], revision=sys.argv[2])" "$MODELLO" "$REVISIONE"
 
 passo "7/8 Il Consiglio"
+# Ogni giro ha i suoi passi latenti; RIGHE conta le righe di riepilogo che scriveranno (una per valore dei passi).
 giri=()
-PASSI=(10)
-if [ "$DIAGNOSI" = 1 ]; then
+RIGHE=0
+aggiungi_giro() { giri+=("$1"); RIGHE=$((RIGHE + $2)); }
+if [ "$DIAGNOSI_CUAD" = 1 ]; then
+  # La conferma sui CUAD di sviluppo prima di congelare la pre-registrazione: telepatia senza
+  # riallineamento con 0 passi (e 10, per il controllo dei pensieri azzerati) contro il testo rifatto con lo stesso
+  # codice, così il confronto è pulito.
+  aggiungi_giro "--benchmark cuad --modalita telepatia --senza-riallineamento --passi 0 10" 2
+  aggiungi_giro "--benchmark cuad --modalita testo --passi 10" 1
+elif [ "$DIAGNOSI" = 1 ]; then
   # Un giro solo, così il modello si carica una volta per i tre valori dei passi. Con 0 passi il relatore riceve solo
   # la memoria di quello che gli esperti hanno letto: se resta rotto, il problema non sono i passi latenti.
-  giri+=("--benchmark dimostrativo --modalita telepatia --senza-riallineamento")
-  PASSI=(0 10 40)
+  aggiungi_giro "--benchmark dimostrativo --modalita telepatia --senza-riallineamento --passi 0 10 40" 3
 else
   if [ "$CON_DEMO" = 1 ]; then
-    giri+=("--benchmark dimostrativo --modalita telepatia")
-    [ "$VELOCE" = 1 ] || giri+=("--benchmark dimostrativo --modalita testo")
+    aggiungi_giro "--benchmark dimostrativo --modalita telepatia --passi 10" 1
+    [ "$VELOCE" = 1 ] || aggiungi_giro "--benchmark dimostrativo --modalita testo --passi 10" 1
   fi
   if [ "$VELOCE" = 1 ]; then
-    [ "$CON_DEMO" = 1 ] || giri+=("--benchmark cuad --modalita telepatia --limite 2")
+    [ "$CON_DEMO" = 1 ] || aggiungi_giro "--benchmark cuad --modalita telepatia --limite 2 --passi 10" 1
   else
-    giri+=("--benchmark cuad --modalita telepatia" "--benchmark cuad --modalita testo")
+    aggiungi_giro "--benchmark cuad --modalita telepatia --passi 10" 1
+    aggiungi_giro "--benchmark cuad --modalita testo --passi 10" 1
   fi
 fi
 for giro in "${giri[@]}"; do
   echo "-- $giro ($(date +%H:%M))"
   # shellcheck disable=SC2086
-  (cd "$CONSIGLIO/revisione" && "$PY" -u -m revisione.esegui $giro --passi "${PASSI[@]}" --modello "$MODELLO" \
+  (cd "$CONSIGLIO/revisione" && "$PY" -u -m revisione.esegui $giro --modello "$MODELLO" \
     --dtype "$DTYPE" $MAX_TOKEN --uscita "$USCITA" 2>&1 | grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint") ||
     echo "!! Il giro '$giro' si è fermato: il resto continua (dettagli in $USCITA/prova.log)."
 done
@@ -222,22 +246,29 @@ fi
 fi
 
 passo "Riepilogo"
-grep -h " contratti | " "$USCITA/prova.log" | tail -n $((${#giri[@]} * ${#PASSI[@]})) || true
+grep -h " contratti | " "$USCITA/prova.log" | tail -n "$RIGHE" || true
 if [ "$DIAGNOSI" = 1 ]; then
   MANDA="Comprimi la cartella $USCITA e manda lo zip."
   if command -v zip >/dev/null 2>&1; then
     rm -f "$USCITA.zip"
     # Senza le copie intere dei messaggi che il motore salva solo se il sigillo si rompe: pesano GB.
-    (cd "$(dirname "$USCITA")" && zip -qr diagnosi.zip diagnosi -x "diagnosi/registro/*.safetensors") &&
+    (cd "$(dirname "$USCITA")" && zip -qr "$NOME_DIAGNOSI.zip" "$NOME_DIAGNOSI" -x "$NOME_DIAGNOSI/registro/*.safetensors") &&
       MANDA="Lo zip da mandare è $USCITA.zip."
+  fi
+  if [ "$DIAGNOSI_CUAD" = 1 ]; then
+    GIRI_FATTI="telepatia senza riallineamento con 0 e 10 passi, e testo"
+    PRIVATO="Contiene solo contratti CUAD, che sono pubblici: niente del set dimostrativo."
+  else
+    GIRI_FATTI="un file per numero di passi latenti (0, 10, 40)"
+    PRIVATO="Mandalo solo in privato a chi te l'ha chiesto, non su GitHub: contiene frasi del set dimostrativo."
   fi
   cat <<FINE
 
 Fatto. Risultati della diagnosi in $USCITA:
-- *.jsonl          le revisioni complete, un file per numero di passi latenti (0, 10, 40)
+- *.jsonl          le revisioni complete: $GIRI_FATTI
 - prova.log        tutto quello che è successo
 $MANDA
-Mandalo solo in privato a chi te l'ha chiesto, non su GitHub: contiene frasi del set dimostrativo.
+$PRIVATO
 FINE
   exit 0
 fi
