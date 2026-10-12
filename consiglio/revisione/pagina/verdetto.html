@@ -252,6 +252,20 @@ function scaricaScelte(vista, scelte) {
   document.body.append(link); link.click(); link.remove();
 }
 
+// Con il server del Consiglio la pagina manda le scelte al suo indirizzo, con la chiave del link della persona.
+async function inviaScelte(vista, scelte, esito) {
+  const da_mandare = Object.fromEntries(Object.entries(scelte).filter(([k]) => vista.righe.some(r => r.chiave === k && r.dissenso)));
+  if (!Object.keys(da_mandare).length) { esito.textContent = "Scegli prima chi ha ragione su almeno un dissenso."; return; }
+  esito.textContent = "Invio in corso…";
+  try {
+    const risposta = await fetch(vista.invio_scelte, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ scelte: da_mandare }) });
+    const dati = await risposta.json();
+    esito.textContent = risposta.ok ? `Scelte inviate: ${dati.registrate}.` : `Non inviate: ${dati.errore}`;
+  } catch {
+    esito.textContent = "Non inviate: il server non risponde. Riprova, oppure salva le scelte.";
+  }
+}
+
 function mostra(vista) {
   const pagina = document.getElementById("pagina");
   const scelte = leggiScelte(vista);
@@ -300,7 +314,9 @@ function mostra(vista) {
     el("div", { class: "azioni non-stampare" },
       bottoneNote,
       el("button", { type: "button", onclick: () => window.print() }, "Scarica il riepilogo (PDF)"),
-      el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, "Salva le scelte")),
+      vista.invio_scelte ? el("button", { type: "button", onclick: () => inviaScelte(vista, scelte, document.getElementById("esito-invio")) }, "Invia le scelte") : null,
+      el("button", { type: "button", class: "secondario", onclick: () => scaricaScelte(vista, scelte) }, "Salva le scelte"),
+      vista.invio_scelte ? el("span", { id: "esito-invio", role: "status", class: "tenue" }) : null),
     pannelloNote,
     el("section", { class: "solo-stampa", id: "scelte-stampa" }),
     el("footer", {}, el("span", {}, `Modello ${vista.modello} · modalità ${vista.modalita} · ${vista.costo.token_generati} token scritti, ${vista.costo.posizioni_latenti} pensieri latenti, ${vista.costo.secondi} s`),
