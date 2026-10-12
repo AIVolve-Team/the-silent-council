@@ -37,8 +37,8 @@ Per un contratto:
 ```bash
 cd consiglio/revisione
 uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/requirements.txt
-.venv/bin/python -m pytest -q -m "not modello" # 33 test veloci
-.venv/bin/python -m pytest -q # 37 test, con Qwen3-0.6B
+.venv/bin/python -m pytest -q -m "not modello" # 43 test veloci
+.venv/bin/python -m pytest -q # 47 test, con Qwen3-0.6B
 
 # I contratti del set di misura vengono da consiglio/dati/cache (prepara.py li scarica).
 .venv/bin/python -m revisione.esegui --benchmark cuad --modalita telepatia --passi 10 --modello Qwen/Qwen3-1.7B
