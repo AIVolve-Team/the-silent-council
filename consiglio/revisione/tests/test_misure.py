@@ -123,11 +123,27 @@ def test_rapporto_su_cuad_di_sviluppo(tmp_path):
     assert (tmp_path / "grafico-cuad-sviluppo.svg").read_text().startswith("<svg")
 
 
+def test_rapporto_con_0_passi_niente_prove_sui_pensieri(tmp_path):
+    # Con 0 passi latenti non ci sono pensieri: la frase per la giuria parla di memoria (PREREGISTRAZIONE.md).
+    giuste = risposte_giuste("cuad", "sviluppo")
+    contratti = sorted({c for c, _ in giuste})
+    perfetti = [riga(c, {k: v for (cc, k), v in giuste.items() if cc == c}) for c in contratti]
+    tutto_no = [riga(c, {k: False for (cc, k) in giuste if cc == c}) for c in contratti]
+    for nome, righe in {"telepatia": perfetti, "testo": tutto_no, "contratto-scambiato": tutto_no}.items():
+        (tmp_path / f"cuad-sviluppo-{nome}.jsonl").write_text("\n".join(json.dumps(r) for r in righe))
+    (tmp_path / "esame-cuad-sviluppo.json").write_text(json.dumps({"passi": 0, "riallineamento": False}))
+    testo = esame.scrivi_rapporto(tmp_path)
+    assert "Gli agenti si passano la memoria di ciò che hanno letto." in testo
+    assert "si passano i pensieri" not in testo and "Pensieri azzerati" not in testo
+    assert "riallineamento spento" in testo
+
+
 def test_scelta_dei_passi_e_soglie_proposte():
     from revisione.taratura import proponi_soglie, scegli_passi
 
-    assert scegli_passi({0: 70.0, 10: 60.0, 20: 60.5, 40: 62.0}) == 40
+    assert scegli_passi({0: 60.0, 10: 61.5, 20: 62.6, 40: 63.0}) == 20  # i pensieri aiutano: 20 e 40 entro 1 punto
     assert scegli_passi({10: 61.5, 20: 62.0, 40: 62.4}) == 10  # sotto 1 punto vince il valore con meno passi
+    assert scegli_passi({0: 68.8, 10: 56.2, 20: 60.0, 40: 69.5}) == 0  # i pensieri non aiutano: si corregge
     voci = [(0.99, True)] * 9 + [(0.95, False)] + [(0.75, True)] * 7 + [(0.72, False)] * 3 + [(0.55, False)] * 5
     assert proponi_soglie(voci) == (0.8, 0.6)  # sopra 0,8: 9 giuste su 10; fra 0,6 e 0,8: 7 su 10
     assert proponi_soglie([(0.99, False)]) is None

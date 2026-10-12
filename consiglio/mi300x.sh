@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
-# Il giro del Consiglio sulla MI300X, appena passa G1. La prima volta va lanciato ./consiglio/prova.sh --veloce,
-# che prepara Python, dati, set dimostrativo e modello, e prova che tutto gira sulla GPU.
+# Il giro del Consiglio sulla MI300X, nel container del motore di G1, dopo i suoi passi 3 e 4 (container e
+# fp32 contro bf16, g1/README.md): la guida è consiglio/MI300X.md. La prima volta va lanciato
+# TORCH_DI_SISTEMA=1 ./consiglio/prova.sh --veloce, che prepara Python, dati e modello e prova che tutto gira sulla GPU.
 #
 #   ./consiglio/mi300x.sh taratura     telepatia con 0, 10, 20 e 40 passi e testo, su CUAD e dimostrativo di
 #                                      sviluppo; scrive le tabelle per scegliere passi e soglie
 #   ./consiglio/mi300x.sh sviluppo     l'eval di sviluppo su tutti i benchmark, con PASSI=<passi scelti>
 #   ./consiglio/mi300x.sh test         il giro di test, una volta sola, con la pre-registrazione congelata
 #
-# Variabili: PASSI (sviluppo e test), SENZA_RIALLINEAMENTO=1 (se lo decide la diagnosi del 12/10).
+# Variabili: PASSI (sviluppo e test); il riallineamento W_a è spento, come deciso con la diagnosi del 12/10
+# (SENZA_RIALLINEAMENTO=0 lo riaccende, solo per un confronto: non è la configurazione pre-registrata).
 # Per provare lo script senza GPU: MODELLO=Qwen/Qwen3-0.6B LIMITE=1 ./consiglio/mi300x.sh taratura (LIMITE=2 per
 # sviluppo, perché gli scambi servono almeno 2 contratti).
 set -euo pipefail
@@ -19,7 +21,7 @@ FASE="${1:-}"
 MODELLO="${MODELLO:-Qwen/Qwen3-14B}"
 case "$FASE" in
   taratura | sviluppo | test) ;;
-  *) sed -n '2,12p' "$0"; exit 2 ;;
+  *) sed -n '2,14p' "$0"; exit 2 ;;
 esac
 [ -x "$PY" ] || { echo "Manca $PY: lancia prima ./consiglio/prova.sh --veloce"; exit 1; }
 USCITA="$CONSIGLIO/risultati-mi300x/$FASE"
@@ -28,7 +30,7 @@ exec > >(tee -a "$USCITA/giro.log") 2>&1
 echo "== $FASE con $MODELLO ($(date '+%d/%m %H:%M'))"
 
 opzioni=(--modello "$MODELLO" --dtype bfloat16)
-[ "${SENZA_RIALLINEAMENTO:-0}" = 1 ] && opzioni+=(--senza-riallineamento)
+[ "${SENZA_RIALLINEAMENTO:-1}" = 1 ] && opzioni+=(--senza-riallineamento)
 prove=()
 [ -n "${LIMITE:-}" ] && prove+=(--limite "$LIMITE")
 filtra() { grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint"; }

@@ -18,8 +18,10 @@ from pathlib import Path
 from .esegui import _contratti_e_risposte
 from .punteggio import accordo, vota
 
-# I passi fra cui si sceglie; lo 0 si misura a parte, come verifica anticipata dei pensieri.
-CANDIDATI = (10, 20, 40)
+# I passi fra cui si sceglie: 10, 20 e 40 di «Eval pre-registrato», e lo 0, che è la sua verifica anticipata dei pensieri. Con la stessa
+# regola dei pareggi, lo 0 vince solo se nessun valore con i pensieri lo batte di almeno 1 punto: allora i pensieri non
+# aiutano e il sistema si corregge prima del congelamento, come «Eval pre-registrato» permette (PREREGISTRAZIONE.md).
+CANDIDATI = (0, 10, 20, 40)
 PAREGGIO = 1.0
 # Le soglie si propongono su una griglia: la confidenza è la probabilità della posizione scelta, fra 0,5 e 1.
 GRIGLIA = (0.6, 0.7, 0.8, 0.85, 0.9, 0.95, 0.99)
@@ -32,10 +34,10 @@ _NOME = re.compile(
 
 
 def scegli_passi(f1: dict[int, float]) -> int:
-    """Vince l'F1 più alto fra 10, 20 e 40; sotto 1 punto di differenza vince il valore con meno passi."""
+    """Vince l'F1 più alto fra 0, 10, 20 e 40; sotto 1 punto di differenza vince il valore con meno passi."""
     candidati = [m for m in CANDIDATI if m in f1]
     if not candidati:
-        raise ValueError("servono i giri con 10, 20 o 40 passi")
+        raise ValueError("servono i giri con 0, 10, 20 o 40 passi")
     migliore = max(f1[m] for m in candidati)
     return min(m for m in candidati if migliore - f1[m] < PAREGGIO)
 
@@ -118,10 +120,10 @@ def rapporto(cartella: Path, benchmark: str) -> str:
         if any(m in f1 for m in CANDIDATI):
             scelto = scegli_passi(f1)
             parti.append(f"**Passi scelti:** {scelto} (F1 {_n(f1[scelto])}), con la regola di «Eval pre-registrato».")
-            if 0 in f1 and f1[0] > f1[scelto]:
+            if scelto == 0:
                 parti.append(
-                    f"Con 0 passi l'F1 è più alta ({_n(f1[0])}): sul set di sviluppo i pensieri non aiutano, e per «Eval pre-registrato» "
-                    "si può correggere il sistema prima di congelare le regole."
+                    "Con i pensieri l'F1 non sale di almeno 1 punto: sul set di sviluppo i pensieri non aiutano. Per «Eval pre-registrato» il "
+                    "sistema si corregge prima del congelamento: 0 passi, niente prove sui pensieri, frase di riserva."
                 )
             voci = decisioni(telepatia[scelto], giuste) + decisioni(modalita.get("testo", {}).get(scelto, []), giuste)
             parti += ["", "**Confidenza** (verdetti e note, telepatia e testo con i passi scelti):", ""]

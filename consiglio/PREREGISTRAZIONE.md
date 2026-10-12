@@ -25,9 +25,12 @@ Le **definizioni operative** sono nuove, scritte con il codice: vanno riviste da
 ## Modello e decodifica
 
 - **Qwen3-14B**, revisione `40c069824f4251a91eefaf281ebe4c544efd3e18`, in bf16, su una MI300X, batch 1.
+- **Ambiente:** il container del motore di G1 (`vllm/vllm-openai-rocm:v0.30.0`, con il torch ROCm dell'immagine), dopo il confronto fp32 contro bf16 di G1 (`g1/README.md`, passo 4): su ROCm le maschere dell'attenzione hanno avuto bug. La guida è `consiglio/MI300X.md`.
 - **Decodifica greedy** in tutte le configurazioni, cioè temperatura 0: un solo giro per configurazione.
-- **Passi latenti:** **da fissare**, con la regola sul set di sviluppo: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi.
-- **Riallineamento W_a** dei passi latenti: **da fissare** (acceso o spento), dopo la diagnosi.
+- **Passi latenti:** **da fissare** con la taratura sulla MI300X (`mi300x.sh taratura`), sul set di sviluppo di CUAD: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi.
+  - 10, 20 e 40 sono i valori. Lo 0 è la sua *verifica anticipata* dei pensieri: se vince, sul set di sviluppo i pensieri non aiutano, e permette di correggere il sistema prima del congelamento.
+  - Sul Mac (M1 Max, 12/10/2026, senza riallineamento) CUAD di sviluppo dava F1 68,8 con 0 passi e 56,2 con 10; il testo 51,6.
+- **Riallineamento W_a** dei passi latenti: **spento**, con la diagnosi (12/10/2026, Qwen3-14B su M1 Max). Acceso, la telepatia faceva 28,6 sul set dimostrativo e 19,0 su CUAD di sviluppo; spento, 98,2 e 68,8, contro 78,3 e 51,6 del testo. Su Qwen3-14B, che ha gli embedding d'ingresso e d'uscita separati, il riallineamento rompe la memoria passata al relatore.
 
 ## Configurazioni
 
@@ -81,6 +84,8 @@ Tutte in telepatia, con i passi latenti scelti.
   - *"I pensieri migliorano il risultato"* solo se i pensieri azzerati fanno calare l'F1 di **almeno 2 punti** e quelli di un altro contratto lo fanno calare;
   - altrimenti: *"Gli agenti si passano la memoria di ciò che hanno letto invece di riscriverlo: stessa qualità, meno token."*
 
+**Con 0 passi latenti** non ci sono pensieri: le prove *pensieri azzerati* e *pensieri di un altro contratto* non si fanno (la prima sarebbe lo stesso giro della telepatia, la seconda non ha pensieri da scambiare) e vale la frase di riserva. Anche la frase che si dice sempre descrive il meccanismo per quello che è: *"Gli agenti si passano la memoria di ciò che hanno letto."* Il *contratto scambiato* resta.
+
 Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 
 ## Misure senza soglia
@@ -103,14 +108,26 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
   - Chi controlla riceve fogli, scheda e contratti, ma non i `.json` delle risposte attese.
   - La chiave (`chiave.json`) resta a chi organizza, che alla fine conta con `python -m revisione.cieca conta`.
 
+## Taratura sulla MI300X
+
+**Da compilare** al congelamento, con `consiglio/risultati-mi300x/taratura/taratura.md`: le tabelle di CUAD e del set dimostrativo, i passi scelti con la regola qui sopra e le soglie di confidenza. Accanto, l'accordo coppia per coppia con i giri del Mac sullo stesso codice: se i sì/no divergono molto, ci si ferma e si cerca il motivo prima del test.
+
 ## Come si fa girare
+
+Nel container del motore di G1, dalla radice del repo (la guida è `consiglio/MI300X.md`):
+
+```bash
+PASSI=<passi fissati>./consiglio/mi300x.sh test
+```
+
+`mi300x.sh` fa girare i quattro benchmark con il riallineamento spento e scrive il rapporto. A mano sono questi comandi:
 
 ```bash
 cd consiglio/revisione
-.venv/bin/python -m revisione.esame esegui --benchmark cuad --insieme test --passi <passi fissati> --uscita esame-test
-.venv/bin/python -m revisione.esame esegui --benchmark contractnli --insieme test --passi <passi fissati> --uscita esame-test
-.venv/bin/python -m revisione.esame esegui --benchmark claudette --insieme test --passi <passi fissati> --uscita esame-test
-.venv/bin/python -m revisione.esame esegui --benchmark dimostrativo --passi <passi fissati> --uscita esame-test
+.venv/bin/python -m revisione.esame esegui --benchmark cuad --insieme test --passi <passi fissati> --senza-riallineamento --uscita esame-test
+.venv/bin/python -m revisione.esame esegui --benchmark contractnli --insieme test --passi <passi fissati> --senza-riallineamento --uscita esame-test
+.venv/bin/python -m revisione.esame esegui --benchmark claudette --insieme test --passi <passi fissati> --senza-riallineamento --uscita esame-test
+.venv/bin/python -m revisione.esame esegui --benchmark dimostrativo --passi <passi fissati> --senza-riallineamento --uscita esame-test
 .venv/bin/python -m revisione.esame rapporto esame-test
 ```
 

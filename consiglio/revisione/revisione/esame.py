@@ -74,6 +74,11 @@ def esegui(argomenti: argparse.Namespace) -> None:
     uscita: Path = argomenti.uscita
     uscita.mkdir(parents=True, exist_ok=True)
     scelte = [c for c in ORDINE if c in argomenti.configurazioni]
+    if argomenti.passi == 0 and {"m0", "pensieri-scambiati"} & set(scelte):
+        # Con 0 passi non ci sono pensieri: "pensieri azzerati" sarebbe lo stesso giro della telepatia e i pensieri di
+        # un altro contratto non esistono. Le due prove non si fanno (PREREGISTRAZIONE.md, prove di sabotaggio).
+        print("0 passi latenti: niente prove sui pensieri (pensieri azzerati, pensieri scambiati).", flush=True)
+        scelte = [c for c in scelte if c not in ("m0", "pensieri-scambiati")]
     if "pensieri-scambiati" in scelte and "telepatia" not in scelte:
         raise SystemExit("I pensieri scambiati usano i pensieri del giro in telepatia: aggiungi la telepatia.")
     preregistrazione, deviazione = None, None
@@ -289,13 +294,22 @@ def _sezione(benchmark: str, insieme: str, numeri: dict, meta: dict) -> list[str
     if numeri.get("sabotaggi"):
         righe += ["### Prove di sabotaggio", "", "| Prova | Differenza di F1 con la telepatia |", "|---|---|"]
         righe += [f"| {misure.NOMI[c]} | {_segno(d)} |" for c, d in numeri["sabotaggi"].items()]
-        aiutano = numeri.get("pensieri_aiutano")
-        frase = {
-            True: misure.FRASE_PENSIERI,
-            False: misure.FRASE_RISERVA,
-            None: "mancano le prove sui pensieri per decidere",
-        }[aiutano]
-        righe += ["", f"Frase per la giuria: *{misure.FRASE_SEMPRE}* E poi: *{frase}*", ""]
+        if meta.get("passi") == 0:
+            # 0 passi: niente pensieri latenti, quindi niente prove sui pensieri e la frase di riserva.
+            righe += [
+                "",
+                "Con 0 passi latenti non ci sono pensieri: le prove sui pensieri non si fanno.",
+                f"Frase per la giuria: *{misure.FRASE_MEMORIA}* E poi: *{misure.FRASE_RISERVA}*",
+                "",
+            ]
+        else:
+            aiutano = numeri.get("pensieri_aiutano")
+            frase = {
+                True: misure.FRASE_PENSIERI,
+                False: misure.FRASE_RISERVA,
+                None: "mancano le prove sui pensieri per decidere",
+            }[aiutano]
+            righe += ["", f"Frase per la giuria: *{misure.FRASE_SEMPRE}* E poi: *{frase}*", ""]
         if "contratto-scambiato" in numeri["sabotaggi"]:
             righe += ["Il contratto scambiato deve crollare: se non crolla, c'è un errore nel codice.", ""]
     senza = numeri.get("senza_soglia") or {}

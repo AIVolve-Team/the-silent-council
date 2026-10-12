@@ -247,6 +247,8 @@ def pensieri_aiutano(f1_telepatia: float, f1_m0: float | None, f1_scambiati: flo
 
 
 FRASE_SEMPRE = "Gli agenti si passano i pensieri."
+# Con 0 passi latenti non ci sono pensieri: si descrive il meccanismo per quello che è (PREREGISTRAZIONE.md).
+FRASE_MEMORIA = "Gli agenti si passano la memoria di ciò che hanno letto."
 FRASE_PENSIERI = "I pensieri migliorano il risultato."
 FRASE_RISERVA = (
     "Gli agenti si passano la memoria di ciò che hanno letto invece di riscriverlo: stessa qualità, meno token."
