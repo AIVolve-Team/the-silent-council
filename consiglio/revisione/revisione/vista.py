@@ -19,6 +19,7 @@ from .confidenza import livello
 NOMI = {"legale": "Legale", "finanza": "Finanza", "rischio": "Rischio", "relatore": "Relatore"}
 PAGINA = Path(__file__).resolve().parents[1] / "pagina" / "verdetto.html"
 _SEGNAPOSTO = '<script id="dati" type="application/json">null</script>'
+TAGLIO_PROVA = 400
 
 
 def pagina(vista_: dict) -> str:
@@ -44,7 +45,27 @@ def _citazioni_nota(nota: dict) -> dict[str, tuple[str, bool]]:
     return {c["categoria"]: (c["testo"], trovate.get(c["categoria"], False)) for c in nota["dati"]["citazioni"]}
 
 
-def vista(revisione: dict, benchmark: Benchmark, titolo: str) -> dict:
+def _esperti(risposta: dict | None, segnalare: bool | None) -> dict | None:
+    if risposta is None:
+        return None
+    return {
+        "da_segnalare": risposta["da_segnalare"],
+        "d_accordo": None if segnalare is None else segnalare == risposta["da_segnalare"],
+        # Al massimo due pezzi annotati, tagliati: bastano a far vedere dove guardare.
+        "prove": [p if len(p) <= TAGLIO_PROVA else p[:TAGLIO_PROVA].rstrip() + "…" for p in risposta["prove"][:2]],
+    }
+
+
+def vista(
+    revisione: dict,
+    benchmark: Benchmark,
+    titolo: str,
+    *,
+    esperti: dict[str, dict] | None = None,
+    fonte: dict | None = None,
+) -> dict:
+    """`esperti` (categoria → {"da_segnalare", "prove"}) e `fonte` ({"nome", "link"}) solo per il sito dei giudici
+: ogni riga dice anche cosa hanno risposto gli esperti del dataset. La PMI cliente non li ha."""
     nomi = {c.chiave: c.nome for c in benchmark.categorie}
     verdetto = revisione.get("verdetto")
     dati = verdetto["dati"] if verdetto else None
@@ -57,16 +78,18 @@ def vista(revisione: dict, benchmark: Benchmark, titolo: str) -> dict:
     for categoria in benchmark.categorie:
         dettaglio = dettagli.get(categoria.chiave, {})
         dissenso = dissensi.get(categoria.chiave)
+        segnalare = None if dati is None else dati["segnalare"].get(categoria.chiave)
         riga = {
             "chiave": categoria.chiave,
             "nome": categoria.nome,
             "ruolo": categoria.ruolo,
-            "segnalare": None if dati is None else dati["segnalare"].get(categoria.chiave),
+            "segnalare": segnalare,
             "confidenza": _livello(verdetto, categoria.chiave),
             "citazione": dettaglio.get("citazione"),
             "citazione_trovata": trovate.get(categoria.chiave) if dettaglio else None,
             "motivazione": dettaglio.get("motivazione"),
             "dissenso": None,
+            "esperti": _esperti((esperti or {}).get(categoria.chiave), segnalare),
         }
         if dissenso:
             citazione, trovata = _citazioni_nota(note.get(dissenso["ruolo"], {})).get(categoria.chiave, (None, None))
@@ -111,6 +134,10 @@ def vista(revisione: dict, benchmark: Benchmark, titolo: str) -> dict:
             }
         )
 
+    confrontate = [r for r in righe if r["esperti"] and r["esperti"]["d_accordo"] is not None]
+    # Il conto severo: l'accordo da solo è alto anche per chi risponde sempre "niente", perché le clausole presenti
+    # sono poche.
+    da_trovare = [r for r in confrontate if r["esperti"]["da_segnalare"]]
     fermata = revisione.get("fermata")
     return {
         "titolo": titolo,
@@ -133,6 +160,15 @@ def vista(revisione: dict, benchmark: Benchmark, titolo: str) -> dict:
             "motivo": None if fermata is None else fermata["motivo"],
         },
         "righe": righe,
+        "confronto": None
+        if esperti is None
+        else {
+            **(fonte or {}),
+            "d_accordo": sum(r["esperti"]["d_accordo"] for r in confrontate),
+            "confrontate": len(confrontate),
+            "trovate": sum(r["segnalare"] is True for r in da_trovare),
+            "da_trovare": len(da_trovare),
+        },
         "note": note_vista,
         "costo": {
             "token_generati": revisione["token_generati"],

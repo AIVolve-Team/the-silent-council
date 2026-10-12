@@ -49,7 +49,7 @@
 body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding-inline: 16px; padding-block: 28px 64px; }
 .foglio { max-width: 920px; margin-inline: auto; display: grid; gap: 28px; }
 h1, h2, h3 { font-family: var(--display); line-height: 1.15; margin: 0; text-wrap: balance; }
-h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 h2 { font-size: 1.15rem; font-weight: 700; }
 p { margin: 0; }
 button { font: inherit; cursor: pointer; }
@@ -106,6 +106,17 @@ button:focus-visible, summary:focus-visible { outline: 2px solid var(--accento);
 .scelta button { border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 8px; padding: 6px 12px; }
 .scelta button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); border-color: var(--inchiostro); }
 details.dissenso > summary { cursor: pointer; font-weight: 600; color: var(--lieve); }
+
+/* confronto con le risposte giuste del dataset: solo nel sito dei giudici */
+.confronto { background: var(--foglio); border: 1px solid var(--linea); border-radius: 12px; padding: 16px 20px; display: grid; gap: 6px; }
+.confronto .conto { font: 700 1.05rem/1.3 var(--display); }
+.confronto a { color: var(--accento); }
+.esperti { border-radius: 8px; padding: 8px 12px; display: grid; gap: 6px; background: var(--carta); font-size: 0.92rem; }
+.esperti.diverso { background: var(--rifiutare-tenue); }
+.esperti .esito { font-weight: 600; }
+.esperti.uguale .esito { color: var(--firmare); }
+.esperti.diverso .esito { color: var(--rifiutare); }
+.esperti details > summary { cursor: pointer; color: var(--tenue); }
 details.dissenso.grave > summary { color: var(--grave); }
 
 /* note degli esperti */
@@ -214,6 +225,22 @@ function sceltaPersona(vista, riga, scelte) {
   return contenitore;
 }
 
+function bloccoEsperti(vista, r) {
+  const e = r.esperti;
+  if (!e) return null;
+  const chi = vista.confronto?.chi ?? "gli esperti";
+  const loro = e.da_segnalare ? "va segnalata" : "non c'è niente da segnalare";
+  const esito = e.d_accordo === true ? `✓ D'accordo con ${chi}: ${loro}.`
+    : e.d_accordo === false ? `✗ Non d'accordo con ${chi}: per loro ${loro}.`
+    : `Per ${chi} ${loro}.`;
+  return el("div", { class: `esperti${e.d_accordo === true ? " uguale" : e.d_accordo === false ? " diverso" : ""}` },
+    el("p", { class: "esito" }, esito),
+    e.da_segnalare && e.prove.length
+      ? el("details", {}, el("summary", {}, e.prove.length === 1 ? "Il pezzo segnato da loro" : "I pezzi segnati da loro"),
+          e.prove.map(p => el("blockquote", { class: "citazione" }, `“${p}”`)))
+      : null);
+}
+
 function riga(vista, r, scelte) {
   const segnalata = r.segnalare === true;
   return el("li", { class: `riga${segnalata ? " segnalata" : ""}${r.dissenso ? " con-dissenso" : ""}` },
@@ -225,6 +252,7 @@ function riga(vista, r, scelte) {
     segnalata && r.citazione ? el("blockquote", { class: "citazione" }, `“${r.citazione}”`) : null,
     segnalata && r.citazione ? el("div", { class: "pillole" }, pillolaCitazione(r.citazione_trovata)) : null,
     segnalata && r.motivazione ? el("p", { class: "motivazione" }, r.motivazione) : null,
+    bloccoEsperti(vista, r),
     r.dissenso ? bloccoDissenso(vista, r, scelte) : null);
 }
 
@@ -294,6 +322,15 @@ function mostra(vista) {
       : el("section", { class: "avviso-rosso", role: "alert" }, el("h2", {}, "Verdetto non emesso"),
           el("p", {}, "Un messaggio fra gli esperti non ha superato i controlli della macchina della verità, quindi il Consiglio si è fermato."),
           el("p", { class: "tenue" }, `Controllo: ${s.controllo ?? "verdetto non valido"} · ${s.motivo ?? ""}`)),
+    vista.confronto && r ? el("section", { class: "confronto" },
+      el("span", { class: "eyebrow" }, `Confronto con ${vista.confronto.nome}`),
+      el("p", { class: "conto" }, `D'accordo con ${vista.confronto.chi} su ${vista.confronto.d_accordo} clausole su ${vista.confronto.confrontate}.`),
+      vista.confronto.da_trovare
+        ? el("p", {}, `Delle ${vista.confronto.da_trovare} clausole che per loro vanno segnalate, il Consiglio ne ha trovate ${vista.confronto.trovate}.`)
+        : el("p", {}, "Per loro in questo contratto non c'è niente da segnalare."),
+      el("p", { class: "tenue" }, vista.confronto.spiegazione ?? "",
+        vista.confronto.link ? [" ", el("a", { href: vista.confronto.link, target: "_blank", rel: "noopener" }, "Vedi la fonte")] : null),
+      el("p", { class: "tenue" }, "In ogni riga trovi la loro risposta accanto a quella del Consiglio, anche dove il Consiglio sbaglia.")) : null,
     vista.obiezioni.length ? el("section", { class: "obiezioni" }, el("h2", {}, "Le obiezioni dell'avvocato del diavolo"),
       el("ul", {}, vista.obiezioni.map(o => el("li", {}, el("b", {}, o.nome), `: ${o.obiezione}`)))) : null,
     ...(r ? gruppi : []),

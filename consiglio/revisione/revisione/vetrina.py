@@ -17,11 +17,54 @@ import json
 from pathlib import Path
 
 from .categorie import BENCHMARK
-from .dati import dimostrativo
+from .dati import dimostrativo, risposte_esperti
 from .vista import pagina, vista
 
 INDICE = Path(__file__).resolve().parents[1] / "pagina" / "vetrina.html"
 _SEGNAPOSTO = '<script id="dati" type="application/json">null</script>'
+
+# Da dove vengono i contratti e le risposte giuste (dati/NOTICE.md): non sono nostri, e il giudice può controllarli.
+FONTI = {
+    "cuad": {
+        "nome": "CUAD",
+        "chi": "gli esperti di CUAD",
+        "link": "https://github.com/TheAtticusProject/cuad",
+        "spiegazione": (
+            "Il contratto e le risposte giuste vengono da CUAD, un dataset pubblico di contratti veri annotati da"
+            " studenti di legge controllati da avvocati (The Atticus Project, NeurIPS 2021). Non li abbiamo "
+            "scritti noi."
+        ),
+    },
+    "contractnli": {
+        "nome": "ContractNLI",
+        "chi": "gli esperti di ContractNLI",
+        "link": "https://stanfordnlp.github.io/contract-nli/",
+        "spiegazione": (
+            "L'accordo e le risposte giuste vengono da ContractNLI, un dataset pubblico di accordi di "
+            "riservatezza veri annotati a mano (Koreeda e Manning, Stanford, EMNLP 2021). Non li abbiamo scritti "
+            "noi."
+        ),
+    },
+    "claudette": {
+        "nome": "CLAUDETTE",
+        "chi": "gli esperti di CLAUDETTE",
+        "link": "https://github.com/lt-nlp-lab-unibo/Multilingual-Unfair-Clause-Detection",
+        "spiegazione": (
+            "Le condizioni d'uso e le risposte giuste vengono da CLAUDETTE, un dataset pubblico di condizioni "
+            "d'uso vere annotate a mano da giuristi (Galassi e altri, Artificial Intelligence and Law, 2024). Non"
+            " le abbiamo scritte noi."
+        ),
+    },
+    "dimostrativo": {
+        "nome": "risposte attese",
+        "chi": "le risposte attese",
+        "link": None,
+        "spiegazione": (
+            "Le risposte attese le abbiamo scritte prima delle prove e bloccate con la loro impronta digitale nel"
+            " repo: si può controllare che non siano cambiate dopo."
+        ),
+    },
+}
 
 
 class Privato(SystemExit):
@@ -53,6 +96,11 @@ def voce(revisione: dict, v: dict, file: str) -> dict:
         "dissensi_gravi": sum(bool(r["dissenso"]) and r["dissenso"]["tipo"] == "grave" for r in righe),
         "dissensi_lievi": sum(bool(r["dissenso"]) and r["dissenso"]["tipo"] == "lieve" for r in righe),
         "sigillo_integro": v["sigillo"]["integro"],
+        "fonte": (v["confronto"] or {}).get("nome"),
+        "d_accordo": (v["confronto"] or {}).get("d_accordo"),
+        "confrontate": (v["confronto"] or {}).get("confrontate"),
+        "trovate": (v["confronto"] or {}).get("trovate"),
+        "da_trovare": (v["confronto"] or {}).get("da_trovare"),
         "token_generati": revisione["token_generati"],
         "secondi": round(revisione["secondi"]),
         "modello": revisione["modello"],
@@ -67,15 +115,23 @@ def scrivi_vetrina(giri: list[Path], uscita: Path, *, registrato: str | None, co
             "Il set dimostrativo resta privato fino alla consegna e il sito è pubblico: "
             "togli quei giri, oppure aggiungi --consegna quando si consegna."
         )
-    testi = (
-        {cid: testo for cid, testo, _ in dimostrativo()}
-        if any(r["benchmark"] == "dimostrativo" for r in revisioni)
-        else {}
-    )
+    testi, attese = {}, {}
+    if any(r["benchmark"] == "dimostrativo" for r in revisioni):
+        for cid, testo, attesa in dimostrativo():
+            testi[cid] = testo
+            attese[cid] = {
+                riga["categoria"]: {
+                    "da_segnalare": riga["da_segnalare"],
+                    "prove": [riga["citazione"]] if riga.get("citazione") else [],
+                }
+                for riga in attesa["righe"]
+            }
     uscita.mkdir(parents=True, exist_ok=True)
     voci = []
     for r in revisioni:
-        v = vista(r, BENCHMARK[r["benchmark"]], titolo_di(r, testi))
+        esperti = (attese if r["benchmark"] == "dimostrativo" else risposte_esperti(r["benchmark"])).get(r["contratto"])
+        fonte = FONTI[r["benchmark"]] if esperti else None
+        v = vista(r, BENCHMARK[r["benchmark"]], titolo_di(r, testi), esperti=esperti, fonte=fonte)
         file = f"verdetto-{r['benchmark']}-{r['contratto'][:50].rstrip('-_. ')}-{r['modalita']}.html"
         file = file.replace("/", "_").replace(" ", "_")
         (uscita / file).write_text(pagina(v))

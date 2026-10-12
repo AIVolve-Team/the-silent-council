@@ -64,3 +64,24 @@ def test_pagina_con_i_dati_dentro_senza_chiudere_lo_script():
 def test_la_pagina_di_esempio_e_aggiornata():
     attesa = pagina(vista(revisione(), BENCHMARK["dimostrativo"], TITOLO))
     assert (ESEMPIO.parent / "esempio.html").read_text() == attesa, "rigenerare pagina/esempio.html (vedi README)"
+
+
+def test_accanto_a_ogni_riga_la_risposta_degli_esperti():
+    # Nel sito dei giudici: dove il Consiglio è d'accordo con gli esperti del dataset e dove sbaglia.
+    esperti = {
+        "Cap On Liability": {"da_segnalare": True, "prove": ["x" * 500]},
+        "Anti-Assignment": {"da_segnalare": False, "prove": []},
+    }
+    fonte = {"nome": "CUAD", "chi": "gli esperti di CUAD", "link": "https://example.org", "spiegazione": "…"}
+    v = vista(revisione(), BENCHMARK["dimostrativo"], TITOLO, esperti=esperti, fonte=fonte)
+    righe = {r["chiave"]: r for r in v["righe"]}
+    tetto, cessione = righe["Cap On Liability"]["esperti"], righe["Anti-Assignment"]["esperti"]
+    assert tetto["d_accordo"] is True and tetto["prove"][0].endswith("…") and len(tetto["prove"][0]) < 500
+    assert righe["Anti-Assignment"]["segnalare"] is True and cessione["d_accordo"] is False
+    assert righe["Uncapped Liability"]["esperti"] is None
+    assert v["confronto"] == fonte | {"d_accordo": 1, "confrontate": 2, "trovate": 1, "da_trovare": 1}
+
+
+def test_la_pmi_non_vede_il_confronto():
+    v = vista(revisione(), BENCHMARK["dimostrativo"], TITOLO)
+    assert v["confronto"] is None and all(r["esperti"] is None for r in v["righe"])

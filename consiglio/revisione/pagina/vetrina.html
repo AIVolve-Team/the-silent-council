@@ -44,16 +44,19 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accento); outli
 .testa { display: grid; gap: 10px; }
 .testa .sotto { font-size: 1.05rem; color: var(--tenue); max-width: 62ch; }
 .verdetti { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
-.verdetto { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 20px; display: grid; gap: 10px; align-content: start; }
+.verdetto { background: var(--foglio); border: 1px solid var(--linea); border-radius: 14px; padding: 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+/* I nomi dei contratti CUAD sono lunghi e senza spazi: vanno a capo dove serve. */
+.verdetto h2 { overflow-wrap: anywhere; }
 .etichette { display: flex; flex-wrap: wrap; gap: 6px; }
 .etichetta { border-radius: 999px; padding: 3px 10px; font-size: 0.8rem; font-weight: 600; background: var(--carta); border: 1px solid var(--linea); }
 .racc { font-family: var(--display); font-weight: 800; font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.02em; }
 .racc.firmare { color: var(--vivo); } .racc.negoziare { color: var(--attesa); } .racc.non-firmare { color: var(--rosso); }
 .numeri { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.numero { background: var(--carta); border-radius: 10px; padding: 8px 10px; }
+.numero { background: var(--carta); border-radius: 10px; padding: 8px 10px; min-width: 0; overflow-wrap: anywhere; }
 .numero b { display: block; font-family: var(--dati); font-size: 1.1rem; }
 .numero span { font-size: 0.78rem; color: var(--tenue); }
 .sigillo.integro { color: var(--vivo); } .sigillo.rotto { color: var(--rosso); }
+.accordo { font-weight: 600; }
 .costo { font-family: var(--dati); font-size: 0.82rem; color: var(--tenue); }
 .bottone { justify-self: start; display: inline-block; text-decoration: none; font-weight: 600; border-radius: 8px; padding: 8px 14px; border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); }
 .vuoto { background: var(--foglio); border: 1px dashed var(--linea); border-radius: 14px; padding: 20px; }
@@ -69,6 +72,8 @@ const T = {
   en: {
     casa: "← Home", titolo: "Consiglio silenzioso", sotto: "Four agents review a contract for an Italian small business: legal, finance and risk experts pass each other their memory instead of text, and a devil's advocate writes the verdict with its dissent.",
     registrato: "Recorded", nota: "Verdict pages are in Italian, like the ones the client receives.",
+    fonti: "We did not write these contracts, nor the right answers. They come from public datasets annotated by legal experts:", fontiDopo: "Every verdict shows the experts' answer next to the council's, mistakes included.",
+    accordo: (n, m, f) => `Agrees with the ${f} experts on ${n} of ${m} clauses`, trovate: (n, m) => `found ${n} of the ${m} the experts flagged`, accordoAttese: (n, m) => `Matches the pre-registered answers on ${n} of ${m} clauses`,
     telepatia: "Telepathy", testo: "Text", apri: "Open the verdict",
     racc: { "firmare": "Sign", "negoziare": "Negotiate", "non firmare": "Do not sign" }, nessuna: "No valid verdict",
     segnalate: "flagged clauses", gravi: "strong dissents", lievi: "mild dissents",
@@ -79,6 +84,8 @@ const T = {
   it: {
     casa: "← Home", titolo: "Consiglio silenzioso", sotto: "Quattro agenti rivedono un contratto per una piccola impresa italiana: gli esperti legale, di finanza e di rischio si passano la memoria invece del testo, e un avvocato del diavolo scrive il verdetto con il suo dissenso.",
     registrato: "Registrato", nota: "Le pagine del verdetto sono in italiano, come quelle che riceve il cliente.",
+    fonti: "Questi contratti non li abbiamo scritti noi, e nemmeno le risposte giuste. Vengono da dataset pubblici annotati da esperti di diritto:", fontiDopo: "Ogni verdetto mostra la risposta degli esperti accanto a quella del Consiglio, errori compresi.",
+    accordo: (n, m, f) => `D'accordo con gli esperti di ${f} su ${n} clausole su ${m}`, trovate: (n, m) => `trovate ${n} delle ${m} segnate dagli esperti`, accordoAttese: (n, m) => `Come le risposte attese pre-registrate su ${n} clausole su ${m}`,
     telepatia: "Telepatia", testo: "Testo", apri: "Apri il verdetto",
     racc: { "firmare": "Firmare", "negoziare": "Negoziare", "non firmare": "Non firmare" }, nessuna: "Nessun verdetto valido",
     segnalate: "clausole segnalate", gravi: "dissensi gravi", lievi: "dissensi lievi",
@@ -100,6 +107,8 @@ const el = (tag, attr = {}, ...figli) => {
   for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
   return n;
 };
+const FONTI = { CUAD: "https://github.com/TheAtticusProject/cuad", ContractNLI: "https://stanfordnlp.github.io/contract-nli/",
+  CLAUDETTE: "https://github.com/lt-nlp-lab-unibo/Multilingual-Unfair-Clause-Detection" };
 const numero = (valore, etichetta) => el("div", { class: "numero" }, el("b", { text: String(valore) }), el("span", { text: etichetta }));
 
 function disegna() {
@@ -115,6 +124,9 @@ function disegna() {
     dati.registrato ? el("p", { class: "tenue", text: `${t.registrato}: ${dati.registrato}` }) : null,
     el("p", { class: "tenue", text: t.nota })));
   const voci = dati.verdetti || [];
+  const usate = [...new Set(voci.map((v) => v.fonte).filter((f) => FONTI[f]))];
+  if (usate.length) pagina.append(el("p", { class: "tenue" }, t.fonti, " ",
+    usate.flatMap((f, i) => [i ? ", " : "", el("a", { href: FONTI[f], target: "_blank", rel: "noopener", text: f })]), ". ", t.fontiDopo));
   if (!voci.length) pagina.append(el("p", { class: "vuoto tenue", text: t.nessunVerdetto }));
   pagina.append(el("section", { class: "verdetti" }, voci.map((v) => el("article", { class: "verdetto" },
     el("div", { class: "etichette" }, el("span", { class: "etichetta", text: v.modalita === "testo" ? t.testo : t.telepatia }),
@@ -122,6 +134,8 @@ function disegna() {
     el("h2", { text: v.titolo }),
     el("p", { class: `racc ${(v.raccomandazione || "").replace(" ", "-")}`, text: v.raccomandazione ? t.racc[v.raccomandazione] : t.nessuna }),
     el("div", { class: "numeri" }, numero(`${v.segnalate}/${v.categorie}`, t.segnalate), numero(v.dissensi_gravi, t.gravi), numero(v.dissensi_lievi, t.lievi)),
+    v.confrontate ? el("p", { class: "accordo", text: (FONTI[v.fonte] ? t.accordo(v.d_accordo, v.confrontate, v.fonte) : t.accordoAttese(v.d_accordo, v.confrontate))
+      + (v.da_trovare ? ` · ${t.trovate(v.trovate, v.da_trovare)}` : "") }) : null,
     el("p", { class: `sigillo ${v.sigillo_integro ? "integro" : "rotto"}`, text: v.sigillo_integro ? t.integro : t.rotto }),
     el("p", { class: "costo", text: `${v.modello} · ${t.costo(v.token_generati, v.secondi)}` }),
     el("a", { class: "bottone", href: v.pagina, text: t.apri })))));
