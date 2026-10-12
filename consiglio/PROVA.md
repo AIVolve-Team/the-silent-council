@@ -87,6 +87,23 @@ Come si leggono i numeri, confrontandoli con la prova dell'8/10 (10 passi con ri
 - se invece **con 0 e 10 passi senza riallineamento** il verdetto torna vicino a quello a testo, il colpevole è il riallineamento;
 - se va bene con 0 passi ma non con 10, anche senza riallineamento, a confondere il relatore sono i "pensieri" stessi.
 
+## La verifica su CUAD
+
+La diagnosi del 12/10 ha dato la colpa al riallineamento: senza, la telepatia sul set dimostrativo arriva a F1 98,2, con 0, 10 e 40 passi. Prima di congelare la pre-registrazione va confermato sui contratti CUAD di sviluppo, dove si misura G4:
+
+```bash
+./consiglio/prova.sh --diagnosi-cuad
+```
+
+Su Mac c'è anche `consiglio/diagnosi-cuad.command` (doppio clic nel Finder, oppure `open consiglio/diagnosi-cuad.command`).
+
+- Gira **solo sui CUAD di sviluppo**. Su un Mac sotto gli 80 GB sono i 4 contratti fino a 14.000 token, gli stessi della prova dell'8/10. Il set dimostrativo non serve.
+- **Telepatia senza riallineamento con 0 e 10 passi:** 0 è il valore da confermare, 10 serve al controllo dei pensieri azzerati.
+- **Testo rifatto con il codice di oggi**, così il confronto con la telepatia è pulito. Il testo dell'8/10 veniva da un codice più vecchio.
+- Con Qwen3-14B su un Mac M1 Max da 64 GB dura **circa un'ora e un quarto**.
+- I risultati vanno in `consiglio/risultati-prova/diagnosi-cuad/`, e alla fine lo script prepara lo zip `consiglio/risultati-prova/diagnosi-cuad.zip`.
+- **Lo zip contiene solo contratti CUAD, che sono pubblici:** niente del set dimostrativo.
+
 ## Con Claude Code
 
 Se la prova la chiedi a Claude Code, queste sono le regole per lui:
@@ -108,14 +125,15 @@ Se la prova la chiedi a Claude Code, queste sono le regole per lui:
   open consiglio/prova.command
   ```
 
-  Per la [prova di diagnosi](#la-prova-di-diagnosi) il comando è `open consiglio/diagnosi.command`.
+  Per la [prova di diagnosi](#la-prova-di-diagnosi) il comando è `open consiglio/diagnosi.command`, per la [verifica su CUAD](#la-verifica-su-cuad) `open consiglio/diagnosi-cuad.command`.
 
   Il giro dura ore e usa molta memoria: un comando lanciato dentro Claude Code può essere fermato quando la memoria si riempie. La prima volta macOS può chiedere il permesso di far aprire la cartella al Terminale: va accettato.
-- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log` (per la diagnosi `consiglio/risultati-prova/diagnosi/prova.log`), che cresce mentre la prova va avanti.
+- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log` (per la diagnosi `consiglio/risultati-prova/diagnosi/prova.log`, per la verifica su CUAD `consiglio/risultati-prova/diagnosi-cuad/prova.log`), che cresce mentre la prova va avanti.
   - È finita quando in fondo al log compare la riga che comincia con `Fatto.`.
   - Si è fermata se `pgrep -f consiglio/prova.sh` non trova più niente e quella riga non c'è.
 - **Alla fine** il log ha il riepilogo di ogni giro: va spiegato in parole semplici, mettendo a confronto telepatia e testo (F1, token, secondi). Le pagine del verdetto sono in `consiglio/risultati-prova/pagine/`.
   Nella diagnosi invece si confrontano i tre giri (0, 10 e 40 passi) e si ricorda di mandare lo zip in privato.
+  Nella verifica su CUAD si confronta la telepatia con 0 passi con il testo, e la telepatia con 0 passi con quella con 10.
 - **Se si ferma, niente correzioni:** si riportano il messaggio d'errore e le ultime righe di `prova.log`.
 
 ## Il set dimostrativo
