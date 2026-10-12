@@ -1,0 +1,9 @@
+# Sulla MI300X, nel venv creato con --system-site-packages dentro vllm/vllm-openai-rocm:v0.30.0 (README, passo 3):
+# torch resta quello ROCm dell'immagine, mentre transformers 4.57.6 e il resto stanno solo nel venv, separati da vLLM.
+-e ../motore
+transformers==4.57.6
+safetensors==0.8.0
+huggingface-hub==0.36.2
+lm-format-enforcer==0.11.3
+cryptography==50.0.2
+pytest==9.1.1

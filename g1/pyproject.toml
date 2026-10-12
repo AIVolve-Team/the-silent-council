@@ -1,0 +1,10 @@
+[project]
+name = "g1"
+version = "0.1.0"
+description = "G1: il motore telepatico sulla MI300X con Qwen3-14B"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["modello: carica un Qwen3 piccolo (lento, scarica il modello la prima volta)"]
