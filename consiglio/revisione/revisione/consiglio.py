@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import time
 from dataclasses import asdict, dataclass, field
+from typing import TYPE_CHECKING
 
 from motore import TELEPATIA, TESTO, Agente, Generazione, Motore, Staffetta
 
@@ -21,6 +22,9 @@ from .confidenza import livello, probabilita_si, token_booleani
 from .istruzioni import istruzioni_esperto, istruzioni_relatore, lettura, nota, verdetto
 from .schemi import schema_nota, schema_verdetto, token_massimi
 from .taglio import taglia
+
+if TYPE_CHECKING:
+    import torch
 
 
 @dataclass
@@ -38,6 +42,18 @@ class Scritto:
     @property
     def valido(self) -> bool:
         return self.dati is not None
+
+
+@dataclass
+class Pensieri:
+    """I pensieri di un esperto senza la sua memoria: etichetta e stati nascosti dei passi latenti, pochi KB.
+
+    Bastano alla staffetta per dare quei pensieri allo stesso esperto su un altro contratto (`pensieri_da`), la prova
+    "pensieri scambiati" dell'eval.
+    """
+
+    etichetta: dict
+    stati: torch.Tensor
 
 
 @dataclass
@@ -136,6 +152,8 @@ class Consiglio:
         self.esperti = [Agente(r, istruzioni_esperto(r, benchmark)) for r in benchmark.lettori]
         self.relatore = Agente("relatore", istruzioni_relatore(benchmark))
         self.veri, self.falsi = token_booleani(motore.modello.tokenizer)
+        # I pensieri degli esperti nell'ultima revisione in telepatia, per la prova dei pensieri scambiati.
+        self.pensieri: dict[str, Pensieri] = {}
 
     def revisiona(self, contratto: str, testo: str, **opzioni) -> Revisione:
         """`opzioni` va alla staffetta: per esempio `pensieri_da` per la prova di «Eval pre-registrato» o `attacchi` per la demo."""
@@ -173,6 +191,9 @@ class Consiglio:
             impronte=[m.impronta for m in esito.messaggi],
             posizioni_latenti=esito.posizioni_latenti,
         )
+        self.pensieri = {
+            m.mittente: Pensieri(dict(m.etichetta), m.stati.to("cpu")) for m in esito.messaggi if m.stati is not None
+        }
         if esito.fermata is not None:
             revisione.fermata = asdict(esito.fermata)
         else:

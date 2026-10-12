@@ -47,14 +47,33 @@ def contratti(benchmark: str, insieme: str) -> list[tuple[str, str]]:
     return [(cid, testi[cid]) for cid in campione[benchmark][insieme]]
 
 
+def _righe(benchmark: str, insieme: str):
+    for r in (DATI / "set-di-misura" / "risposte-giuste.jsonl").open():
+        riga = json.loads(r)
+        if riga["benchmark"] == benchmark and riga["insieme"] == insieme:
+            yield riga
+
+
 def risposte_giuste(benchmark: str, insieme: str) -> dict[tuple[str, str], bool]:
     """(contratto, categoria) → da segnalare."""
-    righe = (json.loads(r) for r in (DATI / "set-di-misura" / "risposte-giuste.jsonl").open())
-    return {
-        (r["contratto"], r["categoria"]): r["da_segnalare"]
-        for r in righe
-        if r["benchmark"] == benchmark and r["insieme"] == insieme
-    }
+    return {(r["contratto"], r["categoria"]): r["da_segnalare"] for r in _righe(benchmark, insieme)}
+
+
+def prove(benchmark: str, insieme: str) -> dict[tuple[str, str], list[str]]:
+    """(contratto, categoria) → i pezzi di testo annotati, per la versione severa del voto. Per il set
+    dimostrativo sono le citazioni delle risposte attese."""
+    if benchmark == "dimostrativo":
+        return {
+            (cid, r["categoria"]): [r["citazione"]] if r.get("citazione") else []
+            for cid, _, attesa in dimostrativo()
+            for r in attesa["righe"]
+        }
+    return {(r["contratto"], r["categoria"]): r["prove"] for r in _righe(benchmark, insieme)}
+
+
+def risposte_grado_3(insieme: str) -> dict[tuple[str, str], bool]:
+    """CLAUDETTE con il solo grado 3 (chiaramente abusiva): la vista a parte chiesta in «Contratti di prova e risposte giuste»."""
+    return {(r["contratto"], r["categoria"]): r["da_segnalare_grado_3"] for r in _righe("claudette", insieme)}
 
 
 def cartella_dimostrativo() -> Path:

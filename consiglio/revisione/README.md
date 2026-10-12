@@ -22,8 +22,13 @@ Per un contratto:
 | `revisione/citazioni.py` | verifica delle citazioni nel testo del contratto |
 | `revisione/punteggio.py` | F1, precisione, richiamo, MCC e base "sempre sì" sulle coppie (contratto, categoria), per il verdetto e per le note; accordo fra note e verdetto |
 | `revisione/esegui.py` | fa girare il Consiglio su un insieme e scrive una revisione per riga in `risultati/` |
-| `revisione/dati.py` | legge contratti, risposte giuste e set dimostrativo da `consiglio/dati` |
+| `revisione/dati.py` | legge contratti, risposte giuste, pezzi annotati e set dimostrativo da `consiglio/dati` |
 | `revisione/vista.py` | dalla revisione alla vista della pagina del verdetto, e la pagina con i dati dentro |
+| `revisione/configurazioni.py` | le configurazioni di confronto dell'eval: agente solo e voto fra 4 agenti indipendenti |
+| `revisione/misure.py` | le misure dell'eval: F1 severa, bootstrap appaiato, costi, G4, sabotaggi, dissensi, taratura, importi e date, grafico |
+| `revisione/esame.py` | fa girare l'eval e ne scrive il rapporto; sul test parte solo con la pre-registrazione congelata |
+| `revisione/cieca.py` | il controllo a mano alla cieca: fogli neutri e mescolati, scheda da compilare e conti con la chiave |
+| `revisione/taratura.py` | sceglie i passi latenti e propone le soglie di confidenza dai giri di sviluppo |
 | `pagina/verdetto.html` | la pagina del verdetto per la persona |
 
 ## Uso
@@ -31,8 +36,8 @@ Per un contratto:
 ```bash
 cd consiglio/revisione
 uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/requirements.txt
-.venv/bin/python -m pytest -q -m "not modello" # 22 test veloci
-.venv/bin/python -m pytest -q # 24 test, circa 4 minuti su un Mac M4 (Qwen3-0.6B)
+.venv/bin/python -m pytest -q -m "not modello" # 33 test veloci
+.venv/bin/python -m pytest -q # 37 test, con Qwen3-0.6B
 
 # I contratti del set di misura vengono da consiglio/dati/cache (prepara.py li scarica).
 .venv/bin/python -m revisione.esegui --benchmark cuad --modalita telepatia --passi 10 --modello Qwen/Qwen3-1.7B
@@ -71,6 +76,25 @@ Per rigenerarla:
 ```
 
 Il collegamento con Evolus (email con il link alla pagina, scelte rimandate con il secondo workflow) aspetta l'integrazione dell'.
+
+## L'eval 
+
+Le regole sono in [`consiglio/PREREGISTRAZIONE.md`](../PREREGISTRAZIONE.md), che va congelata e committata prima del giro di test.
+
+```bash
+# Tutte le configurazioni con il modello caricato una volta: telepatia, testo, agente solo, voto fra 4 e le tre
+# prove di sabotaggio (pensieri azzerati, pensieri di un altro contratto, contratto scambiato).
+.venv/bin/python -m revisione.esame esegui --benchmark cuad --insieme sviluppo --passi 10 --uscita esame
+.venv/bin/python -m revisione.esame esegui --benchmark dimostrativo --passi 10 --configurazioni telepatia testo --uscita esame
+.venv/bin/python -m revisione.esame rapporto esame # rapporto.md, numeri.json e un grafico per benchmark
+
+# Taratura, dai giri di esegui con --passi 0 10 20 40
+.venv/bin/python -m revisione.taratura risultati --benchmark cuad
+```
+
+- Ogni configurazione scrive `<benchmark>-<insieme>-<configurazione>.jsonl`, nella forma delle revisioni del Consiglio; `esame-<benchmark>-<insieme>.json` dice modello, dtype, dispositivo, passi, commit del codice e della pre-registrazione.
+- **Sul test** `esame` parte solo se la pre-registrazione non è più una bozza, è committata e il codice di `consiglio/` e `motore/` non ha modifiche locali. Il test gira una volta: un secondo giro chiede `--deviazione "motivo"`.
+- Il rapporto ha solo numeri aggregati e si può incollare nel ticket; i `.jsonl` contengono frasi dei contratti e restano nel team.
 
 ## Scelte
 
