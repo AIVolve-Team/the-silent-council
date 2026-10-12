@@ -1,13 +1,13 @@
 # Pre-registrazione dell'eval del Consiglio
 
-Stato: bozza
+Stato: congelata il 12/10/2026
 
 Finché c'è la riga qui sopra, `revisione.esame` non fa girare il set di test.
 Per congelare le regole: si compilano i punti segnati **da fissare**, si cambia la riga in `Stato: congelata il GG/MM/AAAA` e si fa il commit **prima** del giro di test.
 Dopo, il test gira una volta sola, e ogni cambiamento si scrive fra le [deviazioni](#deviazioni) con il motivo.
 
 Le regole vengono da Eval pre-registrato del Consiglio, da Metriche e soglie G1-G4 e dalle note.
-Le **definizioni operative** sono nuove, scritte con il codice: vanno riviste dal team prima del congelamento.
+Le **definizioni operative** sono nuove, scritte con il codice: andavano riviste dal team prima del congelamento. Non è stato fatto: vedi le [deviazioni](#deviazioni).
 
 ## Dati
 
@@ -27,7 +27,7 @@ Le **definizioni operative** sono nuove, scritte con il codice: vanno riviste da
 - **Qwen3-14B**, revisione `40c069824f4251a91eefaf281ebe4c544efd3e18`, in bf16, su una MI300X, batch 1.
 - **Ambiente:** il container del motore di G1 (`vllm/vllm-openai-rocm:v0.30.0`, con il torch ROCm dell'immagine), dopo il confronto fp32 contro bf16 di G1 (`g1/README.md`, passo 4): su ROCm le maschere dell'attenzione hanno avuto bug. La guida è `consiglio/MI300X.md`.
 - **Decodifica greedy** in tutte le configurazioni, cioè temperatura 0: un solo giro per configurazione.
-- **Passi latenti:** **da fissare** con la taratura sulla MI300X (`mi300x.sh taratura`), sul set di sviluppo di CUAD: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi.
+- **Passi latenti: 0**, fissati con la taratura sulla MI300X del 12/10/2026 (`mi300x.sh taratura`, sezione [Taratura sulla MI300X](#taratura-sulla-mi300x)), sul set di sviluppo di CUAD: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi. Ha vinto 0 con F1 71,4, contro 65,1 con 10 passi.
   - 10, 20 e 40 sono i valori. Lo 0 è la sua *verifica anticipata* dei pensieri: se vince, sul set di sviluppo i pensieri non aiutano, e permette di correggere il sistema prima del congelamento.
   - Sul Mac (M1 Max, 12/10/2026, senza riallineamento) CUAD di sviluppo dava F1 68,8 con 0 passi e 56,2 con 10; il testo 51,6.
 - **Riallineamento W_a** dei passi latenti: **spento**, con la diagnosi (12/10/2026, Qwen3-14B su M1 Max). Acceso, la telepatia faceva 28,6 sul set dimostrativo e 19,0 su CUAD di sviluppo; spento, 98,2 e 68,8, contro 78,3 e 51,6 del testo. Su Qwen3-14B, che ha gli embedding d'ingresso e d'uscita separati, il riallineamento rompe la memoria passata al relatore.
@@ -93,7 +93,7 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 - **Chi aveva ragione nei dissensi** fra la nota dell'esperto e il verdetto:
   - nel dissenso grave (esperto "sì", verdetto "no"), quante volte aveva ragione l'esperto;
   - nel lieve (esperto "no", verdetto "sì"), quante volte aveva ragione il relatore.
-- **Taratura della confidenza del verdetto:** quota di decisioni giuste per livello alto, medio e basso, con le soglie fissate (**da fissare**; oggi 0,9 e 0,7).
+- **Taratura della confidenza del verdetto:** quota di decisioni giuste per livello alto, medio e basso, con le soglie fissate: **alta da 0,9, media da 0,7**. La taratura su CUAD dice che nessuna soglia arriva a 9 decisioni giuste su 10 (sopra 0,99 sono giuste l'89%): le soglie restano queste, e il rapporto lo dice.
 - **Accordo fra note e verdetto**, e F1 delle note prese come verdetto.
 - **Importi e date nel verdetto**, solo sul set dimostrativo: quanti sono, e quanti non compaiono nel contratto. Un importo che non è nel contratto si segnala sempre, anche se capita una volta sola.
 - **Grafico qualità contro costo:** F1 contro token generati per contratto, per le 4 configurazioni.
@@ -110,7 +110,16 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 
 ## Taratura sulla MI300X
 
-**Da compilare** al congelamento, con `consiglio/risultati-mi300x/taratura/taratura.md`: le tabelle di CUAD e del set dimostrativo, i passi scelti con la regola qui sopra e le soglie di confidenza. Accanto, l'accordo coppia per coppia con i giri del Mac sullo stesso codice: se i sì/no divergono molto, ci si ferma e si cerca il motivo prima del test.
+12/10/2026, 1× MI300X (AMD Developer Cloud, ROCm 7.2), container `vllm/vllm-openai-rocm:v0.30.0` con torch `2.12.0+git6bbd260` e transformers 4.57.6, codice al commit `1ad3b02`, riallineamento spento. Spiegazione completa in [TARATURA-MI300X.md](TARATURA-MI300X.md) e.
+
+| F1 | 0 passi | 10 passi | 20 passi | 40 passi | testo |
+|---|---|---|---|---|---|
+| CUAD, sviluppo (5 contratti) | **71,4** | 65,1 | 58,5 | 61,5 (1 verdetto non valido) | 52,6 |
+| Set dimostrativo (4 contratti) | **98,2** | 98,2 | 98,2 | 98,2 | 76,6 |
+
+- **Passi scelti: 0**, con la regola qui sopra. Valgono le regole per 0 passi delle [prove di sabotaggio](#prove-di-sabotaggio): niente prove sui pensieri, frase di riserva, il contratto scambiato resta.
+- **Soglie di confidenza: 0,9 e 0,7**, come sopra.
+- **Accordo coppia per coppia** dei sì/no del verdetto con i giri del Mac sullo stesso codice (12/10/2026): CUAD 98,7% con 0 passi, 96,1% con 10, 98,7% a testo (4 contratti in comune, 76 coppie ciascuno); set dimostrativo 100% con 0, 10 e 40 passi. Nessuna divergenza da cercare prima del test.
 
 ## Come si fa girare
 
@@ -135,4 +144,5 @@ Sul test il comando controlla che questo file sia congelato e committato, e che 
 
 ## Deviazioni
 
-Nessuna.
+1. **Congelata senza la rilettura del team delle definizioni operative** (riga in cima). Il 12/10/2026 si è scelto di congelare e lanciare il test subito dopo la taratura, per avere i numeri prima del G4 del 16/10. La rilettura resta da fare dopo: se trova un errore, lo si scrive qui e il rapporto lo dice, senza rifare il test in silenzio.
+2. **Il confronto fp32 contro bf16 di G1** (sezione Modello e decodifica) è girato con il riferimento fp32 sul backend math di SDPA invece dei soli kernel veloci, che in fp32 si fermavano con `No available kernel` (commit `903d2ee` su `feat/g1`, spiegato in g1/RISULTATI-MI300X.md). Risposte uguali 5 su 5. Il giro del Consiglio non cambia.
