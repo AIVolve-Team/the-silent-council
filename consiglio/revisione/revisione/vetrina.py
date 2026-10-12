@@ -20,7 +20,7 @@ from pathlib import Path
 
 from .categorie import BENCHMARK
 from .dati import dimostrativo, risposte_esperti
-from .vista import pagina, vista
+from .vista import PAGINA, pagina, vista
 
 INDICE = Path(__file__).resolve().parents[1] / "pagina" / "vetrina.html"
 _SEGNAPOSTO = '<script id="dati" type="application/json">null</script>'
@@ -190,6 +190,22 @@ def numeri(revisioni: list[dict], viste: list[dict], registrato: str | None) -> 
     return None
 
 
+def attese_dimostrativo() -> tuple[dict[str, str], dict[str, dict]]:
+    """Testi e risposte attese del set dimostrativo: le risposte nel formato di `risposte_esperti`, con la citazione
+    attesa come pezzo segnato."""
+    testi, attese = {}, {}
+    for cid, testo, attesa in dimostrativo():
+        testi[cid] = testo
+        attese[cid] = {
+            riga["categoria"]: {
+                "da_segnalare": riga["da_segnalare"],
+                "prove": [riga["citazione"]] if riga.get("citazione") else [],
+            }
+            for riga in attesa["righe"]
+        }
+    return testi, attese
+
+
 def scrivi_vetrina(giri: list[Path], uscita: Path, *, registrato: str | None, consegna: bool = False) -> int:
     revisioni = [json.loads(r) for giro in giri for r in giro.read_text().splitlines() if r.strip()]
     if not consegna and any(r["benchmark"] == "dimostrativo" for r in revisioni):
@@ -203,17 +219,7 @@ def scrivi_vetrina(giri: list[Path], uscita: Path, *, registrato: str | None, co
         raise SystemExit(
             "Lo stesso contratto compare due volte nella stessa modalità: passa un giro solo per modalità."
         )
-    testi, attese = {}, {}
-    if any(r["benchmark"] == "dimostrativo" for r in revisioni):
-        for cid, testo, attesa in dimostrativo():
-            testi[cid] = testo
-            attese[cid] = {
-                riga["categoria"]: {
-                    "da_segnalare": riga["da_segnalare"],
-                    "prove": [riga["citazione"]] if riga.get("citazione") else [],
-                }
-                for riga in attesa["righe"]
-            }
+    testi, attese = attese_dimostrativo() if any(r["benchmark"] == "dimostrativo" for r in revisioni) else ({}, {})
     uscita.mkdir(parents=True, exist_ok=True)
     voci, viste = [], []
     for r in revisioni:
@@ -227,6 +233,8 @@ def scrivi_vetrina(giri: list[Path], uscita: Path, *, registrato: str | None, co
         (uscita / file).write_text(pagina(v))
         voci.append(voce(r, v, file))
         viste.append(v)
+    # La pagina vuota, per le prove dal vivo del giudice: la casa la apre con la vista salvata nel suo browser.
+    (uscita / "verdetto.html").write_text(PAGINA.read_text())
     medie = numeri(revisioni, viste, registrato)
     if medie:
         (uscita / "numeri.json").write_text(json.dumps(medie, ensure_ascii=False, indent=1) + "\n")

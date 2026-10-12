@@ -206,7 +206,9 @@ const T = {
     inviate: (n) => `Scelte inviate: ${n}.`, nonInviate: (e) => `Non inviate: ${e}`, nonRisponde: "Non inviate: il server non risponde. Riprova, oppure salva le scelte.",
     costo: (v) => `Modello ${v.modello}, modalità ${v.modalita}: ${v.costo.token_generati} token scritti, ${v.costo.posizioni_latenti} pensieri latenti, ${v.costo.secondi} secondi.`,
     piede: ["Le citazioni sono controllate parola per parola nel contratto. Le firme dei messaggi si verificano con ", "python -m motore.verifica", "."],
-    titolo: (t) => `Verdetto: ${t}`, indice: "Tutti i verdetti", lingueGruppo: "Lingua", linguaModello: null,
+    titolo: (t) => `Verdetto: ${t}`, indice: "Tutti i verdetti", indiceDalVivo: "Le prove dal vivo", lingueGruppo: "Lingua", linguaModello: null,
+    dalVivo: (q) => `Revisione dal vivo, ${new Date(q).toLocaleString("it-IT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
+    nonQui: "Questa prova dal vivo non è in questo browser: le prove restano nel browser dove sono state fatte.",
   },
   en: {
     chi: { legale: "the legal expert", finanza: "the finance expert", rischio: "the risk expert" },
@@ -249,7 +251,9 @@ const T = {
     inviate: (n) => `Choices sent: ${n}.`, nonInviate: (e) => `Not sent: ${e}`, nonRisponde: "Not sent: the server does not answer. Try again, or save the choices.",
     costo: (v) => `Model ${v.modello}, ${v.modalita === "testo" ? "text" : "telepathy"} mode: ${v.costo.token_generati} tokens written, ${v.costo.posizioni_latenti} latent thoughts, ${v.costo.secondi} seconds.`,
     piede: ["Quotes are checked word for word against the contract. Message signatures can be verified with ", "python -m motore.verifica", "."],
-    titolo: (t) => `Verdict: ${t}`, indice: "All verdicts", lingueGruppo: "Language",
+    titolo: (t) => `Verdict: ${t}`, indice: "All verdicts", indiceDalVivo: "Live reviews", lingueGruppo: "Language",
+    dalVivo: (q) => `Live review, ${new Date(q).toLocaleString("en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
+    nonQui: "This live review is not in this browser: live reviews stay in the browser where they were made.",
     linguaModello: "The council writes its reasoning in Italian, for the Italian business it works for. Quotes are in the contract's own language.",
   },
 };
@@ -434,10 +438,11 @@ function mostra(vista) {
   const r = vista.raccomandazione;
   const c = vista.confronto;
   pagina.replaceChildren(
-    el("div", { class: "barra non-stampare" }, vista.indice ? el("a", { href: vista.indice }, `← ${t().indice}`) : null, lingue),
+    el("div", { class: "barra non-stampare" }, vista.indice ? el("a", { href: vista.indice }, `← ${vista.dal_vivo ? t().indiceDalVivo : t().indice}`) : null, lingue),
     el("header", { class: "testa" },
       el("div", { class: "titoli" }, el("span", { class: "etichetta" }, t().revisione), el("h1", {}, vista.titolo),
-        el("p", { class: "tenue" }, vista.modalita === "testo" ? t().testo(vista.note.length) : t().telepatia(vista.note.length))),
+        el("p", { class: "tenue" }, vista.modalita === "testo" ? t().testo(vista.note.length) : t().telepatia(vista.note.length)),
+        vista.dal_vivo ? el("p", { class: "etichetta" }, t().dalVivo(vista.dal_vivo)) : null),
       sigillo),
     t().linguaModello ? el("p", { class: "lingua-modello" }, t().linguaModello) : null,
     s.integro && r
@@ -481,6 +486,18 @@ async function avvia() {
   const vedi = (vista) => { lingua = scegliLingua(vista); mostra(vista); };
   const incorporati = JSON.parse(document.getElementById("dati").textContent);
   if (incorporati) return vedi(incorporati);
+  // Una prova dal vivo del giudice (casa/sorgenti/consiglio/prova.html): la vista è nel suo browser.
+  const dalVivo = new URLSearchParams(location.search).get("dal-vivo");
+  if (dalVivo) {
+    let fatte = [];
+    try { fatte = JSON.parse(localStorage.getItem("consiglio-dal-vivo")) || []; } catch { /* niente */ }
+    const voce = Array.isArray(fatte) ? fatte.find(f => f && f.id_caso === dalVivo) : null;
+    if (voce) return vedi(voce.vista);
+    lingua = scegliLingua({});
+    document.getElementById("carica").replaceChildren(el("h1", {}, maiuscola(t().indiceDalVivo)), el("p", { class: "tenue" }, t().nonQui),
+      el("p", {}, el("a", { href: "prova.html" }, `← ${t().indiceDalVivo}`)));
+    return;
+  }
   const percorso = new URLSearchParams(location.search).get("vista");
   if (percorso) {
     try { return vedi(await (await fetch(percorso)).json()); } catch (e) { console.error(e); }

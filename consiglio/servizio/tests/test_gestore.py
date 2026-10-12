@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-from revisore.gestore import Rifiuto, chiave_del_caso
+from revisore.gestore import Occupato, Rifiuto, chiave_del_caso
 
-from .conftest import CONTRATTO, ESEMPIO, SEGRETO, email, pdf_con_testo
+from .conftest import CATALOGO, CONTRATTO, ESEMPIO, SEGRETO, email, pdf_con_testo
 
 
 def test_un_contratto_diventa_un_caso_con_pagina_link_e_avviso(revisore, consiglio):
@@ -30,7 +30,7 @@ def test_un_contratto_diventa_un_caso_con_pagina_link_e_avviso(revisore, consigl
     }
     # Il testo del contratto non si salva.
     assert all(CONTRATTO.strip() not in f.read_text() for f in cartella.iterdir())
-    assert consiglio.chiamate == [(r["id_caso"], CONTRATTO, "telepatia")]
+    assert consiglio.chiamate == [(r["id_caso"], CONTRATTO, "telepatia", "dimostrativo")]
 
 
 def test_la_stessa_email_e_lo_stesso_caso_e_il_consiglio_non_rigira(revisore, consiglio):
@@ -96,3 +96,29 @@ def test_la_pagina_sa_dove_mandare_le_scelte(revisore):
     vista = json.loads((revisore.casi / id_caso / "vista.json").read_text())
     assert vista["invio_scelte"] == f"/verdetto/{id_caso}/scelte?chiave={chiave_del_caso(SEGRETO, id_caso)}"
     assert vista["invio_scelte"] in revisore.pagina_di(id_caso)
+
+
+def test_la_prova_dal_vivo_e_un_caso_nuovo_con_il_confronto(dal_vivo, consiglio):
+    chiave = next(iter(CATALOGO))
+    prima = dal_vivo.prova_dal_vivo(chiave)
+    seconda = dal_vivo.prova_dal_vivo(chiave)
+    assert prima["id_caso"] != seconda["id_caso"]  # il giudice vede il Consiglio lavorare, anche sullo stesso contratto
+    assert consiglio.chiamate[0][1] == CATALOGO[chiave]["testo"] and consiglio.chiamate[0][3] == "cuad"
+    v = prima["vista"]
+    assert v["lingua"] == "en" and v["dal_vivo"] and v["titolo"] == CATALOGO[chiave]["titolo"]
+    tetto = next(r for r in v["righe"] if r["chiave"] == "Cap On Liability")
+    assert tetto["esperti"]["da_segnalare"] is True and v["confronto"]["nome"] == "CUAD"
+    assert dal_vivo.caso(prima["id_caso"])["vista"] == v
+    assert {c["id_caso"] for c in dal_vivo.elenco()} == {prima["id_caso"], seconda["id_caso"]}
+
+
+def test_la_prova_dal_vivo_rifiuta_e_non_aspetta(dal_vivo, revisore, consiglio):
+    with pytest.raises(Rifiuto, match="spente"):
+        revisore.prova_dal_vivo(next(iter(CATALOGO)))
+    with pytest.raises(Rifiuto, match="non è fra"):
+        dal_vivo.prova_dal_vivo("cuad:../../etc/passwd")
+    with pytest.raises(Rifiuto, match="modalita"):
+        dal_vivo.prova_dal_vivo(next(iter(CATALOGO)), "urlo")
+    with dal_vivo.lucchetto, pytest.raises(Occupato):
+        dal_vivo.prova_dal_vivo(next(iter(CATALOGO)))
+    assert consiglio.chiamate == []

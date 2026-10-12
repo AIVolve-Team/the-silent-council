@@ -40,14 +40,14 @@ class ConsiglioFinto:
     """Restituisce la revisione d'esempio della pagina e conta le chiamate."""
 
     def __init__(self) -> None:
-        self.chiamate: list[tuple[str, str, str]] = []
+        self.chiamate: list[tuple[str, str, str, str]] = []
         self.fermata = None
         self.guasto: Exception | None = None
 
-    def __call__(self, id_caso: str, testo: str, modalita: str) -> dict:
+    def __call__(self, id_caso: str, testo: str, modalita: str, benchmark: str = "dimostrativo") -> dict:
         if self.guasto:
             raise self.guasto
-        self.chiamate.append((id_caso, testo, modalita))
+        self.chiamate.append((id_caso, testo, modalita, benchmark))
         revisione = copy.deepcopy(ESEMPIO) | {"contratto": id_caso, "modalita": modalita}
         if self.fermata:
             revisione |= {"fermata": self.fermata, "verdetto": None, "dissensi": []}
@@ -62,6 +62,30 @@ def consiglio():
 @pytest.fixture
 def revisore(consiglio, tmp_path):
     return Revisore(consiglio, tmp_path / "casi", segreto=SEGRETO, link=LINK)
+
+
+# Un catalogo delle prove dal vivo come quello di revisione.dal_vivo, con un contratto CUAD e le sue risposte.
+CUAD = "TRANSPHORM,INC_02_14_2020-EX-10.12(1)-JOINT VENTURE AGREEMENT"
+CATALOGO = {
+    f"cuad:{CUAD}": {
+        "benchmark": "cuad",
+        "contratto": CUAD,
+        "insieme": "sviluppo",
+        "testo": "JOINT VENTURE AGREEMENT\n1. The parties agree.",
+        "titolo": "TRANSPHORM, INC: joint venture agreement",
+        "esperti": {"Cap On Liability": {"da_segnalare": True, "prove": ["liability shall not exceed"]}},
+        "fonte": {
+            "nome": "CUAD",
+            "link": "https://github.com/TheAtticusProject/cuad",
+            "chi": {"en": "the CUAD experts"},
+        },
+    }
+}
+
+
+@pytest.fixture
+def dal_vivo(consiglio, tmp_path):
+    return Revisore(consiglio, tmp_path / "casi", segreto=SEGRETO, link=LINK, catalogo=CATALOGO)
 
 
 def email(**altro) -> dict:

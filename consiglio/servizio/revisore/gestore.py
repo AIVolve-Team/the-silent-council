@@ -2,12 +2,15 @@
 
     revisiona_contratto(contratto, mittente, oggetto, data, modalità) → raccomandazione, dissensi, sigillo, link, avviso
     registra_scelte(id del caso, scelte, chi) → chi ha ragione su ogni dissenso, nel registro del caso
+    prova_dal_vivo(chiave del contratto, modalità) → la vista del verdetto, per le prove dei giudici
 
 Valgono per tutti e due i trasporti, come per lo Sportello:
 - un esame alla volta, perché la GPU è una;
 - la stessa email due volte è lo stesso caso, e il Consiglio non rigira: è il nuovo tentativo di Evolus;
 - senza sigillo integro non c'è verdetto, e l'avviso chiede una persona;
 - il testo del contratto non si salva: nel caso restano revisione, vista, pagina e scelte.
+
+Le prove dal vivo dei giudici non aspettano: se il Consiglio sta esaminando, rispondono subito "occupato" (409).
 """
 
 from __future__ import annotations
@@ -23,6 +26,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from revisione import BENCHMARK
+from revisione.dal_vivo import elenco as elenco_dal_vivo
 from revisione.vista import pagina, vista
 
 MODALITA = ("telepatia", "testo")
@@ -35,6 +39,10 @@ SCELTE = ("esperto", "verdetto")  # i due bottoni della pagina del verdetto
 
 class Rifiuto(ValueError):
     """La richiesta non va: 400 in HTTP, errore del tool in MCP. Il modello non è stato toccato."""
+
+
+class Occupato(Exception):
+    """Una prova dal vivo mentre il Consiglio sta già esaminando: 409, si riprova fra poco."""
 
 
 def testo_breve(nome: str, valore, *, vuoto: bool = False) -> str:
@@ -104,11 +112,15 @@ class Revisore:
         segreto: str,
         link: str,
         benchmark: str = "dimostrativo",
+        catalogo: dict[str, dict] | None = None,
     ) -> None:
-        """`revisiona(id del caso, testo, modalità)` è il Consiglio e restituisce `Revisione.come_dict()`.
+        """`revisiona(id del caso, testo, modalità, benchmark)` è il Consiglio e restituisce
+        `Revisione.come_dict()`.
 
         `link` è l'indirizzo della pagina, con `{id}` e `{chiave}`: per esempio
         `https://consiglio.example.org/verdetto/{id}?chiave={chiave}`.
+
+        `catalogo` (da `revisione.dal_vivo.catalogo`) accende le prove dal vivo dei giudici; senza, sono spente.
         """
         if "{id}" not in link or "{chiave}" not in link:
             raise ValueError("il link deve contenere {id} e {chiave}")
@@ -116,7 +128,9 @@ class Revisore:
         self.casi = casi
         self.segreto = segreto
         self.link = link
+        self.nome_benchmark = benchmark
         self.benchmark = BENCHMARK[benchmark]
+        self.catalogo = catalogo
         self.lucchetto = threading.Lock()  # un esame alla volta
         self.lucchetto_scelte = threading.Lock()  # le scelte non aspettano un esame in corso
 
@@ -154,7 +168,7 @@ class Revisore:
             cartella = self.casi / id_caso
             if (cartella / "risposta.json").exists():
                 return json.loads((cartella / "risposta.json").read_text())
-            revisione = self.revisiona(id_caso, testo, modalita)
+            revisione = self.revisiona(id_caso, testo, modalita, self.nome_benchmark)
             titolo = oggetto or next((r.strip() for r in testo.splitlines() if r.strip()), id_caso)[:120]
             v = vista(revisione, self.benchmark, titolo)
             # La pagina, servita da questo server, manda le scelte qui con la chiave del suo link.
@@ -169,6 +183,52 @@ class Revisore:
             )
             (cartella / "risposta.json").write_text(json.dumps(risposta, ensure_ascii=False, indent=1))
         return risposta
+
+    def prove_contratti(self) -> list[dict]:
+        """I contratti che il giudice può scegliere, senza il testo."""
+        if self.catalogo is None:
+            raise Rifiuto("le prove dal vivo sono spente")
+        return elenco_dal_vivo(self.catalogo)
+
+    def prova_dal_vivo(self, chiave: str, modalita: str = "telepatia") -> dict:
+        """Una prova dal vivo: un contratto del catalogo, esaminato adesso. Restituisce la risposta, come per
+        Evolus, con la vista del verdetto (in inglese, con il confronto con gli esperti) per la pagina del giudice.
+        Ogni prova è un caso nuovo, anche sullo stesso contratto: il giudice vede il Consiglio lavorare."""
+        if self.catalogo is None:
+            raise Rifiuto("le prove dal vivo sono spente")
+        voce = self.catalogo.get(chiave) if isinstance(chiave, str) else None
+        if voce is None:
+            raise Rifiuto("contratto: non è fra quelli delle prove dal vivo")
+        if modalita not in MODALITA:
+            raise Rifiuto(f"modalita: {' o '.join(MODALITA)}")
+        if not self.lucchetto.acquire(blocking=False):
+            raise Occupato("il Consiglio sta già esaminando un contratto: riprova fra un minuto")
+        try:
+            quando = datetime.now(UTC).isoformat()
+            id_caso = (
+                "consiglio-"
+                + hashlib.sha256(json.dumps(["dal vivo", chiave, modalita, quando]).encode()).hexdigest()[:12]
+            )
+            revisione = self.revisiona(id_caso, voce["testo"], modalita, voce["benchmark"])
+            esperti = voce.get("esperti")
+            v = vista(
+                revisione,
+                BENCHMARK[voce["benchmark"]],
+                voce["titolo"],
+                esperti=esperti,
+                fonte=voce["fonte"] if esperti else None,
+            )
+            v |= {"lingua": "en", "dal_vivo": quando}
+            risposta = self.risposta(id_caso, v, modalita, revisione) | {"dal_vivo": True, "contratto": chiave}
+            cartella = self.casi / id_caso
+            cartella.mkdir(parents=True, exist_ok=True)
+            (cartella / "revisione.json").write_text(json.dumps(revisione, ensure_ascii=False))
+            (cartella / "vista.json").write_text(json.dumps(v, ensure_ascii=False))
+            (cartella / "pagina.html").write_text(pagina(v))
+            (cartella / "risposta.json").write_text(json.dumps(risposta, ensure_ascii=False, indent=1))
+        finally:
+            self.lucchetto.release()
+        return risposta | {"vista": v}
 
     def risposta(self, id_caso: str, v: dict, modalita: str, revisione: dict) -> dict:
         """Quello che serve all'agente principale di Evolus per l'avviso e il percorso."""

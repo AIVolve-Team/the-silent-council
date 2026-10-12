@@ -36,6 +36,8 @@ def test_indice_e_pagine(tmp_path):
     voce = dati["verdetti"][0]
     assert dati["registrato"] == "oggi" and voce["raccomandazione"] == "negoziare" and voce["categorie"] == 19
     assert voce["sigillo_integro"] and (uscita / voce["pagina"]).exists()
+    # la pagina vuota del verdetto, che la prova dal vivo apre con la vista salvata nel browser del giudice
+    assert '<script id="dati" type="application/json">null</script>' in (uscita / "verdetto.html").read_text()
     assert "citazione" not in json.dumps(voce)  # nell'indice solo conteggi, niente frasi del contratto
 
 
@@ -105,3 +107,21 @@ def test_i_nomi_dei_contratti_cuad():
         "SightLife Surgical, Inc.: strategic sales & marketing agreement"
     )
     assert titolo_cuad("MSCIINC_02_28_2008-EX-10.10-") == "MSCIINC: contract"
+
+
+def test_il_catalogo_delle_prove_dal_vivo(monkeypatch):
+    # Il giudice sceglie solo fra contratti dei dataset: la chiave è benchmark:id e il testo resta sul server.
+    from revisione import dal_vivo
+
+    contratto = "TRANSPHORM,INC_02_14_2020-EX-10.12(1)-JOINT VENTURE AGREEMENT"
+    finti = {"sviluppo": [(contratto, "breve"), ("ESEMPIO-LUNGO", "lungo " * 50)], "test": [("ESEMPIO-TEST", "x")]}
+    monkeypatch.setattr(dal_vivo, "contratti", lambda benchmark, insieme: finti[insieme])
+    voci = dal_vivo.catalogo(("sviluppo",), lunghezza=lambda testo: len(testo.split()), max_token=10)
+    assert list(voci) == [f"cuad:{contratto}"]
+    voce = voci[f"cuad:{contratto}"]
+    assert voce["titolo"] == "TRANSPHORM, INC: joint venture agreement" and voce["fonte"]["nome"] == "CUAD"
+    assert voce["esperti"] == risposte_esperti("cuad")[contratto]
+    assert "ESEMPIO-TEST" not in str(voci) and set(dal_vivo.catalogo(("sviluppo", "test"))) >= {"cuad:ESEMPIO-TEST"}
+    assert all("testo" not in v for v in dal_vivo.elenco(voci))
+    with pytest.raises(ValueError, match="sconosciuti"):
+        dal_vivo.catalogo(("prova",))
