@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sportello cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Indice dello Sportello («Caso passato a una persona» Q4): in cima le proposte in attesa di approvazione, poi tutti i casi. */
+:root {
+  --carta: #f4f6f9; --foglio: #ffffff; --inchiostro: #121826; --tenue: #5b6474; --linea: #dde2ea;
+  --accento: #2b4acb; --accento-tenue: #e6ebfb; --pagare: #1f7a4d; --pagare-tenue: #e3f3ea;
+  --persona: #9a5b0b; --persona-tenue: #fbf0dc; --bloccare: #b42318; --bloccare-tenue: #fde7e4;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif; --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+    --accento-tenue: #222b44; --pagare: #5bc48e; --pagare-tenue: #16301f; --persona: #e6b35e; --persona-tenue: #362a14;
+    --bloccare: #f08a7f; --bloccare-tenue: #3a1a17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140; --accento: #8ea3f2;
+  --accento-tenue: #222b44; --pagare: #5bc48e; --pagare-tenue: #16301f; --persona: #e6b35e; --persona-tenue: #362a14;
+  --bloccare: #f08a7f; --bloccare-tenue: #3a1a17; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding: 24px 16px 64px; }
+.foglio { max-width: 1040px; margin-inline: auto; display: grid; gap: 24px; }
+h1, h2 { font-family: var(--display); margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); font-weight: 800; }
+h2 { font-size: 1.15rem; }
+p { margin: 0; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.tenue { color: var(--tenue); }
+.barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.lingue button { border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); }
+.registrato { font-size: 0.85rem; background: var(--accento-tenue); color: var(--accento); border-radius: 999px; padding: 4px 12px; }
+.scheda { background: var(--foglio); border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px; overflow-x: auto; display: grid; gap: 12px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+th { font: 600 0.78rem/1.3 var(--dati); color: var(--tenue); text-transform: uppercase; letter-spacing: 0.04em; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.esito { font: 700 0.78rem/1 var(--dati); text-transform: uppercase; padding: 5px 8px; border-radius: 999px; white-space: nowrap; }
+.esito.pagare { background: var(--pagare-tenue); color: var(--pagare); }
+.esito.persona { background: var(--persona-tenue); color: var(--persona); }
+.esito.bloccare { background: var(--bloccare-tenue); color: var(--bloccare); }
+.ok { color: var(--pagare); font-weight: 700; }
+.ko { color: var(--bloccare); font-weight: 700; }
+.azioni { display: flex; flex-wrap: wrap; gap: 10px; }
+.azioni button, td button { border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 8px; padding: 6px 12px; font-weight: 600; }
+td button:disabled { opacity: 0.45; cursor: default; }
+</style>
+</head>
+<body>
+<script id="dati" type="application/json">@@DATI@@</script>
+<main class="foglio" id="pagina" data-registrato="@@REGISTRATO@@"></main>
+<script>
+// Le approvazioni restano in questo browser, con la stessa chiave della pagina del caso: ogni giudice ha la sua copia
+//. Nella demo lo stato diventa "approvato": nessuna banca vera.
+const CASI = JSON.parse(document.getElementById("dati").textContent);
+const T = {
+  en: { titolo: "Sportello telepatico", sottotitolo: "Invoices examined by agents that pass each other their memory, checked by a truth machine.",
+        attesa: "Payment proposals awaiting approval", attesaNota: "Payment always goes to the IBAN on file. Nothing is paid automatically.",
+        tutti: "All cases", fornitore: "Supplier", fattura: "Invoice", importo: "Amount", testimoni: "3 witnesses", sigillo: "Seal",
+        esito: "Outcome", approva: "Approve", approvaTutte: "Approve all", approvato: "approved", nessuna: "No proposal awaiting approval.",
+        pagare: "pay", persona: "person", bloccare: "blocked", regAuto: "Recorded cases" },
+  it: { titolo: "Sportello telepatico", sottotitolo: "Fatture esaminate da agenti che si passano la memoria, controllati da una macchina della verità.",
+        attesa: "Proposte di pagamento in attesa di approvazione", attesaNota: "Il pagamento va sempre all'IBAN in anagrafica. Niente si paga da solo.",
+        tutti: "Tutti i casi", fornitore: "Fornitore", fattura: "Fattura", importo: "Importo", testimoni: "3 testimoni", sigillo: "Sigillo",
+        esito: "Esito", approva: "Approva", approvaTutte: "Approva tutte", approvato: "approvato", nessuna: "Nessuna proposta in attesa.",
+        pagare: "pagare", persona: "persona", bloccare: "bloccato", regAuto: "Casi registrati" },
+};
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
+};
+let lingua = new URLSearchParams(location.search).get("lang") || memoria.leggi("sportello-lingua") || "en";
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) { if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined) n.setAttribute(k, v); }
+  for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const soldi = (x) => x === null || x === undefined ? "—" : new Intl.NumberFormat(lingua === "it" ? "it-IT" : "en-IE", { style: "currency", currency: "EUR" }).format(x);
+const approvato = (id) => (memoria.leggi("sportello-scelta:" + id) || {}).scelta === "approvato";
+const approva = (id) => memoria.scrivi("sportello-scelta:" + id, { scelta: "approvato", nota: "", quando: new Date().toISOString(), inviata: false });
+const testimoniOk = (c) => (c.testimoni || []).every((r) => !r.diverso);
+
+function disegna() {
+  const t = T[lingua] || T.en;
+  document.documentElement.lang = lingua;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+  const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  const registrato = pagina.dataset.registrato;
+  pagina.append(el("div", { class: "barra" }, registrato ? el("span", { class: "registrato", text: `${t.regAuto} · ${registrato}` }) : el("span"), lingue));
+  pagina.append(el("header", {}, el("h1", { text: t.titolo }), el("p", { class: "tenue", text: t.sottotitolo })));
+
+  const proposte = CASI.filter((c) => c.esito === "pagare");
+  const corpo = el("tbody", {}, proposte.map((c) => {
+    const bottone = el("button", { type: "button", text: approvato(c.id) ? t.approvato : t.approva });
+    bottone.disabled = approvato(c.id);
+    bottone.addEventListener("click", () => { approva(c.id); disegna(); });
+    return el("tr", {}, el("td", {}, el("a", { href: `${c.id}.html`, text: c.fattura.fornitore || c.id })), el("td", { text: c.fattura.numero }),
+      el("td", { class: "num", text: soldi((c.proposta || {}).importo ?? c.fattura.totale) }),
+      el("td", { class: testimoniOk(c) ? "ok" : "ko", text: testimoniOk(c) ? "✓ ✓ ✓" : "✗" }),
+      el("td", { class: c.sigillo.integro ? "ok" : "ko", text: c.sigillo.integro ? "🔒 ✓" : "✗" }), el("td", {}, bottone));
+  }));
+  const tutte = el("button", { type: "button", text: t.approvaTutte });
+  tutte.addEventListener("click", () => { proposte.forEach((c) => { if (!approvato(c.id)) approva(c.id); }); disegna(); });
+  pagina.append(el("section", { class: "scheda" }, el("h2", { text: t.attesa }), el("p", { class: "tenue", text: t.attesaNota }),
+    proposte.length ? el("table", {}, el("thead", {}, el("tr", {}, [t.fornitore, t.fattura, t.importo, t.testimoni, t.sigillo, ""].map((h) => el("th", { text: h })))), corpo) : el("p", { class: "tenue", text: t.nessuna }),
+    proposte.length ? el("div", { class: "azioni" }, tutte) : null));
+
+  pagina.append(el("section", { class: "scheda" }, el("h2", { text: t.tutti }),
+    el("table", {}, el("thead", {}, el("tr", {}, [t.fornitore, t.fattura, t.importo, t.esito].map((h) => el("th", { text: h })))),
+      el("tbody", {}, CASI.map((c) => el("tr", {}, el("td", {}, el("a", { href: `${c.id}.html`, text: c.fattura.fornitore || c.id })),
+        el("td", { text: c.fattura.numero }), el("td", { class: "num", text: soldi(c.fattura.totale) }),
+        el("td", {}, el("span", { class: `esito ${c.esito}`, text: t[c.esito] }))))))));
+}
+disegna();
+</script>
+</body>
+</html>

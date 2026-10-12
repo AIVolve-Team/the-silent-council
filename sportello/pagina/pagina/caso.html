@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sportello case</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Pagina del caso dello Sportello (decisa in «Caso passato a una persona»): dall'alto, esito e motivo, poi cosa non torna, poi la fattura
+   accanto all'ordine. Stessi caratteri e colori della pagina del verdetto del Consiglio. */
+:root {
+  --carta: #f4f6f9; --foglio: #ffffff; --inchiostro: #121826; --tenue: #5b6474; --linea: #dde2ea;
+  --accento: #2b4acb; --accento-tenue: #e6ebfb;
+  --pagare: #1f7a4d; --pagare-tenue: #e3f3ea; --persona: #9a5b0b; --persona-tenue: #fbf0dc;
+  --bloccare: #b42318; --bloccare-tenue: #fde7e4;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --testo: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --dati: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140;
+    --accento: #8ea3f2; --accento-tenue: #222b44; --pagare: #5bc48e; --pagare-tenue: #16301f;
+    --persona: #e6b35e; --persona-tenue: #362a14; --bloccare: #f08a7f; --bloccare-tenue: #3a1a17;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --carta: #0f131a; --foglio: #171c25; --inchiostro: #e8ecf2; --tenue: #9aa4b4; --linea: #2a3140;
+  --accento: #8ea3f2; --accento-tenue: #222b44; --pagare: #5bc48e; --pagare-tenue: #16301f;
+  --persona: #e6b35e; --persona-tenue: #362a14; --bloccare: #f08a7f; --bloccare-tenue: #3a1a17;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--carta); color: var(--inchiostro); font: 16px/1.55 var(--testo); padding-inline: 16px; padding-block: 24px 64px; }
+.foglio { max-width: 1040px; margin-inline: auto; display: grid; gap: 26px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(1.5rem, 4vw, 2.1rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; font-weight: 700; }
+p { margin: 0; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accento); outline-offset: 2px; }
+.eyebrow { font: 500 0.72rem/1 var(--dati); letter-spacing: 0.08em; text-transform: uppercase; color: var(--tenue); }
+.tenue { color: var(--tenue); }
+.dato { font-family: var(--dati); font-size: 0.92em; overflow-wrap: anywhere; }
+.barra { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.lingue button { border: 1px solid var(--linea); background: var(--foglio); color: var(--inchiostro); border-radius: 999px; padding: 4px 12px; font-size: 0.85rem; }
+.lingue button[aria-pressed="true"] { background: var(--inchiostro); color: var(--foglio); border-color: var(--inchiostro); }
+.registrato { font-size: 0.85rem; background: var(--accento-tenue); color: var(--accento); border-radius: 999px; padding: 4px 12px; }
+
+.testa { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: flex-start; }
+.testa .titoli { display: grid; gap: 8px; min-width: 0; flex: 1 1 420px; }
+.numeri { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 0.92rem; color: var(--tenue); }
+.numeri b { color: var(--inchiostro); font-variant-numeric: tabular-nums; }
+.sigillo { border: 1px solid var(--linea); background: var(--foglio); border-radius: 10px; padding: 10px 14px; display: grid; gap: 2px; min-width: 220px; }
+.sigillo strong { font-family: var(--display); font-size: 0.95rem; color: var(--pagare); }
+.sigillo.rotto { border-color: var(--bloccare); background: var(--bloccare-tenue); }
+.sigillo.rotto strong { color: var(--bloccare); }
+
+.esito { background: var(--foglio); border: 1px solid var(--linea); border-left: 8px solid var(--colore); border-radius: 12px; padding: 22px 24px; display: grid; gap: 10px; }
+.esito .valore { font: 800 clamp(1.9rem, 6vw, 2.8rem)/1 var(--display); color: var(--colore); text-transform: uppercase; letter-spacing: 0.01em; }
+.esito .motivo { font-size: 1.12rem; }
+.esito.pagare { --colore: var(--pagare); }
+.esito.persona { --colore: var(--persona); }
+.esito.bloccare { --colore: var(--bloccare); }
+.frode { background: var(--bloccare-tenue); border: 2px solid var(--bloccare); border-radius: 12px; padding: 18px 20px; display: grid; gap: 10px; }
+.frode h2 { color: var(--bloccare); }
+.contatti { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+
+section.parte { display: grid; gap: 12px; }
+section.parte > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--linea); padding-bottom: 6px; }
+.scheda { background: var(--foglio); border: 1px solid var(--linea); border-radius: 12px; padding: 14px 16px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+th { font: 600 0.78rem/1.3 var(--dati); color: var(--tenue); text-transform: uppercase; letter-spacing: 0.04em; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.diverso td { background: var(--bloccare-tenue); }
+tr.diverso td:first-child { box-shadow: inset 4px 0 0 var(--bloccare); }
+.segno { font-weight: 700; }
+tr.diverso .segno { color: var(--bloccare); }
+.motivi { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.motivi li { background: var(--foglio); border: 1px solid var(--linea); border-radius: 10px; padding: 10px 14px; display: grid; gap: 2px; }
+.motivi .codice { font: 500 0.78rem var(--dati); color: var(--tenue); }
+.motivi li.bloccare { border-left: 4px solid var(--bloccare); }
+.motivi li.persona { border-left: 4px solid var(--persona); }
+.affiancati { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.pdf { width: 100%; height: 520px; border: 1px solid var(--linea); border-radius: 10px; background: #fff; }
+.nascosto { background: var(--bloccare-tenue); border: 1px dashed var(--bloccare); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.nascosto mark { background: transparent; color: var(--bloccare); font-weight: 600; }
+
+.azioni { display: flex; flex-wrap: wrap; gap: 10px; }
+.azioni button { border: 1px solid var(--inchiostro); background: var(--inchiostro); color: var(--foglio); border-radius: 8px; padding: 9px 16px; font-weight: 600; }
+.azioni button.secondario { background: transparent; color: var(--inchiostro); }
+.azioni button.pericolo { background: var(--bloccare); border-color: var(--bloccare); color: #fff; }
+.azioni button:disabled { opacity: 0.45; cursor: not-allowed; }
+.decisione { display: grid; gap: 12px; background: var(--foglio); border: 1px solid var(--linea); border-radius: 12px; padding: 16px 18px; }
+.decisione label { display: grid; gap: 4px; font-size: 0.92rem; }
+.decisione textarea { min-height: 64px; border: 1px solid var(--linea); border-radius: 8px; padding: 8px 10px; background: var(--carta); color: var(--inchiostro); }
+.stato-scelta { font-weight: 600; }
+footer { font-size: 0.85rem; color: var(--tenue); border-top: 1px solid var(--linea); padding-top: 14px; display: grid; gap: 6px; }
+code { font-family: var(--dati); font-size: 0.85em; overflow-wrap: anywhere; }
+[hidden] { display: none !important; }
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .non-stampare { display: none !important; }
+}
+</style>
+</head>
+<body data-api="">
+<script id="dati" type="application/json">@@DATI@@</script>
+<main class="foglio" id="pagina"></main>
+<script>
+// La pagina si costruisce dai dati incorporati sopra (pagina/pagina.py). Le scelte della persona restano in questo
+// browser (ogni giudice ha la sua copia); se la pagina ha un indirizzo per Evolus (data-api), partono anche lì.
+const V = JSON.parse(document.getElementById("dati").textContent);
+const T = {
+  en: {
+    caso: "Sportello · case", pagare: "Pay", persona: "Needs a person", bloccare: "Blocked",
+    sigilloOk: "🔒 Messages between agents intact", sigilloKo: "⚠ Seal broken", sigilloDett: "Every message is signed by its agent and chained to the previous one.",
+    frode: "Possible fraud: do not reply to the email", frodeTesto: "Check with the supplier using the contacts in our supplier master data, never those printed on the invoice.",
+    registrato: "IBAN on file", nonTorna: "What does not add up", testimoni: "The three witnesses",
+    testimoniNota: "What the extractor declared, what the verifier read from memory without seeing the invoice, and what the decision maker proposes.",
+    campo: "Field", dichiarato: "Declared (extractor)", letto: "Read from memory (verifier)", proposto: "Proposed (decision maker)",
+    regole: "Catalog rules triggered", altri: "Truth machine", nessuno: "Nothing triggered.",
+    fatturaOrdine: "The invoice next to the order", fattura: "Invoice lines", ordine: "Purchase order",
+    nessunOrdine: "No purchase order matches this invoice.", pdf: "Original PDF, as received",
+    mostraNascosto: "Show hidden text", nascondiNascosto: "Hide hidden text", nascostoTitolo: "Hidden text in the PDF (white on white, size 1)",
+    nienteNascosto: "No hidden text in this PDF.", pensieri: "Show what each agent thought",
+    pensieriNota: "The translator of latent thoughts arrives with for now this opens the differences between the three witnesses.",
+    decidi: "Your decision", approva: "Approve payment", rifiuta: "Reject", segnala: "Report fraud",
+    approvaNota: "Payment always goes to the IBAN on file", notaObbl: "Verified with the supplier using the contacts in our master data",
+    notaTesto: "Note (required for a blocked case)", motivoRifiuto: "Reason (required to reject)",
+    salvata: "Decision saved in this browser", inviata: "Decision sent to Evolus", scelta: "Decision",
+    approvato: "approved", rifiutato: "rejected", segnalato: "reported as fraud",
+    registro: "Case log", registroTesto: "Signed messages and public keys: anyone can check them.",
+    scarica: "Download the case log", verifica: "Check it yourself:", righe: "Line", descrizione: "Description",
+    quantita: "Qty", prezzo: "Unit price", iva: "VAT %", importo: "Amount", totale: "Total", scadenza: "Due",
+    numero: "Invoice", data: "Date", regAuto: "Recorded case", indietro: "← All cases",
+  },
+  it: {
+    caso: "Sportello · caso", pagare: "Pagare", persona: "Serve una persona", bloccare: "Bloccato",
+    sigilloOk: "🔒 Comunicazione tra agenti integra", sigilloKo: "⚠ Sigillo rotto", sigilloDett: "Ogni messaggio è firmato dal suo agente e incatenato al precedente.",
+    frode: "Sospetta frode: non rispondere all'email", frodeTesto: "Verifica con il fornitore usando i contatti in anagrafica, mai quelli stampati in fattura.",
+    registrato: "IBAN in anagrafica", nonTorna: "Cosa non torna", testimoni: "I tre testimoni",
+    testimoniNota: "Ciò che l'estrattore ha dichiarato, ciò che il verificatore ha letto dalla memoria senza vedere la fattura, ciò che propone il decisore.",
+    campo: "Dato", dichiarato: "Dichiarato (estrattore)", letto: "Letto dalla memoria (verificatore)", proposto: "Proposto (decisore)",
+    regole: "Regole del catalogo scattate", altri: "Macchina della verità", nessuno: "Nessuno.",
+    fatturaOrdine: "La fattura accanto all'ordine", fattura: "Righe della fattura", ordine: "Ordine d'acquisto",
+    nessunOrdine: "Nessun ordine corrisponde a questa fattura.", pdf: "PDF originale, come è arrivato",
+    mostraNascosto: "Mostra testo nascosto", nascondiNascosto: "Nascondi testo nascosto", nascostoTitolo: "Testo nascosto nel PDF (bianco su bianco, corpo 1)",
+    nienteNascosto: "Nessun testo nascosto in questo PDF.", pensieri: "Mostra cosa ha pensato ogni agente",
+    pensieriNota: "Il traduttore dei pensieri arriva con per ora si apre la vista delle differenze fra i tre testimoni.",
+    decidi: "La tua decisione", approva: "Approva il pagamento", rifiuta: "Rifiuta", segnala: "Segnala una frode",
+    approvaNota: "Il pagamento va sempre all'IBAN in anagrafica", notaObbl: "Verificato con il fornitore tramite i contatti in anagrafica",
+    notaTesto: "Nota (obbligatoria per un caso bloccato)", motivoRifiuto: "Motivo (obbligatorio per rifiutare)",
+    salvata: "Decisione salvata in questo browser", inviata: "Decisione inviata a Evolus", scelta: "Decisione",
+    approvato: "approvato", rifiutato: "rifiutato", segnalato: "segnalato come frode",
+    registro: "Registro del caso", registroTesto: "Messaggi firmati e chiavi pubbliche: chiunque può verificarli.",
+    scarica: "Scarica il registro del caso", verifica: "Verificalo da te:", righe: "Riga", descrizione: "Descrizione",
+    quantita: "Q.tà", prezzo: "Prezzo unit.", iva: "IVA %", importo: "Importo", totale: "Totale", scadenza: "Scadenza",
+    numero: "Fattura", data: "Data", regAuto: "Caso registrato", indietro: "← Tutti i casi",
+  },
+};
+const memoria = {
+  leggi(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* senza memoria la scelta vale per questa visita */ } },
+};
+const parametri = new URLSearchParams(location.search);
+let lingua = parametri.get("lang") || memoria.leggi("sportello-lingua") || "en";
+const el = (tag, attr = {}, ...figli) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) {
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (v !== null && v !== undefined) n.setAttribute(k, v);
+  }
+  for (const f of figli.flat()) if (f !== null && f !== undefined) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const soldi = (x) => x === null || x === undefined ? "—" : new Intl.NumberFormat(lingua === "it" ? "it-IT" : "en-IE", { style: "currency", currency: "EUR" }).format(x);
+const giorno = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  return isNaN(d) ? iso : new Intl.DateTimeFormat(lingua === "it" ? "it-IT" : "en-GB", { day: "numeric", month: "short", year: "numeric" }).format(d);
+};
+const valore = (campo, x) => x === null || x === undefined ? "—" : campo.endsWith("importo") || campo === "totale_documento" ? soldi(x) : campo.endsWith("data") || campo.endsWith("scadenza") ? giorno(x) : x;
+const chiave = "sportello-scelta:" + V.id;
+
+function disegna() {
+  const t = T[lingua] || T.en;
+  document.documentElement.lang = lingua;
+  document.title = `${t.caso} ${V.id}`;
+  const pagina = document.getElementById("pagina");
+  pagina.replaceChildren();
+
+  const lingue = el("div", { class: "lingue non-stampare", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  const barra = el("div", { class: "barra" }, el("a", { href: "index.html", class: "tenue non-stampare", text: t.indietro }), lingue);
+  if (V.registrato) barra.prepend(el("span", { class: "registrato", text: `${t.regAuto} · ${V.registrato}` }));
+  pagina.append(barra);
+
+  const f = V.fattura;
+  pagina.append(el("header", { class: "testa" },
+    el("div", { class: "titoli" },
+      el("p", { class: "eyebrow", text: `${t.caso} ${V.id}` }),
+      el("h1", { text: `${f.fornitore || "—"} · ${f.numero || "—"}` }),
+      el("p", { class: "numeri" }, el("span", {}, `${t.data} `, el("b", { text: giorno(f.data) })),
+        el("span", {}, `${t.totale} `, el("b", { text: soldi(f.totale) })), el("span", {}, `${t.scadenza} `, el("b", { text: giorno(f.scadenza) })))),
+    el("div", { class: "sigillo" + (V.sigillo.integro ? "" : " rotto") },
+      el("strong", { text: V.sigillo.integro ? t.sigilloOk : t.sigilloKo }),
+      el("span", { class: "tenue", text: V.sigillo.integro ? t.sigilloDett : V.sigillo.dettaglio }))));
+
+  pagina.append(el("section", { class: `esito ${V.esito}` },
+    el("p", { class: "valore", text: t[V.esito] }), el("p", { class: "motivo", text: V.motivo[lingua] || V.motivo.en })));
+
+  if (V.frode_sospetta && V.contatti) {
+    pagina.append(el("section", { class: "frode" }, el("h2", { text: t.frode }), el("p", { text: t.frodeTesto }),
+      el("div", { class: "contatti" }, el("span", {}, el("b", { text: V.contatti.denominazione })), el("span", { class: "dato", text: V.contatti.telefono }),
+        el("span", { class: "dato", text: V.contatti.email }), el("span", {}, `${t.registrato} `, el("b", { class: "dato", text: V.contatti.iban_registrato })))));
+  }
+
+  const tabella = el("table", {},
+    el("thead", {}, el("tr", {}, [t.campo, t.dichiarato, t.letto, t.proposto, ""].map((h) => el("th", { text: h })))),
+    el("tbody", {}, V.testimoni.map((r) => el("tr", { class: r.diverso ? "diverso" : "" },
+      el("td", { text: r[lingua] || r.en }), el("td", { class: "dato", text: valore(r.campo, r.impegno) }),
+      el("td", { class: "dato", text: valore(r.campo, r.lettura) }), el("td", { class: "dato", text: r.proposta === null ? "" : valore(r.campo, r.proposta) }),
+      el("td", { class: "segno", text: r.diverso ? "✗" : "✓" })))));
+  const elenco = (motivi) => motivi.length ? el("ul", { class: "motivi" }, motivi.map((m) => el("li", { class: m.esito },
+    el("span", { class: "codice", text: `${m.livello} · ${m.codice}` }), el("span", { text: lingua === "en" ? (m.motivo_en || m.motivo) : m.motivo })))) : el("p", { class: "tenue", text: t.nessuno });
+  const testimoni = el("div", { class: "scheda", id: "testimoni" }, el("h3", { text: t.testimoni }), el("p", { class: "tenue", text: t.testimoniNota }), tabella);
+  pagina.append(el("section", { class: "parte" }, el("header", {}, el("h2", { text: t.nonTorna })),
+    el("h3", { text: t.altri }), elenco(V.altri_motivi), testimoni, el("h3", { text: t.regole }), elenco(V.regole)));
+
+  const righeFattura = el("table", {}, el("thead", {}, el("tr", {}, [t.righe, t.descrizione, t.quantita, t.prezzo, t.iva, t.importo].map((h) => el("th", { text: h })))),
+    el("tbody", {}, V.righe.map((r) => el("tr", {}, el("td", { text: r.num_item ? `${r.n} → ${r.num_item}` : r.n }), el("td", { text: r.descrizione }),
+      el("td", { class: "num", text: r.quantita }), el("td", { class: "num", text: soldi(r.prezzo_unitario) }), el("td", { class: "num", text: r.aliquota }), el("td", { class: "num", text: soldi(r.prezzo_totale) })))));
+  const righeOrdine = V.ordine ? el("table", {}, el("thead", {}, el("tr", {}, [t.righe, t.descrizione, t.quantita, t.prezzo, t.iva].map((h) => el("th", { text: h })))),
+    el("tbody", {}, V.ordine.righe.map((r) => el("tr", {}, el("td", { text: r.n }), el("td", { text: r.descrizione }), el("td", { class: "num", text: r.quantita }),
+      el("td", { class: "num", text: soldi(r.prezzo_unitario) }), el("td", { class: "num", text: r.aliquota }))))) : el("p", { class: "tenue", text: t.nessunOrdine });
+  const nascosto = el("div", { class: "nascosto", hidden: "" }, el("strong", { text: t.nascostoTitolo }),
+    V.nascosto.length ? V.nascosto.map((r) => el("p", {}, el("mark", { text: r }))) : el("p", { class: "tenue", text: t.nienteNascosto }));
+  const bottoneNascosto = el("button", { type: "button", class: "secondario", text: t.mostraNascosto });
+  bottoneNascosto.addEventListener("click", () => {
+    nascosto.hidden = !nascosto.hidden;
+    bottoneNascosto.textContent = nascosto.hidden ? t.mostraNascosto : t.nascondiNascosto;
+  });
+  const bottonePensieri = el("button", { type: "button", class: "secondario", title: t.pensieriNota, text: t.pensieri });
+  bottonePensieri.addEventListener("click", () => { testimoni.scrollIntoView({ behavior: "smooth", block: "center" }); testimoni.animate([{ outline: "3px solid var(--accento)" }, { outline: "3px solid transparent" }], 1600); });
+  pagina.append(el("section", { class: "parte" }, el("header", {}, el("h2", { text: t.fatturaOrdine })),
+    el("div", { class: "azioni non-stampare" }, bottoneNascosto, bottonePensieri), nascosto,
+    el("div", { class: "affiancati" }, el("div", { class: "scheda" }, el("h3", { text: t.fattura }), righeFattura),
+      el("div", { class: "scheda" }, el("h3", { text: V.ordine ? `${t.ordine} ${V.ordine.numero}` : t.ordine }), righeOrdine)),
+    el("div", { class: "scheda non-stampare" }, el("h3", { text: t.pdf }),
+      el("object", { class: "pdf", type: "application/pdf", data: V.pdf_url || "data:application/pdf;base64," + V.pdf, "aria-label": t.pdf },
+        el("a", { href: V.pdf_url || "data:application/pdf;base64," + V.pdf, target: "_blank", rel: "noopener", text: t.pdf })))));
+
+  pagina.append(decisione(t));
+
+  const comando = `python -m motore.verifica registro-${V.id} --pubbliche registro-${V.id}/chiavi-pubbliche`;
+  pagina.append(el("footer", {}, el("strong", { text: t.registro }), el("span", { text: t.registroTesto }),
+    V.registro ? el("a", { href: V.registro, download: "", text: t.scarica }) : null, el("span", {}, `${t.verifica} `, el("code", { text: comando }))));
+}
+
+function decisione(t) {
+  const salvata = memoria.leggi(chiave);
+  const nota = el("textarea", { id: "nota", "aria-label": t.notaTesto, placeholder: V.nota_obbligatoria ? t.notaObbl : "" });
+  const stato = el("p", { class: "stato-scelta", role: "status" });
+  const mostra = (s) => { if (s) stato.textContent = `${t.scelta}: ${t[s.scelta]} · ${s.inviata ? t.inviata : t.salvata}`; };
+  mostra(salvata);
+  const scegli = async (scelta) => {
+    const testo = nota.value.trim();
+    if (scelta === "approvato" && V.nota_obbligatoria && !testo) { nota.focus(); nota.placeholder = t.notaObbl; return; }
+    if (scelta === "rifiutato" && !testo) { nota.focus(); nota.placeholder = t.motivoRifiuto; return; }
+    const s = { scelta, nota: testo, quando: new Date().toISOString(), inviata: false };
+    if (scelta === "segnalato") {
+      const lista = memoria.leggi("sportello-iban-da-sorvegliare") || [];
+      const sospetto = (V.testimoni.find((r) => r.campo === "pagamento.iban") || {}).lettura;
+      if (sospetto && !lista.includes(sospetto)) memoria.scrivi("sportello-iban-da-sorvegliare", [...lista, sospetto]);
+    }
+    const api = document.body.dataset.api;
+    if (api) {
+      try {
+        const r = await fetch(api, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id_caso: V.id, decisione: scelta, nota: testo }) });
+        s.inviata = r.ok;
+      } catch { s.inviata = false; }
+    }
+    memoria.scrivi(chiave, s);
+    mostra(s);
+  };
+  const bottoni = el("div", { class: "azioni" },
+    el("button", { type: "button", "data-scelta": "approvato", text: t.approva }),
+    el("button", { type: "button", class: "secondario", "data-scelta": "rifiutato", text: t.rifiuta }),
+    el("button", { type: "button", class: "pericolo", "data-scelta": "segnalato", text: t.segnala }));
+  bottoni.addEventListener("click", (e) => { const s = e.target.dataset.scelta; if (s) scegli(s); });
+  const iban = V.contatti ? V.contatti.iban_registrato : null;
+  return el("section", { class: "decisione non-stampare" }, el("h2", { text: t.decidi }),
+    el("p", { class: "tenue" }, `${t.approvaNota}${iban ? ": " : ""}`, iban ? el("b", { class: "dato", text: iban }) : null),
+    el("label", { for: "nota" }, el("span", { text: V.nota_obbligatoria ? t.notaTesto : t.motivoRifiuto }), nota), bottoni, stato);
+}
+
+disegna();
+</script>
+</body>
+</html>
