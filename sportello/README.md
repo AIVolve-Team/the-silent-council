@@ -5,5 +5,6 @@ Codice dell': agenti che esaminano le fatture arrivate per email passandosi la m
 | Cartella | Ticket | Cosa contiene |
 |---|---|---|
 | `dati/` | | fatture di prova con la loro verità, archivi, regole del catalogo A01-A13 |
+| `controllore/` | | livello 2 della macchina della verità: coerenza, tre testimoni, esito della fattura |
 
 Il motore telepatico condiviso con il Consiglio sta in `../motore`. Le altre cartelle arrivano con la pipeline, la pagina del caso, gli attacchi e la casa per i giudici.
