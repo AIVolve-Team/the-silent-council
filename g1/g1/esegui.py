@@ -50,12 +50,19 @@ RISOLUTORE = Agente(
 ANALISTI = [PIANIFICATORE, REVISORE, PERFEZIONATORE]
 
 
-def vincolo_sdpa(dispositivo: str):
-    """Sulla MI300X niente ripiego sul backend math di SDPA: se i kernel veloci non bastano, meglio un errore."""
+def vincolo_sdpa(dispositivo: str, dtype: torch.dtype = torch.bfloat16):
+    """Sulla MI300X niente ripiego sul backend math di SDPA: se i kernel veloci non bastano, meglio un errore.
+
+    Fa eccezione il riferimento in fp32 del confronto: senza maschera Transformers passa a SDPA le 8 teste KV di
+    Qwen3 con `enable_gqa`, che in fp32 nessun kernel veloce accetta (flash vuole bf16, efficient vuole le teste
+    espanse). Il riferimento va sul math, così è anche indipendente dai kernel che controlla.
+    """
     if dispositivo != "cuda":
         return contextlib.nullcontext()
     from torch.nn.attention import SDPBackend, sdpa_kernel
 
+    if dtype == torch.float32:
+        return sdpa_kernel([SDPBackend.MATH])
     return sdpa_kernel([SDPBackend.FLASH_ATTENTION, SDPBackend.EFFICIENT_ATTENTION])
 
 
@@ -64,7 +71,7 @@ def risolvi(motore: Motore, modo: str, problema: Problema, max_token_risposta: i
     staffetta = Staffetta(motore, ANALISTI, RISOLUTORE, modalita=modalita, passi_latenti=passi)
     testo = f"Problem:\n{problema.domanda}"
     testi = {agente.nome: testo for agente in [*ANALISTI, RISOLUTORE]}
-    with vincolo_sdpa(motore.modello.dispositivo):
+    with vincolo_sdpa(motore.modello.dispositivo, motore.modello.dtype):
         esito = staffetta.esegui(f"g1-{modo}-{problema.id}", testi, max_token=max_token_risposta)
     finale = esito.finale.testo if esito.finale else None
     risposta = estrai_risposta(finale) if finale else None
