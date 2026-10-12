@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Il giro del Consiglio sulla MI300X, nel container del motore di G1, dopo i suoi passi 3 e 4 (container e
 # fp32 contro bf16, g1/README.md): la guida è consiglio/MI300X.md. La prima volta va lanciato
-# TORCH_DI_SISTEMA=1 ./consiglio/prova.sh --veloce, che prepara Python, dati e modello e prova che tutto gira sulla GPU.
+# TORCH_DI_SISTEMA=1 SENZA_RIALLINEAMENTO=1 ./consiglio/prova.sh --veloce, che prepara Python, dati e modello e prova
+# che tutto gira sulla GPU.
 #
 #   ./consiglio/mi300x.sh taratura     telepatia con 0, 10, 20 e 40 passi e testo, su CUAD e dimostrativo di
 #                                      sviluppo; scrive le tabelle per scegliere passi e soglie
@@ -21,7 +22,7 @@ FASE="${1:-}"
 MODELLO="${MODELLO:-Qwen/Qwen3-14B}"
 case "$FASE" in
   taratura | sviluppo | test) ;;
-  *) sed -n '2,14p' "$0"; exit 2 ;;
+  *) sed -n '2,15p' "$0"; exit 2 ;;
 esac
 [ -x "$PY" ] || { echo "Manca $PY: lancia prima ./consiglio/prova.sh --veloce"; exit 1; }
 USCITA="$CONSIGLIO/risultati-mi300x/$FASE"
