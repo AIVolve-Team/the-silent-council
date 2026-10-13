@@ -136,6 +136,24 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 
 Nessuna analisi tocca il nuovo tetto (la più lunga 1.414 token). I passi scelti non cambiano: la regola guarda solo la telepatia.
 
+## Replica su CUAD
+
+Decisa il 13/10/2026 verso le 13:25, mentre il test girava ancora su ContractNLI e prima che esistesse il suo rapporto: si fa **qualunque sia il risultato del test**. Su CUAD si conoscevano già le F1 per configurazione (agente solo 75,9, voto fra 4 74,8, telepatia 72,5, testo 70,7), non gli intervalli. La prima versione prevedeva 50 contratti estratti a caso. La sera del 13/10/2026 si è passati a tutti i 72, per il tempo di GPU chiesto dal team (commento).
+
+- **Perché:** con 20 contratti l'intervallo al 95% delle differenze di F1 è largo, e differenze di 2-3 punti non si distinguono dal caso. Con 92 contratti si stringe a circa 0,47 volte.
+- **Contratti:** tutti i contratti di test di CUAD sotto i 24.000 token (tokenizer di Qwen3-14B, come il test), **esclusi i 20 del test**: sono 72, senza estrazione. 1.368 coppie, 244 da segnalare. I file sono a parte, così quelli del test restano quelli della tabella in [Dati](#dati):
+
+  | File | SHA-256 |
+  |---|---|
+  | `consiglio/dati/set-di-misura/campione-replica.json` | `6efc690d4432877859bb534eca96d850c677bd62c0d4db1a8c8c5d46818bf6b1` |
+  | `consiglio/dati/set-di-misura/risposte-giuste-replica.jsonl` | `61eeab9edcfe3e88bb7f184fbd095d1e02bd78e043747666467d075d8d5cb7d4` |
+
+- **Configurazioni:** telepatia (0 passi), testo (analisi fino a 2.048 token) e agente solo. Voto fra 4 e prove di sabotaggio non si ripetono: il test li ha già misurati.
+- **Stesso codice e stesse regole del test:** modello, revisione, decodifica, ambiente, W_a spento, metriche e bootstrap appaiato (10.000 ripetizioni, seme 62). **Gira una volta sola**: un secondo giro è una deviazione, come per il test.
+- **Cosa si riporta:** test (20), replica (72) e totale (92), ognuno con F1, token e tempo, e con l'intervallo al 95% di telepatia contro testo e di telepatia contro agente solo. Il totale ricampiona insieme i contratti di test e replica.
+- **G4 resta deciso sul test da 20.** Su replica e totale non si dà il giudizio *"non perde, dimostrato"*. La replica **conferma** G4 se le tre condizioni di G4, calcolate sulla sola replica, danno lo stesso esito del test (superato in tutti e due, o non superato in tutti e due); se no lo **smentisce**. Si usa la sola replica, non il totale, perché il totale contiene il test.
+- **Come si fa girare:** `PASSI=0./consiglio/mi300x.sh replica`, dopo la fine del test. Lo script collega i giri di CUAD del test e scrive il rapporto con le tre sezioni.
+
 ## Come si fa girare
 
 Nel container del motore di G1, dalla radice del repo (la guida è `consiglio/MI300X.md`):
