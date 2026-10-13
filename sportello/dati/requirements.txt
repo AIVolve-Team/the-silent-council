@@ -1,6 +1,0 @@
-# Verificato l'8/10/2026 su Mac (Apple M4) con Python 3.12.
-faker==40.41.0
-reportlab==5.0.1
-pypdf==6.19.0
-pytest==9.1.1
-ruff==0.16.10

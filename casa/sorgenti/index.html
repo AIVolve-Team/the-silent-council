@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AIVolve at the AMD Developer Hackathon</title>
-<meta name="description" content="Agents that hand over their memory instead of writing to each other, on an AMD Instinct MI300X: a council that reviews contracts and a counter that checks invoices.">
+<meta name="description" content="Agents that hand over their memory instead of writing to each other, on an AMD Instinct MI300X: a council that reviews contracts.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
@@ -163,7 +163,7 @@ footer a { color: var(--inchiostro); }
 const T = {
   en: {
     titolo: ["Our agents don't write to each other.", "They hand over their memory."],
-    sotto: "Two products for Italian businesses on one engine, running on an AMD Instinct MI300X: a council that reviews contracts, and a counter that checks invoices before they are paid.",
+    sotto: "A council of AI agents that reviews contracts for Italian businesses, running on an AMD Instinct MI300X.",
     vivo: "Live now: the AMD MI300X is on", prossima: "Next live window:", annunciate: "Live windows will be announced here", controllo: "Checking the MI300X…",
     scenaGruppo: "Show the engine on", riguarda: "Play again",
     testo: "Writing to each other", testoSotto: "Each agent writes what it understood, for the next one to read.",
@@ -174,14 +174,14 @@ const T = {
     provenienza: (n) => `Averages per contract over ${n.contratti} ${n.fonte} ${n.contratti === 1 ? "contract" : "contracts"}, with ${n.modello}, recorded ${n.registrato}.${n.telepatia.da_trovare ? ` Clauses found counts the ones the ${n.fonte} experts flagged.` : ""}`,
     senzaNumeri: "The measurements from the AMD MI300X runs will appear here, next to the animation.",
     riassunto: (s) => `Writing to each other: ${s.ts} tokens written, ${s.tl} read, ${s.tsec} seconds per document. Handing over memory: ${s.ms} written, ${s.ml} read, ${s.msec} seconds.`,
-    progettiTitolo: "Two products, one engine", progettiUno: "What you can try", proveTitolo: "Check that it is real",
+    progettiTitolo: "The silent council", progettiUno: "What you can try", proveTitolo: "Check that it is real",
     casi: "Recorded cases", verdetti: "Recorded verdicts", provaVivo: "Try it live", provaSpenta: "Live tests run when the MI300X is on.",
     codice: "Source code",
-    piede: "AIVolve, for the AMD Developer Hackathon ACT III. Invented companies, invoices and banks: nothing is ever paid. Contracts from public datasets under CC BY 4.0. Your choices stay in your browser.",
+    piede: "AIVolve, for the AMD Developer Hackathon ACT III. Contracts from public datasets under CC BY 4.0. Your choices stay in your browser.",
   },
   it: {
     titolo: ["I nostri agenti non si scrivono.", "Si passano la memoria."],
-    sotto: "Due prodotti per le imprese italiane su un solo motore, che gira su una AMD Instinct MI300X: un consiglio che rivede i contratti, e uno sportello che controlla le fatture prima di pagarle.",
+    sotto: "Un consiglio di agenti che rivede i contratti per le imprese italiane, e gira su una AMD Instinct MI300X.",
     vivo: "Dal vivo adesso: la MI300X è accesa", prossima: "Prossima finestra dal vivo:", annunciate: "Le finestre dal vivo saranno annunciate qui", controllo: "Controllo la MI300X…",
     scenaGruppo: "Mostra il motore su", riguarda: "Riguarda",
     testo: "Si scrivono", testoSotto: "Ogni agente scrive quello che ha capito, e il successivo lo legge.",
@@ -192,10 +192,10 @@ const T = {
     provenienza: (n) => `Medie per contratto su ${n.contratti} ${n.contratti === 1 ? "contratto" : "contratti"} ${n.fonte}, con ${n.modello}, registrati: ${n.registrato}.${n.telepatia.da_trovare ? ` Le clausole trovate contano quelle segnate dagli esperti di ${n.fonte}.` : ""}`,
     senzaNumeri: "Le misure dei giri sulla AMD MI300X compariranno qui, accanto all'animazione.",
     riassunto: (s) => `Si scrivono: ${s.ts} token scritti, ${s.tl} letti, ${s.tsec} secondi per documento. Si passano la memoria: ${s.ms} scritti, ${s.ml} letti, ${s.msec} secondi.`,
-    progettiTitolo: "Due prodotti, un solo motore", progettiUno: "Cosa puoi provare", proveTitolo: "Controlla che è vero",
+    progettiTitolo: "Il consiglio silenzioso", progettiUno: "Cosa puoi provare", proveTitolo: "Controlla che è vero",
     casi: "Casi registrati", verdetti: "Verdetti registrati", provaVivo: "Prova dal vivo", provaSpenta: "Le prove dal vivo funzionano quando la MI300X è accesa.",
     codice: "Codice sorgente",
-    piede: "AIVolve, per l'AMD Developer Hackathon ACT III. Aziende, fatture e banche inventate: non si paga mai niente. Contratti da dataset pubblici con licenza CC BY 4.0. Le tue scelte restano nel tuo browser.",
+    piede: "AIVolve, per l'AMD Developer Hackathon ACT III. Contratti da dataset pubblici con licenza CC BY 4.0. Le tue scelte restano nel tuo browser.",
   },
 };
 
@@ -205,11 +205,6 @@ const SCENE = {
     colori: ["legale", "finanza", "rischio"],
     en: { scena: "Contract review", doc: "Contract", lettori: ["Legal", "Finance", "Risk"], ultimo: "Devil's advocate", fine: "Verdict", sigillo: "signed" },
     it: { scena: "Contratti", doc: "Contratto", lettori: ["Legale", "Finanza", "Rischio"], ultimo: "Avvocato del diavolo", fine: "Verdetto", sigillo: "firmato" },
-  },
-  sportello: {
-    colori: ["legale", "finanza"],
-    en: { scena: "Invoice check", doc: "Invoice", lettori: ["Extractor", "Verifier"], ultimo: "Decider", fine: "Decision", sigillo: "signed" },
-    it: { scena: "Fatture", doc: "Fattura", lettori: ["Estrattore", "Verificatore"], ultimo: "Decisore", fine: "Decisione", sigillo: "firmata" },
   },
 };
 
@@ -228,20 +223,6 @@ const PROGETTI = {
       uno: "Il consiglio silenzioso rivede un contratto per una piccola impresa: gli esperti legale, di finanza e di rischio si passano la memoria invece di scriversi, e un avvocato del diavolo scrive il verdetto, dissenso compreso. Gira su una AMD Instinct MI300X.",
     },
   },
-  sportello: {
-    en: {
-      per: "For the desk that pays suppliers.",
-      testo: "Invoices arrive by email and get paid. A changed IBAN or an instruction hidden in the PDF is enough to send money to the wrong account. The counter examines each invoice, and a truth machine checks the agents themselves before anything is paid.",
-      guarda: "Every recorded case shows what the truth machine checked, and lets you approve or stop the payment.",
-      uno: "The telepathic counter examines invoices with agents that hand over their memory, and a truth machine checks them before anything is paid. It runs on an AMD Instinct MI300X.",
-    },
-    it: {
-      per: "Per l'ufficio che paga i fornitori.",
-      testo: "Le fatture arrivano per email e si pagano. Basta un IBAN cambiato o un'istruzione nascosta nel PDF per mandare i soldi al conto sbagliato. Lo sportello esamina ogni fattura, e una macchina della verità controlla gli agenti stessi prima di pagare.",
-      guarda: "Ogni caso registrato mostra cosa ha controllato la macchina della verità, e ti fa approvare o fermare il pagamento.",
-      uno: "Lo sportello telepatico esamina le fatture con agenti che si passano la memoria, e una macchina della verità li controlla prima di pagare. Gira su una AMD Instinct MI300X.",
-    },
-  },
 };
 
 // Le prove che non è una messa in scena. "per": vale solo se c'è quel progetto; "repo": solo con il repo pubblico.
@@ -253,13 +234,8 @@ const PROVE = [
     link: ["CUAD", "https://github.com/TheAtticusProject/cuad"],
   },
   {
-    en: ["Signed messages", "Every memory handed between agents carries a cryptographic seal. A tampered message stops the run before a verdict or a payment."],
-    it: ["Messaggi firmati", "Ogni memoria passata fra gli agenti porta un sigillo crittografico. Un messaggio manomesso ferma tutto prima del verdetto o del pagamento."],
-    sportello: {
-      en: "Download a case's log and check the signatures on your own computer:",
-      it: "Scarica il registro di un caso e controlla le firme sul tuo computer:",
-      codice: "python -m motore.verifica registro-<case> --pubbliche registro-<case>/chiavi-pubbliche",
-    },
+    en: ["Signed messages", "Every memory handed between agents carries a cryptographic seal. A tampered message stops the run before a verdict."],
+    it: ["Messaggi firmati", "Ogni memoria passata fra gli agenti porta un sigillo crittografico. Un messaggio manomesso ferma tutto prima del verdetto."],
   },
   {
     repo: true,
@@ -277,7 +253,7 @@ const memoria = {
   scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* vale per questa visita */ } },
 };
 const richiesta = new URLSearchParams(location.search).get("lang");
-let lingua = richiesta === "it" || richiesta === "en" ? richiesta : memoria.leggi("sportello-lingua") === "it" ? "it" : "en";
+let lingua = richiesta === "it" || richiesta === "en" ? richiesta : memoria.leggi("casa-lingua") === "it" ? "it" : "en";
 let progetti = [], repo = null, finestre = [], stato = null, scena = null, demo = null;
 const numeri = {};
 const fermo = matchMedia("(prefers-reduced-motion: reduce)");
@@ -443,7 +419,7 @@ function dimostrazione(id, n) {
 
 /* ---------- la pagina ---------- */
 
-// Lo Sportello e il Consiglio hanno ognuno il suo server sulla MI300X: le prove di ognuno si accendono con il suo.
+// Il Consiglio ha il suo server sulla MI300X: le prove dal vivo si accendono quando risponde.
 const vivoDi = (id) => Boolean(id === "consiglio" ? stato?.consiglio?.dal_vivo : stato?.dal_vivo);
 
 function pillola() {
@@ -464,7 +440,7 @@ function disegna() {
 
   const lingue = el("div", { class: "lingue", role: "group", "aria-label": "Language" },
     ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), "data-lingua": l, text: l === "en" ? "English" : "Italiano" })));
-  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l && l !== lingua) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } });
+  lingue.addEventListener("click", (e) => { const l = e.target.dataset.lingua; if (l && l !== lingua) { lingua = l; memoria.scrivi("casa-lingua", l); disegna(); } });
   pagina.append(el("header", { class: "barra" },
     el("a", { class: "marchio", href: "./" }, "AIVolve", el("span", { text: "AMD Developer Hackathon ACT III" })),
     el("div", { class: "barra__destra" }, el("span", { id: "pillola" }, pillola()), lingue)));
@@ -511,8 +487,7 @@ function disegna() {
       el("dt", { text: p[lingua][0] }),
       el("dd", {}, p[lingua][1],
         p.link ? [" ", el("a", { href: p.link[1], target: "_blank", rel: "noopener", text: p.link[0] })] : null,
-        p.repo && repo ? [" ", el("a", { href: repo, target: "_blank", rel: "noopener", text: t.codice })] : null,
-        p.sportello && ids.has("sportello") ? [" ", p.sportello[lingua], el("code", { text: p.sportello.codice })] : null))))));
+        p.repo && repo ? [" ", el("a", { href: repo, target: "_blank", rel: "noopener", text: t.codice })] : null))))));
 
   pagina.append(el("footer", {}, el("p", { text: t.piede }), repo ? el("p", {}, el("a", { href: repo, text: t.codice })) : null));
   const questa = demo;

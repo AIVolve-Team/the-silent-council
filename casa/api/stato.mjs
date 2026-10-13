@@ -1,6 +1,6 @@
-// La MI300X è accesa? La casa dice "dal vivo adesso" oppure la prossima finestra. Lo Sportello e il Consiglio
-// hanno ognuno il suo server: le prove dal vivo di ognuno si accendono quando risponde il suo.
-import { consiglio, gestisci, json, motore } from "../lib/comune.mjs";
+// La MI300X è accesa? La casa dice "dal vivo adesso" oppure la prossima finestra: le prove dal vivo del Consiglio
+// si accendono quando risponde il suo server.
+import { consiglio, gestisci, json } from "../lib/comune.mjs";
 
 async function salute(chiama) {
   try {
@@ -14,11 +14,7 @@ async function salute(chiama) {
 
 export default {
   fetch: gestisci("GET", async () => {
-    const [s, c] = await Promise.all([salute(motore), salute(consiglio)]);
-    return json({
-      dal_vivo: s?.demo === true,
-      esame_in_corso: s?.esame_in_corso === true,
-      consiglio: { dal_vivo: c?.prove === true, occupato: c?.esame_in_corso === true },
-    });
+    const c = await salute(consiglio);
+    return json({ consiglio: { dal_vivo: c?.prove === true, occupato: c?.esame_in_corso === true } });
   }),
 };

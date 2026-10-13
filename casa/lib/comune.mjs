@@ -35,9 +35,6 @@ function chiama(base, segreto, nome, percorso, { method = "GET", dati, secondi =
   });
 }
 
-/** Una chiamata al server del motore dello Sportello sulla MI300X, con il segreto. */
-export const motore = (percorso, opzioni) => chiama(process.env.MOTORE_URL, process.env.MOTORE_SEGRETO, "motore", percorso, opzioni);
-
 /** Una chiamata al server del Consiglio sulla MI300X, con il suo segreto. */
 export const consiglio = (percorso, opzioni) =>
   chiama(process.env.CONSIGLIO_URL, process.env.CONSIGLIO_SEGRETO, "consiglio", percorso, opzioni);

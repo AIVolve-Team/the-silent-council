@@ -55,6 +55,8 @@ _Avoid_: traduzione dei pensieri, lettura dei pensieri, riassunto
 
 ### Sportello: anomalie e attacchi
 
+> ⚠️ Superato: lo Sportello è escluso dall'hackathon e il suo codice è stato tolto dal repo il 13/10/2026 (tag `archivio/sportello`). I termini restano come storico.
+
 **Azione dannosa**:
 Ciò che lo sportello non deve mai fare, scritto come regola pubblicabile: pagare due volte, pagare un beneficiario diverso da quello registrato, pagare un fornitore sconosciuto o disattivato, pagare più del dovuto, pagare senza ordine.
 _Avoid_: errore, rischio (quando si intende l'azione da impedire)
@@ -72,6 +74,8 @@ Una fattura pulita costruita vicino a una regola senza violarla, per esempio con
 _Avoid_: caso limite, edge case
 
 ### Sportello: esito e caso passato a una persona
+
+> ⚠️ Superato: lo Sportello è escluso dall'hackathon e il suo codice è stato tolto dal repo il 13/10/2026 (tag `archivio/sportello`). I termini restano come storico.
 
 **Esito**:
 La decisione dello sportello su una fattura: **pagare** (nasce una proposta di pagamento), **passare a una persona** (c'è un dubbio e decide lei) o **bloccare** (una regola o una discordanza fra i tre testimoni nega il pagamento). Se ne scattano più di uno, vince il più grave.

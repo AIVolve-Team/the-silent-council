@@ -31,7 +31,7 @@ casa/mi300x/mi300x.sh snapshot # spegne e fotografa la macchina accesa (golden-A
 ```
 
 - **Crea non ne accende mai due:** se ce n'è già una con il tag, si ferma lì.
-- **Le macchine a mano** (tag `sportello-mi300x`) e **quelle delle finestre** (tag `sportello-finestra`) sono separate: l'automatico non spegne mai una macchina su cui qualcuno sta lavorando, per esempio l'esame della notte fra il 15 e il 16/10.
+- **Le macchine a mano** (tag `sportello-mi300x`) e **quelle delle finestre** (tag `sportello-finestra`) sono separate. I tag tengono il nome dello Sportello anche se nel repo c'è solo il Consiglio: macchine e snapshot già creati li hanno così, e cambiarli li farebbe perdere di vista. l'automatico non spegne mai una macchina su cui qualcuno sta lavorando, per esempio l'esame della notte fra il 15 e il 16/10.
 - `crea aspetta` scrive quanti secondi servono per essere attiva e, con `MI300X_SALUTE=https://<motore>/salute`, per avere il motore pronto: è il **tempo di nascita da snapshot** che chiede.
 
 ## Il 12/10: la macchina d'oro
@@ -39,9 +39,9 @@ casa/mi300x/mi300x.sh snapshot # spegne e fotografa la macchina accesa (golden-A
 1. **Si prepara una macchina** come nel runbook di G1 (`g1/README.md`), con modelli e codice sul **disco di avvio**.
 2. **I servizi ripartono da soli** quando una macchina nasce dallo snapshot: container con `--restart unless-stopped`.
    - vLLM come al passo 5 del runbook di G1, sulla porta 8000;
-   - il server del motore (`sportello/servizio`, `--demo`) sulla porta **8100**, perché la 8000 è di vLLM;
-   - Caddy davanti, per TLS: `motore.<dominio>` → `127.0.0.1:8100`, `vllm.<dominio>` → `127.0.0.1:8000`.
-   - I segreti (`SPORTELLO_SEGRETO`, `VLLM_API_KEY`) in un file del disco di avvio con permessi 600, letto dai container con `--env-file`.
+   - il server del Consiglio (`consiglio/servizio`, `--dal-vivo`) sulla porta **8001**, perché la 8000 è di vLLM;
+   - Caddy davanti, per TLS: `consiglio.<dominio>` → `127.0.0.1:8001`, `vllm.<dominio>` → `127.0.0.1:8000`.
+   - I segreti (`CONSIGLIO_SEGRETO`, `VLLM_API_KEY`) in un file del disco di avvio con permessi 600, letto dai container con `--env-file`.
 3. **Prima dello snapshot Caddy deve aver già preso il certificato.** Let's Encrypt dà al massimo 5 certificati a settimana per lo stesso nome: se ogni macchina nuova ne chiedesse uno, dal sesto giorno il motore resterebbe senza TLS. Con il certificato nello snapshot, le macchine nuove lo riusano (vale 90 giorni).
 4. **Lo snapshot:** `mi300x.sh snapshot`. Ci vogliono circa **1-3 minuti per GB usato**, e intanto la macchina si paga: con circa 130 GB fra modelli, immagine e codice, da 2 a 6 ore. Conviene lanciarlo a fine giornata e poi distruggere la macchina.
 5. **Il tempo di nascita** si misura la mattina dopo con `crea aspetta` e si scrive, accanto a quello di riscaricare i modelli da capo sullo scratch, per scegliere il più veloce.
