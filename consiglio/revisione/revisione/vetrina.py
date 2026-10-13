@@ -5,7 +5,8 @@
 
 La cartella che esce va passata a `casa/costruisci.py --consiglio <cartella>`. L'indice ha lo stile della home del sito,
 una riga per contratto con telepatia e testo affiancati. Indice e pagine del verdetto si aprono in inglese, con
-l'interruttore per l'italiano; `numeri.json` dà alla home le medie per la dimostrazione.
+l'interruttore per l'italiano; `numeri.json` dà alla home le medie per la dimostrazione. Per ogni contratto c'è anche la
+vista a fumetti, con le due modalità e il cronometro.
 
 Il set dimostrativo resta privato fino alla consegna: senza `--consegna` le sue revisioni non escono, perché il sito
 è pubblico.
@@ -23,6 +24,7 @@ from .dati import dimostrativo, risposte_esperti
 from .vista import PAGINA, pagina, vista
 
 INDICE = Path(__file__).resolve().parents[1] / "pagina" / "vetrina.html"
+FUMETTO = Path(__file__).resolve().parents[1] / "pagina" / "fumetto.html"
 _SEGNAPOSTO = '<script id="dati" type="application/json">null</script>'
 
 # Da dove vengono i contratti e le risposte giuste (dati/NOTICE.md): non sono nostri, e il giudice può controllarli.
@@ -130,6 +132,19 @@ def titolo_di(revisione: dict, testi: dict[str, str]) -> str:
     return titolo[0].upper() + titolo[1:].lower()
 
 
+def con_dati(modello: Path, dati: dict) -> str:
+    """Una pagina con i suoi dati dentro, al posto del segnaposto: un file solo, senza richieste al server."""
+    html = modello.read_text()
+    assert html.count(_SEGNAPOSTO) == 1
+    testo = json.dumps(dati, ensure_ascii=False).replace("</", "<\\/")
+    return html.replace(_SEGNAPOSTO, f'<script id="dati" type="application/json">{testo}</script>')
+
+
+def nome_file(prefisso: str, revisione: dict, *pezzi: str) -> str:
+    file = "-".join([prefisso, revisione["benchmark"], revisione["contratto"][:50].rstrip("-_. "), *pezzi]) + ".html"
+    return file.replace("/", "_").replace(" ", "_")
+
+
 def voce(revisione: dict, v: dict, file: str) -> dict:
     """Quello che l'indice mostra di un verdetto: niente frasi del contratto, solo conteggi e raccomandazione."""
     righe = v["righe"]
@@ -153,6 +168,7 @@ def voce(revisione: dict, v: dict, file: str) -> dict:
         "secondi": round(revisione["secondi"]),
         "modello": revisione["modello"],
         "pagina": file,
+        "fumetto": v.get("fumetto"),
     }
 
 
@@ -222,28 +238,36 @@ def scrivi_vetrina(giri: list[Path], uscita: Path, *, registrato: str | None, co
     testi, attese = attese_dimostrativo() if any(r["benchmark"] == "dimostrativo" for r in revisioni) else ({}, {})
     uscita.mkdir(parents=True, exist_ok=True)
     voci, viste = [], []
+    fumetti: dict[str, dict] = {}
     for r in revisioni:
         esperti = (attese if r["benchmark"] == "dimostrativo" else risposte_esperti(r["benchmark"])).get(r["contratto"])
         fonte = FONTI[r["benchmark"]] if esperti else None
         v = vista(r, BENCHMARK[r["benchmark"]], titolo_di(r, testi), esperti=esperti, fonte=fonte)
-        # Nel sito dei giudici la pagina si apre in inglese (chi legge può passare all'italiano) e torna all'indice.
-        v |= {"lingua": "en", "indice": "index.html"}
-        file = f"verdetto-{r['benchmark']}-{r['contratto'][:50].rstrip('-_. ')}-{r['modalita']}.html"
-        file = file.replace("/", "_").replace(" ", "_")
+        # Nel sito dei giudici la pagina si apre in inglese (chi legge può passare all'italiano), torna all'indice e
+        # porta alla vista a fumetti dello stesso contratto, una per contratto con tutte e due le modalità.
+        file, fumetto = nome_file("verdetto", r, r["modalita"]), nome_file("fumetto", r)
+        v |= {"lingua": "en", "indice": "index.html", "fumetto": fumetto}
         (uscita / file).write_text(pagina(v))
+        fumetti.setdefault(fumetto, {})[r["modalita"]] = v | {"verdetto": file}
         voci.append(voce(r, v, file))
         viste.append(v)
-    # La pagina vuota, per le prove dal vivo del giudice: la casa la apre con la vista salvata nel suo browser.
+    for fumetto, modi in fumetti.items():
+        dati = {
+            "telepatia": None,
+            "testo": None,
+            **modi,
+            "registrato": registrato,
+            "lingua": "en",
+            "indice": "index.html",
+        }
+        (uscita / fumetto).write_text(con_dati(FUMETTO, dati))
+    # Le pagine vuote, per le prove dal vivo del giudice: la casa le apre con la vista salvata nel suo browser.
     (uscita / "verdetto.html").write_text(PAGINA.read_text())
+    (uscita / "fumetto.html").write_text(FUMETTO.read_text())
     medie = numeri(revisioni, viste, registrato)
     if medie:
         (uscita / "numeri.json").write_text(json.dumps(medie, ensure_ascii=False, indent=1) + "\n")
-    dati = json.dumps({"registrato": registrato, "verdetti": voci}, ensure_ascii=False).replace("</", "<\\/")
-    html = INDICE.read_text()
-    assert html.count(_SEGNAPOSTO) == 1
-    (uscita / "index.html").write_text(
-        html.replace(_SEGNAPOSTO, f'<script id="dati" type="application/json">{dati}</script>')
-    )
+    (uscita / "index.html").write_text(con_dati(INDICE, {"registrato": registrato, "verdetti": voci}))
     return len(voci)
 
 

@@ -6,7 +6,7 @@ Una sola casa per i due progetti fino a G4 (16/10); dopo, solo quello consegnato
 | File | Cosa fa |
 |---|---|
 | `sorgenti/index.html` | la home: la dimostrazione in cima (gli stessi agenti che si scrivono e che si passano la memoria, con i contatori di `<progetto>/numeri.json`), i progetti, "dal vivo adesso" o la prossima finestra, come verificare un caso |
-| `sorgenti/consiglio/prova.html` | la prova dal vivo del Consiglio: il giudice sceglie un contratto CUAD dall'elenco del server e lo fa esaminare adesso; le prove restano nel suo browser |
+| `sorgenti/consiglio/prova.html` | la prova dal vivo del Consiglio: il giudice sceglie un contratto CUAD dall'elenco del server e lo fa esaminare adesso; le prove restano nel suo browser, e ognuna si apre come verdetto o a fumetti |
 | `sorgenti/sportello/prove.html` | le prove dal vivo: una nostra fattura, i due attacchi della demo, "prova tu a ingannarlo" |
 | `api/stato.mjs` | la MI300X è accesa? (chiede `/salute` al motore dello Sportello e al server del Consiglio) |
 | `api/consiglio.mjs` | la prova dal vivo del Consiglio: l'elenco dei contratti e una prova, al server del Consiglio con la sua chiave; 409 se è occupato |

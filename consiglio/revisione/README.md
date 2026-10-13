@@ -31,14 +31,15 @@ Per un contratto:
 | `revisione/taratura.py` | sceglie i passi latenti e propone le soglie di confidenza dai giri di sviluppo |
 | `pagina/verdetto.html` | la pagina del verdetto per la persona |
 | `revisione/vetrina.py` e `pagina/vetrina.html` | la parte del Consiglio nel sito per i giudici: indice dei contratti in inglese e italiano e pagine del verdetto, per `casa/costruisci.py --consiglio` |
+| `pagina/fumetto.html` | la vista a fumetti di una revisione, con il cronometro testo contro telepatia |
 
 ## Uso
 
 ```bash
 cd consiglio/revisione
 uv venv -p 3.12.venv && uv pip install -p.venv -e../../motore -r../../motore/requirements.txt
-.venv/bin/python -m pytest -q -m "not modello" # 43 test veloci
-.venv/bin/python -m pytest -q # 47 test, con Qwen3-0.6B
+.venv/bin/python -m pytest -q -m "not modello" # 46 test veloci
+.venv/bin/python -m pytest -q # 50 test, con Qwen3-0.6B
 
 # I contratti del set di misura vengono da consiglio/dati/cache (prepara.py li scarica).
 .venv/bin/python -m revisione.esegui --benchmark cuad --modalita telepatia --passi 10 --modello Qwen/Qwen3-1.7B
@@ -77,6 +78,20 @@ Per rigenerarla:
 ```
 
 Il collegamento con Evolus (email con il link alla pagina, scelte rimandate con il secondo workflow) aspetta l'integrazione dell'.
+
+## La vista a fumetti 
+
+`pagina/fumetto.html` racconta una revisione vignetta per vignetta, per i giudici. Ogni cosa disegnata è un dato della revisione:
+
+- la prima vignetta è il contratto, con quanti caratteri legge ogni esperto (il taglio);
+- poi un esperto per vignetta. Nella nuvoletta c'è la sua nota: le clausole che segnala, con la citazione e il bollino "nel contratto". Le note sono per la persona e non passano agli altri esperti;
+- fra una vignetta e l'altra c'è quello che passa davvero: in telepatia un filo di memoria per ogni esperto che l'ha consegnata, a testo le lettere. Sotto c'è l'impronta del messaggio;
+- l'avvocato del diavolo riceve tutto e scrive il verdetto. Gli esperti che non sono d'accordo intervengono con una battuta: sono i dissensi;
+- l'ultima vignetta è il controllo con le risposte degli esperti del dataset;
+- accanto c'è il cronometro: tempo e token scritti nelle due modalità sullo stesso contratto, con una gara da far partire.
+
+Non ci sono "pensieri tradotti". Con 0 passi latenti gli esperti non hanno pensieri da tradurre: quello che passa è la memoria di ciò che hanno letto, e il traduttore mostrerebbe soprattutto il contratto.
+`revisione.vetrina` scrive un fumetto per contratto, con le due modalità. La pagina vuota `fumetto.html` apre le prove dal vivo del giudice (`?dal-vivo=<id>`); se ha fatto lo stesso contratto nei due modi, li mette in gara.
 
 ## L'eval 
 
