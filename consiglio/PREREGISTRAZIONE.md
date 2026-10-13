@@ -1,13 +1,13 @@
 # Pre-registrazione dell'eval del Consiglio
 
-Stato: bozza
+Stato: congelata il 13/10/2026
 
 Finché c'è la riga qui sopra, `revisione.esame` non fa girare il set di test.
 Per congelare le regole: si compilano i punti segnati **da fissare**, si cambia la riga in `Stato: congelata il GG/MM/AAAA` e si fa il commit **prima** del giro di test.
 Dopo, il test gira una volta sola, e ogni cambiamento si scrive fra le [deviazioni](#deviazioni) con il motivo.
 
 Le regole vengono da Eval pre-registrato del Consiglio, da Metriche e soglie G1-G4 e dalle note.
-Le **definizioni operative** sono nuove, scritte con il codice: vanno riviste dal team prima del congelamento.
+Le **definizioni operative** sono nuove, scritte con il codice: andavano riviste dal team prima del congelamento. Non è stato fatto: vedi le [deviazioni](#deviazioni).
 
 ## Dati
 
@@ -19,6 +19,7 @@ Le **definizioni operative** sono nuove, scritte con il codice: vanno riviste da
 
 - **Set di test:** 20 contratti CUAD, 20 ContractNLI e 20 CLAUDETTE, quelli di `campione.json` (seme fisso, sotto i 24.000 token).
 - **Set dimostrativo:** i 4 contratti italiani, fuori dal repo fino alla consegna. Alla consegna si pubblicano e devono corrispondere alle impronte.
+- **Taglio per ruolo:** il contratto si divide fra gli esperti per titoli (`revisione/taglio.py`), senza buchi: ogni pezzo annotato del test sta intero in una sezione. Su CUAD di test però 34 delle 74 coppie da segnalare (46%) stanno nella sezione di un esperto che non ha quella categoria, quasi sempre il legale, che fa da ruolo di riserva. A testo l'esperto scrive solo delle sue categorie, quindi quelle clausole rischiano di perdersi; in telepatia il relatore lavora anche sulla memoria della loro lettura (vedi Configurazioni).
 - **Etichette:** coppia (contratto, categoria) → da segnalare sì/no,.
   CUAD ha 19 categorie, ContractNLI 17 ipotesi e CLAUDETTE 9 categorie.
 
@@ -27,7 +28,7 @@ Le **definizioni operative** sono nuove, scritte con il codice: vanno riviste da
 - **Qwen3-14B**, revisione `40c069824f4251a91eefaf281ebe4c544efd3e18`, in bf16, su una MI300X, batch 1.
 - **Ambiente:** il container del motore di G1 (`vllm/vllm-openai-rocm:v0.30.0`, con il torch ROCm dell'immagine), dopo il confronto fp32 contro bf16 di G1 (`g1/README.md`, passo 4): su ROCm le maschere dell'attenzione hanno avuto bug. La guida è `consiglio/MI300X.md`.
 - **Decodifica greedy** in tutte le configurazioni, cioè temperatura 0: un solo giro per configurazione.
-- **Passi latenti:** **da fissare** con la taratura sulla MI300X (`mi300x.sh taratura`), sul set di sviluppo di CUAD: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi.
+- **Passi latenti: 0**, fissati con la taratura sulla MI300X del 12/10/2026 (`mi300x.sh taratura`, sezione [Taratura sulla MI300X](#taratura-sulla-mi300x)), sul set di sviluppo di CUAD: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi. Ha vinto 0 con F1 71,4, contro 65,1 con 10 passi.
   - 10, 20 e 40 sono i valori. Lo 0 è la sua *verifica anticipata* dei pensieri: se vince, sul set di sviluppo i pensieri non aiutano, e permette di correggere il sistema prima del congelamento.
   - Sul Mac (M1 Max, 12/10/2026, senza riallineamento) CUAD di sviluppo dava F1 68,8 con 0 passi e 56,2 con 10; il testo 51,6.
 - **Riallineamento W_a** dei passi latenti: **spento**, con la diagnosi (12/10/2026, Qwen3-14B su M1 Max). Acceso, la telepatia faceva 28,6 sul set dimostrativo e 19,0 su CUAD di sviluppo; spento, 98,2 e 68,8, contro 78,3 e 51,6 del testo. Su Qwen3-14B, che ha gli embedding d'ingresso e d'uscita separati, il riallineamento rompe la memoria passata al relatore.
@@ -42,15 +43,15 @@ Tutte con lo stesso modello e lo stesso schema delle 19 righe (`revisione/schemi
    - Sul 2-2 vince il gruppo con la confidenza media più alta, cioè la probabilità media della posizione scelta. A confidenza pari vince "sì".
    - La raccomandazione è la più frequente; sul pari, la più prudente (non firmare, poi negoziare, poi firmare).
    - Token e tempi sono la somma dei 4.
-3. **Consiglio a testo.**
-4. **Consiglio in telepatia.**
+3. **Consiglio a testo.** Ogni esperto scrive un'analisi della sua sezione, al massimo **2.048 token** (`MAX_TOKEN_ANALISI`), e il relatore legge le analisi. Con i 512 token di default del motore la taratura le troncava tutte (9 su 9); con 2.048 la più lunga dello sviluppo arriva a 1.414. Il rapporto conta le analisi che toccano il tetto.
+4. **Consiglio in telepatia.** Il relatore lavora sulla memoria della lettura di tutte le sezioni, cioè di tutto il contratto, invece che su analisi scritte. È il meccanismo, e il rapporto lo descrive così. Il prompt del relatore dice "Non hai letto il contratto" in tutte e due le modalità: in telepatia non è vero alla lettera, ma resta com'era nella taratura.
 
 Su ContractNLI e CLAUDETTE il Consiglio è a tre, cioè legale, rischio e relatore, anche a testo. Il voto resta fra 4.
-JEV non si fa girare: si cita il 77,38% pubblicato su ContractNLI.
+JEV non si fa girare: il 77,38% pubblicato su ContractNLI usa un'altra metrica, quindi è solo contesto, non un confronto.
 
 ## Voto
 
-- **F1 sulle coppie (contratto, categoria)**, un numero per benchmark, mai sommati. CUAD è il numero principale; il riferimento è ContractEval, con Qwen3-14B da solo a 47,3.
+- **F1 sulle coppie (contratto, categoria)**, un numero per benchmark, mai sommati. CUAD è il numero principale. ContractEval (Qwen3-14B da solo a 47,3) ha compito, categorie e campione diversi: è contesto, non un riferimento alla pari. Il riferimento alla pari è la nostra configurazione 1, l'agente solo.
 - Accanto a ogni F1: **clausole mancate** e **falsi allarmi**, **MCC** e la base **"sempre sì"**. Per CLAUDETTE anche la vista sul **solo grado 3**.
 - Un verdetto non valido o mancante conta come "no" su tutte le sue coppie, e si conta a parte.
 - **Versione severa.** Un "sì" giusto conta solo se una citazione del verdetto per quella categoria **si sovrappone** a un pezzo annotato; altrimenti vale come clausola mancata. I falsi allarmi restano falsi allarmi.
@@ -64,7 +65,8 @@ JEV non si fa girare: si cita il 77,38% pubblicato su ContractNLI.
   - si ricampionano i **contratti** con reinserimento, gli stessi per le due configurazioni, **10.000** volte, con seme **62**;
   - l'intervallo va dal 2,5° al 97,5° percentile;
   - se anche il limite inferiore sta entro i −3 punti si dice *"non perde, dimostrato"*, altrimenti *"risultati compatibili"*;
-  - ContractNLI e CLAUDETTE si riportano senza soglia.
+  - ContractNLI e CLAUDETTE si riportano senza soglia e senza giudizio.
+- **Telepatia contro agente solo** su CUAD, con lo stesso bootstrap appaiato, **senza soglia** e fuori da G4. È il confronto che isola il canale: in telepatia il relatore lavora sulla memoria della lettura di tutto il contratto, l'agente solo legge tutto il contratto. Sullo sviluppo l'agente solo era davanti (vedi Taratura sulla MI300X).
 - **Token.** Si contano tutti, letti e generati, separati e sommati, note per la persona comprese. Si confrontano le **medie per contratto**.
 - **Tempo.** Secondi per contratto sulla MI300X, batch 1, media sui contratti.
 - **G4: il Consiglio è consegnabile se**, su CUAD:
@@ -93,9 +95,11 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 - **Chi aveva ragione nei dissensi** fra la nota dell'esperto e il verdetto:
   - nel dissenso grave (esperto "sì", verdetto "no"), quante volte aveva ragione l'esperto;
   - nel lieve (esperto "no", verdetto "sì"), quante volte aveva ragione il relatore.
-- **Taratura della confidenza del verdetto:** quota di decisioni giuste per livello alto, medio e basso, con le soglie fissate (**da fissare**; oggi 0,9 e 0,7).
+- **Taratura della confidenza del verdetto:** quota di decisioni giuste per livello alto, medio e basso, con le soglie fissate: **alta da 0,9, media da 0,7**. La taratura su CUAD dice che nessuna soglia arriva a 9 decisioni giuste su 10 (sopra 0,99 sono giuste l'89%): le soglie restano queste, e il rapporto lo dice.
 - **Accordo fra note e verdetto**, e F1 delle note prese come verdetto.
 - **Importi e date nel verdetto**, solo sul set dimostrativo: quanti sono, e quanti non compaiono nel contratto. Un importo che non è nel contratto si segnala sempre, anche se capita una volta sola.
+- **Per lunghezza (esplorativa):** F1 di agente solo, telepatia e testo sui contratti CUAD di test sopra e sotto la mediana di lunghezza, in token di Qwen3-14B. Si calcola dai `.jsonl` dopo il test e si riporta come indizio, senza soglia: i contratti sopra i 24.000 token sono esclusi dal campione, quindi sui testi davvero lunghi il test non dice niente.
+- **CLAUDETTE** è sbilanciato: il 79% delle coppie è da segnalare e "sempre sì" fa F1 88,5. Lì contano MCC e la base "sempre sì".
 - **Grafico qualità contro costo:** F1 contro token generati per contratto, per le 4 configurazioni.
 
 ## Controllo a mano (set dimostrativo)
@@ -110,7 +114,27 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 
 ## Taratura sulla MI300X
 
-**Da compilare** al congelamento, con `consiglio/risultati-mi300x/taratura/taratura.md`: le tabelle di CUAD e del set dimostrativo, i passi scelti con la regola qui sopra e le soglie di confidenza. Accanto, l'accordo coppia per coppia con i giri del Mac sullo stesso codice: se i sì/no divergono molto, ci si ferma e si cerca il motivo prima del test.
+12/10/2026, 1× MI300X (AMD Developer Cloud, ROCm 7.2), container `vllm/vllm-openai-rocm:v0.30.0` con torch `2.12.0+git6bbd260` e transformers 4.57.6, codice al commit `1ad3b02`, riallineamento spento. Spiegazione completa in [TARATURA-MI300X.md](TARATURA-MI300X.md) e.
+
+| F1 | 0 passi | 10 passi | 20 passi | 40 passi | testo |
+|---|---|---|---|---|---|
+| CUAD, sviluppo (5 contratti) | **71,4** | 65,1 | 58,5 | 61,5 (1 verdetto non valido) | 52,6 |
+| Set dimostrativo (4 contratti) | **98,2** | 98,2 | 98,2 | 98,2 | 76,6 |
+
+- **Passi scelti: 0**, con la regola qui sopra. Valgono le regole per 0 passi delle [prove di sabotaggio](#prove-di-sabotaggio): niente prove sui pensieri, frase di riserva, il contratto scambiato resta.
+- **Soglie di confidenza: 0,9 e 0,7**, come sopra.
+- **Accordo coppia per coppia** dei sì/no del verdetto con i giri del Mac sullo stesso codice (12/10/2026): CUAD 98,7% con 0 passi, 96,1% con 10, 98,7% a testo (4 contratti in comune, 76 coppie ciascuno); set dimostrativo 100% con 0, 10 e 40 passi. Nessuna divergenza da cercare prima del test.
+
+**Prova del 13/10/2026 sullo sviluppo di CUAD, dopo la revisione delle metriche**, con il tetto nuovo delle analisi a testo (stessa macchina, stesso modello):
+
+| Configurazione | F1 | Token generati per contratto | Secondi per contratto |
+|---|---|---|---|
+| Agente solo | **76,2** | 586 | 31 |
+| Consiglio in telepatia, 0 passi (12/10) | 71,4 | 1.217 | 70 |
+| Consiglio a testo, analisi fino a 2.048 token | 58,5 | 4.767 | 169 |
+| Consiglio a testo, analisi a 512 token (12/10) | 52,6 | 2.776 | 103 |
+
+Nessuna analisi tocca il nuovo tetto (la più lunga 1.414 token). I passi scelti non cambiano: la regola guarda solo la telepatia.
 
 ## Come si fa girare
 
@@ -135,4 +159,13 @@ Sul test il comando controlla che questo file sia congelato e committato, e che 
 
 ## Deviazioni
 
-Nessuna.
+1. **Congelata senza la rilettura del team delle definizioni operative** (riga in cima). Il 12/10/2026 si è scelto di congelare e lanciare il test subito dopo la taratura, per avere i numeri prima del G4 del 16/10. La rilettura resta da fare dopo: se trova un errore, lo si scrive qui e il rapporto lo dice, senza rifare il test in silenzio.
+2. **Il confronto fp32 contro bf16 di G1** (sezione Modello e decodifica) è girato con il riferimento fp32 sul backend math di SDPA invece dei soli kernel veloci, che in fp32 si fermavano con `No available kernel` (commit `903d2ee` su `feat/g1`, spiegato in g1/RISULTATI-MI300X.md). Risposte uguali 5 su 5. Il giro del Consiglio non cambia.
+3. **Riaperta e ricongelata il 13/10/2026, prima del test.** Una revisione delle metriche, delle risposte giuste e dell'equità del confronto ha trovato che il testo partiva svantaggiato: analisi troncate a 512 token, tutte. Le risposte giuste sono state rigenerate dalle fonti e sono identiche; le formule sono corrette. Cambiamenti, nel codice e qui:
+   - tetto delle analisi a testo da 512 a 2.048 token, con il conteggio delle troncate;
+   - confronto telepatia contro agente solo nel rapporto, senza soglia;
+   - "dimostrato" solo su CUAD, come già scritto in Criterio di successo;
+   - analisi esplorativa per lunghezza;
+   - le note su taglio per ruolo, prompt del relatore, riferimenti esterni e CLAUDETTE.
+
+   Il test non era ancora girato: sono regole fissate prima di vedere i suoi risultati. Erano invece già noti i numeri di sviluppo dell'agente solo: hanno motivato il confronto in più, senza cambiare G4.

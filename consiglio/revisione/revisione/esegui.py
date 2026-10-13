@@ -19,7 +19,7 @@ import torch
 from motore import TELEPATIA, TESTO, Modello, Motore
 
 from .categorie import BENCHMARK
-from .consiglio import Consiglio
+from .consiglio import MAX_TOKEN_ANALISI, Consiglio
 from .dati import contratti, dimostrativo, risposte_giuste
 from .punteggio import accordo, vota
 
@@ -108,7 +108,7 @@ def main() -> None:
         dtype=dtype,
         riallinea=not argomenti.senza_riallineamento,
     )
-    motore = Motore(modello, registro=argomenti.uscita / "registro")
+    motore = Motore(modello, registro=argomenti.uscita / "registro", max_token_testo=MAX_TOKEN_ANALISI)
     voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
     if argomenti.max_token:
         lunghezza = {cid: len(modello.tokenizer.encode(testo, add_special_tokens=False)) for cid, testo in voci}

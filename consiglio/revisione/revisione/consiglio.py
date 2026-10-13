@@ -26,6 +26,11 @@ from .taglio import taglia
 if TYPE_CHECKING:
     import torch
 
+# Tetto delle analisi scritte dagli esperti a testo. Con i 512 token di default del motore la taratura del 12/10
+# le troncava tutte (9 su 9): il testo partiva svantaggiato. Ogni revisione salva i token di ogni analisi, così il
+# rapporto conta quelle che toccano ancora il tetto.
+MAX_TOKEN_ANALISI = 2048
+
 
 @dataclass
 class Scritto:
@@ -84,6 +89,8 @@ class Revisione:
     token_generati: int = 0
     posizioni_latenti: int = 0
     secondi: float = 0.0
+    # Solo a testo: esperto → token generati dalla sua analisi.
+    analisi: dict[str, int] = field(default_factory=dict)
 
     def come_dict(self) -> dict:
         return asdict(self)
@@ -191,6 +198,8 @@ class Consiglio:
             impronte=[m.impronta for m in esito.messaggi],
             posizioni_latenti=esito.posizioni_latenti,
         )
+        if self.modalita == TESTO:
+            revisione.analisi = {m.mittente: m.etichetta["token_generati"] for m in esito.messaggi}
         self.pensieri = {
             m.mittente: Pensieri(dict(m.etichetta), m.stati.to("cpu")) for m in esito.messaggi if m.stati is not None
         }
