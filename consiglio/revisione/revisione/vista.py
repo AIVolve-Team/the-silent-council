@@ -145,6 +145,9 @@ def vista(
         "benchmark": revisione["benchmark"],
         "modalita": revisione["modalita"],
         "modello": revisione["modello"],
+        "passi_latenti": revisione.get("passi_latenti"),
+        # Come è stato diviso il contratto fra gli esperti, per la vista a fumetti: solo quanti caratteri a testa.
+        "taglio": {k: revisione["taglio"][k] for k in ("modo", "caratteri")} if revisione.get("taglio") else None,
         "raccomandazione": None
         if dati is None
         else {"valore": dati["raccomandazione"], "motivazione": dati["motivazione"]},

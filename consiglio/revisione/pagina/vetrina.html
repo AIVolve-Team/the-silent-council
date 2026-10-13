@@ -53,6 +53,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .contratto { padding: 22px 0; border-bottom: 1px solid var(--linea); align-items: start; }
 .contratto h2 { font-size: 1.15rem; font-weight: 720; line-height: 1.25; letter-spacing: -0.01em; overflow-wrap: anywhere; }
 .contratto .id { font-size: 0.8125rem; color: var(--grafite); overflow-wrap: anywhere; margin-top: 4px; }
+/* la vista a fumetti del contratto, con le due modalità e il cronometro */
+.al-fumetto { display: inline-flex; gap: 8px; align-items: center; margin-top: 12px; font-weight: 700; font-size: 0.9375rem; text-decoration: none; border: 2px solid var(--inchiostro); border-radius: 999px; padding: 5px 13px; box-shadow: 3px 3px 0 var(--inchiostro); background: var(--foglio); }
+.al-fumetto::before { content: ""; width: 14px; height: 10px; border: 2px solid currentColor; border-radius: 6px 6px 6px 1px; flex: none; }
 .cella { display: grid; gap: 6px; align-content: start; min-width: 0; }
 .cella .modo { display: none; font-weight: 700; font-size: 0.875rem; }
 .cella.memoria .modo { color: var(--memoria); }
@@ -99,7 +102,7 @@ const T = {
     accordo: (a, b) => [`Agrees with them on `, el("b", { text: String(a) }), ` of `, el("b", { text: String(b) }), ` clauses`],
     costo: (t, s) => `${t.toLocaleString("en-GB")} tokens written in ${s} s`,
     rotto: "⚠ Seal broken: the council stopped",
-    apri: "Open the verdict", manca: "Not recorded in this mode", da: (f) => `From ${f}`,
+    apri: "Open the verdict", manca: "Not recorded in this mode", da: (f) => `From ${f}`, fumetto: "Watch it as a comic strip",
     vuoto: "No verdicts recorded yet.", lingue: "Language",
     piede: "Contracts from public datasets under CC BY 4.0. Your choices on the dissents stay in your browser.",
   },
@@ -116,7 +119,7 @@ const T = {
     accordo: (a, b) => [`D'accordo con loro su `, el("b", { text: String(a) }), ` clausole su `, el("b", { text: String(b) })],
     costo: (t, s) => `${t.toLocaleString("it-IT")} token scritti in ${s} s`,
     rotto: "⚠ Sigillo rotto: il Consiglio si è fermato",
-    apri: "Apri il verdetto", manca: "Non registrato in questa modalità", da: (f) => `Da ${f}`,
+    apri: "Apri il verdetto", manca: "Non registrato in questa modalità", da: (f) => `Da ${f}`, fumetto: "Guardalo a fumetti",
     vuoto: "Non ci sono ancora verdetti registrati.", lingue: "Lingua",
     piede: "Contratti da dataset pubblici con licenza CC BY 4.0. Le tue scelte sui dissensi restano nel tuo browser.",
   },
@@ -186,7 +189,8 @@ function disegna() {
     const fonte = NOMI_BENCHMARK[v.benchmark];
     const nome = typeof fonte === "object" ? fonte[lingua] : fonte || v.benchmark;
     elenco.append(el("article", { class: "contratto" },
-      el("div", {}, el("h2", { text: v.titolo }), el("p", { class: "id", text: v.benchmark === "dimostrativo" ? t.da(nome) : `${t.da(nome)}: ${v.contratto}` })),
+      el("div", {}, el("h2", { text: v.titolo }), el("p", { class: "id", text: v.benchmark === "dimostrativo" ? t.da(nome) : `${t.da(nome)}: ${v.contratto}` }),
+        v.fumetto ? el("a", { class: "al-fumetto", href: v.fumetto, text: t.fumetto }) : null),
       cella(t, modi.telepatia, "telepatia"), cella(t, modi.testo, "testo")));
   }
   pagina.append(elenco);
