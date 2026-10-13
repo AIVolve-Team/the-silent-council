@@ -1,7 +1,7 @@
 # Come misuriamo il Consiglio
 
 Una spiegazione per tutto il team, senza codice: cosa misura l'eval del Consiglio, come dà i punteggi e come si confrontano i sistemi.
-Le regole ufficiali, fissate prima di misurare, sono nella pre-registrazione: `consiglio/PREREGISTRAZIONE.md` sul ramo `feat/eval`.
+Le regole ufficiali, fissate prima di misurare, sono nella pre-registrazione: [`consiglio/PREREGISTRAZIONE.md`](PREREGISTRAZIONE.md).
 
 ## 1. La domanda
 
