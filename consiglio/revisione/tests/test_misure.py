@@ -6,6 +6,7 @@ import pytest
 
 from revisione import esame, misure
 from revisione.configurazioni import raccomandazione_comune, vota_fra
+from revisione.consiglio import MAX_TOKEN_ANALISI as MAX
 from revisione.consiglio import Scritto
 from revisione.dati import risposte_giuste
 
@@ -147,3 +148,32 @@ def test_scelta_dei_passi_e_soglie_proposte():
     voci = [(0.99, True)] * 9 + [(0.95, False)] + [(0.75, True)] * 7 + [(0.72, False)] * 3 + [(0.55, False)] * 5
     assert proponi_soglie(voci) == (0.8, 0.6)  # sopra 0,8: 9 giuste su 10; fra 0,6 e 0,8: 7 su 10
     assert proponi_soglie([(0.99, False)]) is None
+
+
+def test_rapporto_telepatia_contro_solo_e_analisi_troncate(tmp_path):
+    # Il confronto che isola il canale è con l'agente solo, e il rapporto conta le analisi a testo che toccano il tetto.
+    giuste = risposte_giuste("cuad", "sviluppo")
+    contratti = sorted({c for c, _ in giuste})
+    perfetti = [riga(c, {k: v for (cc, k), v in giuste.items() if cc == c}) for c in contratti]
+    tutto_no = [riga(c, {k: False for (cc, k) in giuste if cc == c}) for c in contratti]
+    a_testo = [r | {"analisi": {"legale": MAX, "finanza": 300, "rischio": MAX - 1}} for r in tutto_no]
+    for nome, righe in {"telepatia": perfetti, "testo": a_testo, "solo": perfetti}.items():
+        (tmp_path / f"cuad-sviluppo-{nome}.jsonl").write_text("\n".join(json.dumps(r) for r in righe))
+    testo = esame.scrivi_rapporto(tmp_path)
+    numeri = json.loads((tmp_path / "numeri.json").read_text())["cuad-sviluppo"]
+    assert numeri["telepatia_contro_solo"]["differenza"] == 0.0
+    assert numeri["configurazioni"]["testo"]["analisi_troncate"] == len(contratti)
+    assert numeri["configurazioni"]["testo"]["analisi"] == 3 * len(contratti)
+    assert "F1 della telepatia meno F1 dell'agente solo" in testo
+    assert f"tetto di {MAX} token:** {len(contratti)} su {3 * len(contratti)}" in testo
+
+
+def test_il_giudizio_dimostrato_solo_su_cuad(tmp_path):
+    # PREREGISTRAZIONE.md: ContractNLI e CLAUDETTE si riportano senza soglia.
+    giuste = risposte_giuste("contractnli", "sviluppo")
+    contratti = sorted({c for c, _ in giuste})
+    perfetti = [riga(c, {k: v for (cc, k), v in giuste.items() if cc == c}) for c in contratti]
+    for nome in ("telepatia", "testo"):
+        (tmp_path / f"contractnli-sviluppo-{nome}.jsonl").write_text("\n".join(json.dumps(r) for r in perfetti))
+    testo = esame.scrivi_rapporto(tmp_path)
+    assert "dimostrato" not in testo and "Senza soglia" in testo

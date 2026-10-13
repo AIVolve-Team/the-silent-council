@@ -27,7 +27,7 @@ from motore import TELEPATIA, TESTO, Modello, Motore
 from . import misure
 from .categorie import BENCHMARK
 from .configurazioni import AgenteSolo, VotoFraQuattro
-from .consiglio import Consiglio
+from .consiglio import MAX_TOKEN_ANALISI, Consiglio
 from .dati import dimostrativo, prove, risposte_giuste, risposte_grado_3
 from .esegui import MODELLI, _contratti_e_risposte, libera_memoria, sintesi
 
@@ -98,7 +98,7 @@ def esegui(argomenti: argparse.Namespace) -> None:
         dtype=dtype,
         riallinea=not argomenti.senza_riallineamento,
     )
-    motore = Motore(modello, registro=uscita / "registro")
+    motore = Motore(modello, registro=uscita / "registro", max_token_testo=MAX_TOKEN_ANALISI)
     voci, giuste = _contratti_e_risposte(argomenti.benchmark, argomenti.insieme)
     if argomenti.max_token:
         lunghezza = {cid: len(modello.tokenizer.encode(testo, add_special_tokens=False)) for cid, testo in voci}
@@ -266,20 +266,38 @@ def _sezione(benchmark: str, insieme: str, numeri: dict, meta: dict) -> list[str
     if confronto:
         tele, testo = configurazioni["telepatia"], configurazioni["testo"]
         risparmio = 1 - tele["token_generati"] / testo["token_generati"] if testo["token_generati"] else 0
-        giudizio = "non perde, dimostrato" if confronto["dimostrata"] else "risultati compatibili"
+        # Il giudizio è pre-registrato solo su CUAD: gli altri benchmark si riportano senza soglia.
+        if benchmark == "cuad":
+            giudizio = "non perde, dimostrato" if confronto["dimostrata"] else "risultati compatibili"
+            giudizio = f" Si dice: *{giudizio}*."
+        else:
+            giudizio = " Senza soglia: su questo benchmark non si dà un giudizio."
         righe += [
             "### Telepatia contro testo",
             "",
             (
                 f"- **F1 della telepatia meno F1 del testo:** {_segno(confronto['differenza'])} punti (intervallo al 95% con bootstrap appaiato sui "
-                f"{confronto['contratti']} contratti: da {_n(confronto['basso'])} a {_n(confronto['alto'])}). "
-                f"Si dice: *{giudizio}*."
+                f"{confronto['contratti']} contratti: da {_n(confronto['basso'])} a {_n(confronto['alto'])})."
+                f"{giudizio}"
             ),
             (
                 f"- **Token generati:** {_n(100 * risparmio, 0)}% in meno. **Tempo:** {_intero(tele['secondi'])} s "
                 f"contro {_intero(testo['secondi'])} s per contratto."
             ),
         ]
+        solo = numeri.get("telepatia_contro_solo")
+        if solo:
+            righe.append(
+                f"- **F1 della telepatia meno F1 dell'agente solo:** {_segno(solo['differenza'])} punti (intervallo "
+                f"al 95%: da {_n(solo['basso'])} a {_n(solo['alto'])}). È il confronto che isola il canale: in "
+                "telepatia il relatore lavora sulla memoria della lettura di tutto il contratto, l'agente solo legge "
+                "tutto il contratto."
+            )
+        if testo.get("analisi"):
+            righe.append(
+                f"- **Analisi a testo che toccano il tetto di {MAX_TOKEN_ANALISI} token:** "
+                f"{testo['analisi_troncate']} su {testo['analisi']}."
+            )
         if benchmark == "cuad":
             g4 = confronto["g4"]
             righe += [

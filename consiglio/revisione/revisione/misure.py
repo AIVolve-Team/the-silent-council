@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 from .citazioni import normalizza
 from .confidenza import livello
+from .consiglio import MAX_TOKEN_ANALISI
 from .punteggio import Voto, accordo, vota
 
 # Le configurazioni, nell'ordine dei rapporti: le quattro a confronto e le tre prove di sabotaggio.
@@ -312,8 +313,15 @@ def riga_voto(revisioni: list[dict], giuste: dict, prove: dict) -> dict:
         "mancate": principale.fn,
         "falsi_allarmi": principale.fp,
         "f1_severa": severo.f1,
+        **analisi_troncate(revisioni),
         **costi(revisioni),
     }
+
+
+def analisi_troncate(revisioni: list[dict]) -> dict[str, int]:
+    """A testo: quante analisi degli esperti toccano il tetto di token, e quante sono in tutto."""
+    token = [t for r in revisioni for t in (r.get("analisi") or {}).values()]
+    return {"analisi": len(token), "analisi_troncate": sum(t >= MAX_TOKEN_ANALISI for t in token)}
 
 
 def riepilogo(
@@ -335,6 +343,16 @@ def riepilogo(
             "contratti": d.contratti,
             "dimostrata": d.dimostrata,
             "g4": g4(giri["telepatia"], giri["testo"], giuste),
+        }
+    if "telepatia" in giri and "solo" in giri:
+        # Il confronto che isola il canale: in telepatia il relatore lavora sulla memoria della lettura di tutto il
+        # contratto, l'agente solo legge tutto il contratto.
+        d = bootstrap_appaiato(giri["telepatia"], giri["solo"], giuste)
+        numeri["telepatia_contro_solo"] = {
+            "differenza": d.differenza,
+            "basso": d.basso,
+            "alto": d.alto,
+            "contratti": d.contratti,
         }
     if "telepatia" in giri:
         f1 = {c: numeri["configurazioni"][c]["f1"] for c in giri}
