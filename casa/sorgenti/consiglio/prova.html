@@ -161,7 +161,7 @@ const memoria = {
   scrivi(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
 };
 const chiesta = new URLSearchParams(location.search).get("lang");
-let lingua = chiesta === "it" || chiesta === "en" ? chiesta : memoria.leggi("sportello-lingua") === "it" ? "it" : "en";
+let lingua = chiesta === "it" || chiesta === "en" ? chiesta : memoria.leggi("casa-lingua") === "it" ? "it" : "en";
 let stato = null, finestre = [], numeri = null, contratti = null, scelto = null, modo = "telepatia", corso = null, esito = null, guasto = null;
 const el = (tag, attr = {}, ...figli) => {
   const n = document.createElement(tag);
@@ -236,7 +236,7 @@ function disegna() {
   const pagina = document.getElementById("pagina");
   pagina.replaceChildren();
   const lingue = el("div", { class: "lingue", role: "group", "aria-label": t().lingue },
-    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), onclick: () => { if (l !== lingua) { lingua = l; memoria.scrivi("sportello-lingua", l); disegna(); } } }, l === "en" ? "English" : "Italiano")));
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === lingua), onclick: () => { if (l !== lingua) { lingua = l; memoria.scrivi("casa-lingua", l); disegna(); } } }, l === "en" ? "English" : "Italiano")));
   pagina.append(el("div", { class: "barra" }, el("a", { href: "../index.html", text: t().casa }), el("div", { class: "barra__destra" }, pillola(), lingue)));
   pagina.append(el("header", { class: "testa" }, el("h1", { text: t().titolo }), el("p", { text: t().sotto })));
 

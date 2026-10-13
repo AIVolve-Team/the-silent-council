@@ -4,7 +4,6 @@
   "outputDirectory": "public",
   "cleanUrls": false,
   "functions": {
-    "api/prova.mjs": { "maxDuration": 300 },
     "api/consiglio.mjs": { "maxDuration": 300 }
   },
   "headers": [
