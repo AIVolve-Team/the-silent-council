@@ -145,13 +145,15 @@ docker run -d --name vllm --network=host --ipc=host --shm-size 16G \
   --device=/dev/kfd --device=/dev/dri --group-add video --security-opt seccomp=unconfined \
   -v "$HF_HOME":/root/hf -e HF_HOME=/root/hf --entrypoint vllm vllm/vllm-openai-rocm:v0.30.0 \
   serve Qwen/Qwen3.6-35B-A3B --revision 995ad96eacd98c81ed38be0c5b274b04031597b0 --port 8000 \
-  --api-key "$VLLM_API_KEY" --gpu-memory-utilization 0.5 --max-model-len 32768 \
+  --api-key "$VLLM_API_KEY" --gpu-memory-utilization 0.5 --max-model-len 32768 --max-num-seqs 256 \
   --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 \
   --default-chat-template-kwargs '{"enable_thinking": false}' \
   --override-generation-config '{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0, "presence_penalty": 1.5, "repetition_penalty": 1.0}'
 docker logs -f vllm 2>&1 | grep -m2 -E "Model loading took|startup complete" # annota i GB del primo
 python -m g1.agente --url http://127.0.0.1:8000 --chiave "$VLLM_API_KEY" # deve finire con ✓
 ```
+
+`--max-num-seqs 256` serve dal giro del 12/10. Qwen3.6 è un modello ibrido e con metà scheda ha 785 blocchi di cache Mamba, meno dei 1.024 che vLLM prepara di default. Senza il flag l'avvio si ferma con `max_num_seqs (1024) exceeds available Mamba cache blocks`.
 
 I parametri dell'agente principale sono quelli di Building block Evolus (non `hermes`).
 Evolus non passa parametri di richiesta, quindi "pensiero" e campionamento si fissano qui, lato server:

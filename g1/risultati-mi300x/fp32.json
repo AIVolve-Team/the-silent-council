@@ -1,0 +1,7 @@
+{
+  "problemi": 5,
+  "risposte_uguali": 5,
+  "testi_uguali": 0,
+  "giuste_fp32": 5,
+  "giuste_bf16": 5
+}

@@ -1,0 +1,22 @@
+{
+  "dispositivo": "cuda",
+  "dtype": "bfloat16",
+  "token_letti_primo_agente": 4103,
+  "kv_messaggio_gb": 0.67387392,
+  "secondi_impronta": 0.4455278499999622,
+  "impronta_ok": true,
+  "ricalcolo_identico": true,
+  "secondi_staffetta": 13.680354348000037,
+  "fermata": null,
+  "picco_motore_gb": 37.945868288,
+  "pesi_motore_gb": 29.5366144,
+  "vram_rocm": {
+    "card0": {
+      "VRAM Total Memory (B)": "205822885888",
+      "VRAM Total Used Memory (B)": "138016075776"
+    }
+  },
+  "ok": true,
+  "pesi_vllm_gb": 70.36,
+  "pesi_due_modelli_gb": 99.8966144
+}
