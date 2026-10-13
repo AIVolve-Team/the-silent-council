@@ -15,6 +15,8 @@ Poi conta i token Qwen3 di ogni contratto, estrae il campione con seme fisso tra
 | `test_dimostrativo.py` | test dei controlli sul set dimostrativo |
 | `set-di-misura/campione.json` | i contratti estratti, per benchmark e insieme |
 | `set-di-misura/risposte-giuste.jsonl` | una riga per coppia (contratto, categoria) dei contratti estratti |
+| `set-di-misura/campione-replica.json` | i 72 contratti della replica di CUAD |
+| `set-di-misura/risposte-giuste-replica.jsonl` | le risposte giuste della replica, una riga per coppia |
 | `set-di-misura/conteggi.json` | quanti contratti stanno sotto il tetto, con mediana, p90 e massimo |
 | `set-di-misura/token-per-contratto.csv` | i token Qwen3 di ogni contratto dei tre benchmark |
 | `NOTICE.md` | attribuzioni e licenze dei dati |
@@ -38,6 +40,7 @@ Due giri dello script producono gli stessi file.
 - **Campione:** seme 60, estrazione indipendente per benchmark e insieme.
   - CUAD e ContractNLI: 5 contratti di sviluppo dallo split *train* e 20 di test dallo split *test* ufficiale.
   - CLAUDETTE, che non ha uno split ufficiale: 20 di test, e tutti gli altri sotto il tetto come sviluppo.
+  - Replica di CUAD: tutti i contratti di test sotto il tetto che il test non ha usato, 72, senza estrazione. Sta in file a parte perché quelli del test sono fissati per hash nella pre-registrazione.
 - **Risposta giusta:**
   - CUAD: "sì" se c'è almeno un pezzo di testo annotato per una delle 19 categorie. Le risposte vengono da `CUADv1.json`; i file dello split servono solo a sapere in quale insieme sta un contratto.
   - ContractNLI: "sì" se l'ipotesi ha etichetta Contradiction; l'etichetta originale resta nella riga.

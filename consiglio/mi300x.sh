@@ -8,8 +8,10 @@
 #                                      sviluppo; scrive le tabelle per scegliere passi e soglie
 #   ./consiglio/mi300x.sh sviluppo     l'eval di sviluppo su tutti i benchmark, con PASSI=<passi scelti>
 #   ./consiglio/mi300x.sh test         il giro di test, una volta sola, con la pre-registrazione congelata
+#   ./consiglio/mi300x.sh replica      i 72 CUAD di test non usati, una volta sola, telepatia, testo e agente
+#                                      solo; il rapporto mette insieme test, replica e totale
 #
-# Variabili: PASSI (sviluppo e test); il riallineamento W_a è spento, come deciso con la diagnosi del 12/10
+# Variabili: PASSI (sviluppo, test e replica); il riallineamento W_a è spento, come deciso con la diagnosi del 12/10
 # (SENZA_RIALLINEAMENTO=0 lo riaccende, solo per un confronto: non è la configurazione pre-registrata).
 # Per provare lo script senza GPU: MODELLO=Qwen/Qwen3-0.6B LIMITE=1 ./consiglio/mi300x.sh taratura (LIMITE=2 per
 # sviluppo, perché gli scambi servono almeno 2 contratti).
@@ -21,8 +23,8 @@ PY="${PY:-$CONSIGLIO/.venv/bin/python}"
 FASE="${1:-}"
 MODELLO="${MODELLO:-Qwen/Qwen3-14B}"
 case "$FASE" in
-  taratura | sviluppo | test) ;;
-  *) sed -n '2,15p' "$0"; exit 2 ;;
+  taratura | sviluppo | test | replica) ;;
+  *) sed -n '2,17p' "$0"; exit 2 ;;
 esac
 [ -x "$PY" ] || { echo "Manca $PY: lancia prima ./consiglio/prova.sh --veloce"; exit 1; }
 USCITA="$CONSIGLIO/risultati-mi300x/$FASE"
@@ -71,5 +73,21 @@ case "$FASE" in
     "$PY" -m revisione.cieca prepara "$USCITA" --uscita "$USCITA/cieca"
     echo "Fatto. Rapporto in $USCITA/rapporto.md (solo numeri aggregati, da pubblicare)."
     echo "Per il controllo alla cieca: $USCITA/cieca/per-chi-controlla, con i contratti; la chiave resta a chi organizza."
+    ;;
+  replica)
+    [ -n "${PASSI:-}" ] || { echo "Serve PASSI, gli stessi del test: PASSI=0 $0 $FASE"; exit 2; }
+    [ -z "${LIMITE:-}" ] || { echo "Sulla replica girano tutti i contratti: niente LIMITE."; exit 2; }
+    echo "-- cuad, replica ($(date +%H:%M))"
+    "$PY" -u -m revisione.esame esegui --benchmark cuad --insieme replica --passi "$PASSI" "${opzioni[@]}" \
+      --uscita "$USCITA" 2>&1 | filtra
+    # Il totale mette insieme test e replica: i giri di CUAD del test si collegano qui, senza copiarli.
+    TEST="$CONSIGLIO/risultati-mi300x/test"
+    if ls "$TEST"/cuad-test-*.jsonl > /dev/null 2>&1; then
+      ln -sf "$TEST"/cuad-test-*.jsonl "$TEST/esame-cuad-test.json" "$USCITA/"
+    else
+      echo "Non trovo i giri del test in $TEST: il rapporto ha solo la replica."
+    fi
+    "$PY" -m revisione.esame rapporto "$USCITA" > /dev/null
+    echo "Fatto. Rapporto in $USCITA/rapporto.md: test, replica e totale, da riportare."
     ;;
 esac

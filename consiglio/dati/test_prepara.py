@@ -1,7 +1,21 @@
+import csv
+import hashlib
+import json
+import re
+from pathlib import Path
+
 import pytest
 
 from categorie import CLAUDETTE_CATEGORIE, CONTRACTNLI_IPOTESI, CUAD_CATEGORIE, FINANZA, LEGALE, LETTORI, RISCHIO
-from prepara import campiona, estrai_clausole, righe_claudette, righe_contractnli, righe_cuad, risposte_claudette
+from prepara import (
+    campiona,
+    estrai_clausole,
+    replica,
+    righe_claudette,
+    righe_contractnli,
+    righe_cuad,
+    risposte_claudette,
+)
 
 
 def test_clausole_annidate_e_tag_ignorati():
@@ -79,3 +93,48 @@ def test_lettori_sono_i_ruoli_con_categorie_nell_ordine_della_staffetta():
     for benchmark, lettori in LETTORI.items():
         assert set(lettori) == ruoli[benchmark], benchmark
         assert list(lettori) == [r for r in (LEGALE, FINANZA, RISCHIO) if r in lettori], benchmark
+
+
+def test_replica_e_tutto_il_sotto_tetto_meno_il_test():
+    assert replica(["c3", "c1", "c2", "c4"], ["c2", "c9"]) == ["c1", "c3", "c4"]
+
+
+# --- La replica di CUAD sui file committati --------------------------------------------------------------------
+
+SET = Path(__file__).resolve().parent / "set-di-misura"
+
+
+def _hash_preregistrati() -> dict[str, str]:
+    testo = (Path(__file__).resolve().parents[1] / "PREREGISTRAZIONE.md").read_text()
+    return dict(re.findall(r"`consiglio/dati/set-di-misura/([^`]+)` \| `([0-9a-f]{64})`", testo))
+
+
+def test_i_file_del_test_restano_quelli_preregistrati():
+    hash_ = _hash_preregistrati()
+    assert set(hash_) >= {"campione.json", "risposte-giuste.jsonl"}
+    for nome, atteso in hash_.items():
+        assert hashlib.sha256((SET / nome).read_bytes()).hexdigest() == atteso, nome
+
+
+def test_replica_cuad_72_contratti_sotto_il_tetto_fuori_dal_test():
+    campione = json.loads((SET / "campione.json").read_text())
+    replica_cuad = json.loads((SET / "campione-replica.json").read_text())["cuad"]["replica"]
+    with (SET / "token-per-contratto.csv").open() as f:
+        token = {
+            r["contratto"]: int(r["token_qwen3"])
+            for r in csv.DictReader(f)
+            if r["benchmark"] == "cuad" and r["insieme_originale"] == "test"
+        }
+    sotto = {cid for cid, t in token.items() if t <= campione["tetto"]}
+    assert len(replica_cuad) == len(set(replica_cuad)) == 72
+    assert not set(replica_cuad) & set(campione["cuad"]["test"])
+    assert set(replica_cuad) == sotto - set(campione["cuad"]["test"])
+
+
+def test_risposte_della_replica_una_riga_per_coppia():
+    replica_cuad = json.loads((SET / "campione-replica.json").read_text())["cuad"]["replica"]
+    righe = [json.loads(r) for r in (SET / "risposte-giuste-replica.jsonl").open()]
+    assert {(r["benchmark"], r["insieme"]) for r in righe} == {("cuad", "replica")}
+    assert sorted({r["contratto"] for r in righe}) == replica_cuad
+    assert len({(r["contratto"], r["categoria"]) for r in righe}) == len(righe) == 72 * len(CUAD_CATEGORIE)
+    assert any(r["da_segnalare"] for r in righe)

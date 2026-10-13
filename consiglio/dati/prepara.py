@@ -3,6 +3,7 @@
 Scarica CUAD, ContractNLI e i ToS italiani di CLAUDETTE dalle fonti ufficiali, conta i token Qwen3 di ogni
 contratto, estrae il campione con seme fisso tra i contratti sotto il tetto e scrive le risposte giuste:
 per ogni coppia (contratto, categoria), se va segnalata sì o no, con i pezzi di testo che lo provano.
+La replica di CUAD va in file a parte: quelli del test sono fissati per hash nella pre-registrazione.
 
 Decisioni: "Benchmark e contratti di prova", "Impostazione del Consiglio".
 """
@@ -234,6 +235,11 @@ def campiona(ids: list[str], n: int, chiave: str) -> list[str]:
     return random.Random(f"{SEME}-{chiave}").sample(sorted(ids), n)
 
 
+def replica(sotto_tetto: list[str], test: list[str]) -> list[str]:
+    """La replica di CUAD: tutti i contratti di test sotto il tetto che il test non ha usato, senza estrazione."""
+    return sorted(set(sotto_tetto) - set(test))
+
+
 def righe_cuad(contratto: dict, insieme: str) -> list[dict]:
     return [
         {
@@ -319,6 +325,7 @@ def main() -> None:
 
     argomenti.uscita.mkdir(parents=True, exist_ok=True)
     conteggi, campione, righe, token_csv = {"tetto": argomenti.tetto}, {"seme": SEME, "tetto": argomenti.tetto}, [], []
+    campione_replica, righe_replica = {"tetto": argomenti.tetto}, []
     for nome, (insiemi, righe_di) in benchmark.items():
         conteggi[nome] = {}
         sotto = {}
@@ -346,11 +353,22 @@ def main() -> None:
                     f"{nome} {insieme}: nessuna coppia da segnalare, la lettura delle risposte è sbagliata."
                 )
             righe += nuove
+        if nome == "cuad":
+            campione_replica[nome] = {"replica": replica(sotto["test"], test)}
+            righe_replica += [
+                riga for i in campione_replica[nome]["replica"] for riga in righe_di(per_id[i], "replica")
+            ]
 
     (argomenti.uscita / "conteggi.json").write_text(json.dumps(conteggi, indent=2, ensure_ascii=False) + "\n")
     (argomenti.uscita / "campione.json").write_text(json.dumps(campione, indent=2, ensure_ascii=False) + "\n")
     with (argomenti.uscita / "risposte-giuste.jsonl").open("w") as f:
         for riga in righe:
+            f.write(json.dumps(riga, ensure_ascii=False) + "\n")
+    (argomenti.uscita / "campione-replica.json").write_text(
+        json.dumps(campione_replica, indent=2, ensure_ascii=False) + "\n"
+    )
+    with (argomenti.uscita / "risposte-giuste-replica.jsonl").open("w") as f:
+        for riga in righe_replica:
             f.write(json.dumps(riga, ensure_ascii=False) + "\n")
     with (argomenti.uscita / "token-per-contratto.csv").open("w", newline="") as f:
         scrittore = csv.writer(f)
@@ -362,6 +380,10 @@ def main() -> None:
         positivi = sum(r["da_segnalare"] for r in righe if r["benchmark"] == nome and r["insieme"] == "test")
         coppie = sum(1 for r in righe if r["benchmark"] == nome and r["insieme"] == "test")
         print(f"{nome}: sotto il tetto {dettaglio}; test {coppie} coppie, {positivi} da segnalare")
+    positivi = sum(r["da_segnalare"] for r in righe_replica)
+    print(
+        f"cuad replica: {len(campione_replica['cuad']['replica'])} contratti, {len(righe_replica)} coppie, {positivi} da segnalare"
+    )
     print(f"Scritto in {argomenti.uscita}")
 
 
