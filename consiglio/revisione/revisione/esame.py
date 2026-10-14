@@ -8,7 +8,8 @@ Esempi:
 Il modello si carica una volta per tutte le configurazioni. Ogni configurazione scrive
 `<benchmark>-<insieme>-<configurazione>.jsonl`, una revisione per riga; `esame.json` dice con cosa è girato.
 Sul set di test l'eval parte solo con la pre-registrazione congelata e committata (`consiglio/PREREGISTRAZIONE.md`),
-e una volta sola: un secondo giro è una deviazione e chiede il motivo.
+e una volta sola: un secondo giro è una deviazione e chiede il motivo. La replica su CUAD segue le
+stesse regole, e in più parte solo se la pre-registrazione ha la sua sezione.
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from . import misure
 from .categorie import BENCHMARK
 from .configurazioni import AgenteSolo, VotoFraQuattro
 from .consiglio import MAX_TOKEN_ANALISI, Consiglio
-from .dati import dimostrativo, prove, risposte_giuste, risposte_grado_3
+from .dati import REPLICA, dimostrativo, prove, risposte_giuste, risposte_grado_3
 from .esegui import MODELLI, _contratti_e_risposte, libera_memoria, sintesi
 
 RADICE = Path(__file__).resolve().parents[3]
@@ -37,19 +38,29 @@ PREREGISTRAZIONE = RADICE / "consiglio" / "PREREGISTRAZIONE.md"
 BOZZA = "Stato: bozza"
 # Ordine di esecuzione: la telepatia viene prima perché i suoi pensieri servono alla prova dei pensieri scambiati.
 ORDINE = ("telepatia", "testo", "solo", "voto", "m0", "pensieri-scambiati", "contratto-scambiato")
+# Gli insiemi che girano una volta sola, con le regole committate e tutti i contratti.
+PREREGISTRATI = ("test", REPLICA)
+# La replica parte solo se la pre-registrazione ha questa sezione, e rifà solo queste tre configurazioni.
+SEZIONE_REPLICA = "## Replica su CUAD"
+CONFIGURAZIONI_REPLICA = ("telepatia", "testo", "solo")
+# Test e replica insieme, nel rapporto: G4 resta deciso sul test.
+TOTALE = "totale"
 
 
 def _git(*argomenti: str) -> str:
     return subprocess.run(["git", "-C", str(RADICE), *argomenti], capture_output=True, text=True, check=True).stdout
 
 
-def controlla_preregistrazione() -> dict:
-    """La pre-registrazione dev'essere congelata e committata, e il codice senza modifiche locali."""
+def controlla_preregistrazione(insieme: str = "test") -> dict:
+    """La pre-registrazione dev'essere congelata e committata, e il codice senza modifiche locali. Per la
+    replica deve avere anche la sua sezione."""
     if not PREREGISTRAZIONE.exists():
         raise SystemExit(f"Manca la pre-registrazione: {PREREGISTRAZIONE}")
     testo = PREREGISTRAZIONE.read_text()
     if BOZZA in testo:
         raise SystemExit("La pre-registrazione è ancora una bozza: va congelata e committata prima del test.")
+    if insieme == REPLICA and SEZIONE_REPLICA not in testo:
+        raise SystemExit(f"Per la replica la pre-registrazione deve avere la sezione «{SEZIONE_REPLICA}».")
     relativo = str(PREREGISTRAZIONE.relative_to(RADICE))
     if _git("status", "--porcelain", "--", relativo).strip():
         raise SystemExit("La pre-registrazione ha modifiche non committate: il test usa solo regole committate.")
@@ -74,6 +85,8 @@ def esegui(argomenti: argparse.Namespace) -> None:
     uscita: Path = argomenti.uscita
     uscita.mkdir(parents=True, exist_ok=True)
     scelte = [c for c in ORDINE if c in argomenti.configurazioni]
+    if argomenti.insieme == REPLICA and set(scelte) != set(CONFIGURAZIONI_REPLICA):
+        raise SystemExit(f"La replica rifà solo {', '.join(CONFIGURAZIONI_REPLICA)}.")
     if argomenti.passi == 0 and {"m0", "pensieri-scambiati"} & set(scelte):
         # Con 0 passi non ci sono pensieri: "pensieri azzerati" sarebbe lo stesso giro della telepatia e i pensieri di
         # un altro contratto non esistono. Le due prove non si fanno (PREREGISTRAZIONE.md, prove di sabotaggio).
@@ -82,12 +95,12 @@ def esegui(argomenti: argparse.Namespace) -> None:
     if "pensieri-scambiati" in scelte and "telepatia" not in scelte:
         raise SystemExit("I pensieri scambiati usano i pensieri del giro in telepatia: aggiungi la telepatia.")
     preregistrazione, deviazione = None, None
-    if argomenti.insieme == "test":
-        preregistrazione = controlla_preregistrazione()
-        precedenti = sorted(uscita.glob(f"{argomenti.benchmark}-test-*.jsonl"))
+    if argomenti.insieme in PREREGISTRATI:
+        preregistrazione = controlla_preregistrazione(argomenti.insieme)
+        precedenti = sorted(uscita.glob(f"{argomenti.benchmark}-{argomenti.insieme}-*.jsonl"))
         if precedenti and not argomenti.deviazione:
             raise SystemExit(
-                "Il test gira una volta sola. Per un altro giro serve --deviazione con il motivo, da scrivere "
+                f"Il {argomenti.insieme} gira una volta sola. Per un altro giro serve --deviazione con il motivo, da scrivere "
                 "anche fra le deviazioni della pre-registrazione."
             )
         deviazione = argomenti.deviazione
@@ -200,7 +213,8 @@ def scrivi_rapporto(cartella: Path) -> str:
     aggregati: il rapporto si può incollare nel ticket."""
     parti = ["# Eval del Consiglio: rapporto", ""]
     tutti = {}
-    for (benchmark, insieme), giri in _giri(cartella).items():
+    giri = _giri(cartella)
+    for (benchmark, insieme), giri_insieme in giri.items():
         meta_file = cartella / f"esame-{benchmark}-{insieme}.json"
         meta = json.loads(meta_file.read_text()) if meta_file.exists() else {}
         giuste = _giuste(benchmark, insieme)
@@ -210,7 +224,7 @@ def scrivi_rapporto(cartella: Path) -> str:
             )
         testi = {cid: testo for cid, testo, _ in dimostrativo()} if benchmark == "dimostrativo" else None
         grado_3 = risposte_grado_3(insieme) if benchmark == "claudette" else None
-        numeri = misure.riepilogo(giri, giuste, prove(benchmark, insieme), testi=testi, grado_3=grado_3)
+        numeri = misure.riepilogo(giri_insieme, giuste, prove(benchmark, insieme), testi=testi, grado_3=grado_3)
         numeri["meta"] = meta
         tutti[f"{benchmark}-{insieme}"] = numeri
         parti += _sezione(benchmark, insieme, numeri, meta)
@@ -223,10 +237,33 @@ def scrivi_rapporto(cartella: Path) -> str:
             titolo = f"{benchmark} ({insieme}): qualità contro costo"
             (cartella / f"grafico-{benchmark}-{insieme}.svg").write_text(misure.grafico_svg(punti, titolo))
             parti += [f"![Qualità contro costo](grafico-{benchmark}-{insieme}.svg)", ""]
+    test, replica = giri.get(("cuad", "test")), giri.get(("cuad", REPLICA))
+    if test and replica:
+        tutti[f"cuad-{TOTALE}"] = numeri = _totale(test, replica)
+        parti += _sezione("cuad", TOTALE, numeri, {})
+        parti += _conferma(tutti["cuad-test"], tutti[f"cuad-{REPLICA}"])
     testo = "\n".join(parti)
     (cartella / "rapporto.md").write_text(testo)
     (cartella / "numeri.json").write_text(json.dumps(tutti, indent=2, ensure_ascii=False, default=list))
     return testo
+
+
+def _totale(test: dict[str, list[dict]], replica: dict[str, list[dict]]) -> dict:
+    """I numeri di CUAD su test e replica insieme, per le configurazioni della replica: il bootstrap
+    appaiato ricampiona i contratti di tutti e due."""
+    giri = {c: test[c] + replica[c] for c in CONFIGURAZIONI_REPLICA if c in test and c in replica}
+    giuste = risposte_giuste("cuad", "test") | risposte_giuste("cuad", REPLICA)
+    return misure.riepilogo(giri, giuste, prove("cuad", "test") | prove("cuad", REPLICA))
+
+
+def _conferma(test: dict, replica: dict) -> list[str]:
+    """La replica conferma G4 se le sue tre condizioni danno lo stesso esito del test, smentisce se no."""
+    if "telepatia_contro_testo" not in test or "telepatia_contro_testo" not in replica:
+        return []
+    passa_test, passa_replica = (all(n["telepatia_contro_testo"]["g4"].values()) for n in (test, replica))
+    esito = "superato" if passa_test else "non superato"
+    verbo = "**conferma**" if passa_test == passa_replica else "**smentisce**"
+    return [f"**G4 e replica:** G4 resta deciso sul test, dove è {esito}. La replica lo {verbo}.", ""]
 
 
 def _sezione(benchmark: str, insieme: str, numeri: dict, meta: dict) -> list[str]:
@@ -266,8 +303,11 @@ def _sezione(benchmark: str, insieme: str, numeri: dict, meta: dict) -> list[str
     if confronto:
         tele, testo = configurazioni["telepatia"], configurazioni["testo"]
         risparmio = 1 - tele["token_generati"] / testo["token_generati"] if testo["token_generati"] else 0
-        # Il giudizio è pre-registrato solo su CUAD: gli altri benchmark si riportano senza soglia.
-        if benchmark == "cuad":
+        # Il giudizio è pre-registrato solo su CUAD, e G4 si decide sul test: replica e totale lo confermano o lo
+        # smentiscono. Gli altri benchmark si riportano senza soglia.
+        if benchmark == "cuad" and insieme in (REPLICA, TOTALE):
+            giudizio = " G4 resta deciso sul test."
+        elif benchmark == "cuad":
             giudizio = "non perde, dimostrato" if confronto["dimostrata"] else "risultati compatibili"
             giudizio = f" Si dice: *{giudizio}*."
         else:
@@ -298,11 +338,13 @@ def _sezione(benchmark: str, insieme: str, numeri: dict, meta: dict) -> list[str
                 f"- **Analisi a testo che toccano il tetto di {MAX_TOKEN_ANALISI} token:** "
                 f"{testo['analisi_troncate']} su {testo['analisi']}."
             )
-        if benchmark == "cuad":
+        if benchmark == "cuad" and insieme != TOTALE:
             g4 = confronto["g4"]
             righe += [
                 "",
-                "**G4** (su CUAD):",
+                "**G4 sulla replica** (non decide, conferma o smentisce il test):"
+                if insieme == REPLICA
+                else "**G4** (su CUAD):",
                 "",
                 f"- [{'x' if g4['f1'] else ' '}] F1 telepatia ≥ F1 testo − 3 punti",
                 f"- [{'x' if g4['token'] else ' '}] token generati almeno il −50%",
@@ -363,9 +405,9 @@ def main() -> None:
     comandi = parser.add_subparsers(dest="comando", required=True)
     giro = comandi.add_parser("esegui", help="fa girare le configurazioni")
     giro.add_argument("--benchmark", choices=sorted(BENCHMARK), required=True)
-    giro.add_argument("--insieme", choices=["sviluppo", "test"], default="sviluppo")
+    giro.add_argument("--insieme", choices=["sviluppo", "test", REPLICA], default="sviluppo")
     giro.add_argument("--passi", type=int, required=True, help="i passi latenti scelti sul set di sviluppo")
-    giro.add_argument("--configurazioni", nargs="+", choices=ORDINE, default=list(ORDINE))
+    giro.add_argument("--configurazioni", nargs="+", choices=ORDINE, help="di default tutte, sulla replica le sue tre")
     giro.add_argument("--modello", default="Qwen/Qwen3-14B")
     giro.add_argument("--revisione", help="revisione del modello su Hugging Face (di default quella fissata)")
     giro.add_argument("--dtype", choices=["float32", "bfloat16", "float16"])
@@ -379,8 +421,13 @@ def main() -> None:
     rapporto.add_argument("cartella", type=Path)
     argomenti = parser.parse_args()
     if argomenti.comando == "esegui":
-        if argomenti.insieme == "test" and (argomenti.max_token or argomenti.limite):
+        if argomenti.insieme in PREREGISTRATI and (argomenti.max_token or argomenti.limite):
             raise SystemExit("Sul test girano tutti i contratti: --max-token e --limite sono solo per le prove.")
+        if argomenti.insieme == REPLICA and argomenti.benchmark != "cuad":
+            raise SystemExit("La replica c'è solo su CUAD.")
+        argomenti.configurazioni = argomenti.configurazioni or list(
+            CONFIGURAZIONI_REPLICA if argomenti.insieme == REPLICA else ORDINE
+        )
         esegui(argomenti)
     else:
         print(scrivi_rapporto(argomenti.cartella))

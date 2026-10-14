@@ -1,5 +1,6 @@
 """Test senza modello dell'eval: misure, voto fra 4, protezione del test e rapporto."""
 
+import argparse
 import json
 
 import pytest
@@ -8,7 +9,7 @@ from revisione import esame, misure
 from revisione.configurazioni import raccomandazione_comune, vota_fra
 from revisione.consiglio import MAX_TOKEN_ANALISI as MAX
 from revisione.consiglio import Scritto
-from revisione.dati import risposte_giuste
+from revisione.dati import REPLICA, risposte_giuste
 
 PROVA = "The Company shall not, during the Term, engage in any business that competes with the Distributor."
 
@@ -177,3 +178,60 @@ def test_il_giudizio_dimostrato_solo_su_cuad(tmp_path):
         (tmp_path / f"contractnli-sviluppo-{nome}.jsonl").write_text("\n".join(json.dumps(r) for r in perfetti))
     testo = esame.scrivi_rapporto(tmp_path)
     assert "dimostrato" not in testo and "Senza soglia" in testo
+
+
+# --- Replica su CUAD ----------------------------------------------------------------------------------------
+
+
+def test_la_replica_non_parte_senza_la_sua_sezione(tmp_path, monkeypatch):
+    congelata = tmp_path / "PREREGISTRAZIONE.md"
+    congelata.write_text("# Pre-registrazione\n\nStato: congelata il 13/10/2026\n")
+    monkeypatch.setattr(esame, "PREREGISTRAZIONE", congelata)
+    with pytest.raises(SystemExit, match="Replica su CUAD"):
+        esame.controlla_preregistrazione(REPLICA)
+
+
+def test_la_replica_rifa_solo_le_sue_tre_configurazioni(tmp_path):
+    argomenti = argparse.Namespace(uscita=tmp_path, configurazioni=list(esame.ORDINE), passi=0, insieme=REPLICA)
+    with pytest.raises(SystemExit, match="replica rifà solo"):
+        esame.esegui(argomenti)
+
+
+def test_la_replica_ha_i_72_contratti_e_le_loro_risposte():
+    giuste = risposte_giuste("cuad", REPLICA)
+    replica = {c for c, _ in giuste}
+    assert len(replica) == 72 and not replica & {c for c, _ in risposte_giuste("cuad", "test")}
+
+
+def _giri_cuad(cartella, insieme, telepatia_giusta):
+    giuste = risposte_giuste("cuad", insieme)
+    contratti = sorted({c for c, _ in giuste})
+    perfetti = [riga(c, {k: v for (cc, k), v in giuste.items() if cc == c}, token=(500, 100)) for c in contratti]
+    tutto_no = [riga(c, {k: False for (cc, k) in giuste if cc == c}, token=(1000, 300), secondi=2) for c in contratti]
+    giri = {"telepatia": perfetti if telepatia_giusta else tutto_no, "testo": tutto_no, "solo": perfetti}
+    for nome, righe in giri.items():
+        (cartella / f"cuad-{insieme}-{nome}.jsonl").write_text("\n".join(json.dumps(r) for r in righe))
+    return len(contratti)
+
+
+def test_rapporto_con_test_replica_e_totale(tmp_path):
+    n_test = _giri_cuad(tmp_path, "test", telepatia_giusta=True)
+    n_replica = _giri_cuad(tmp_path, REPLICA, telepatia_giusta=True)
+    testo = esame.scrivi_rapporto(tmp_path)
+    numeri = json.loads((tmp_path / "numeri.json").read_text())
+    assert set(numeri) == {"cuad-test", "cuad-replica", "cuad-totale"}
+    totale = numeri["cuad-totale"]
+    assert totale["telepatia_contro_testo"]["contratti"] == n_test + n_replica == 92
+    assert totale["telepatia_contro_solo"]["contratti"] == 92
+    assert "## cuad, totale (92 contratti)" in testo and "G4 sulla replica" in testo
+    assert "La replica lo **conferma**" in testo
+
+
+def test_la_replica_smentisce_g4(tmp_path):
+    _giri_cuad(tmp_path, "test", telepatia_giusta=True)
+    _giri_cuad(tmp_path, REPLICA, telepatia_giusta=False)
+    testo = esame.scrivi_rapporto(tmp_path)
+    assert "dove è superato. La replica lo **smentisce**" in testo
+    # Sulla replica e sul totale non si dà il giudizio "dimostrato": G4 si decide sul test.
+    replica_e_totale = testo.split("## cuad, replica")[1].split("## cuad, test")[0] + testo.split("## cuad, totale")[1]
+    assert "dimostrato" not in replica_e_totale and "compatibili" not in replica_e_totale

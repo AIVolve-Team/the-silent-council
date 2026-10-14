@@ -11,6 +11,13 @@ from pathlib import Path
 from types import ModuleType
 
 DATI = Path(__file__).resolve().parents[2] / "dati"
+SET_DI_MISURA = DATI / "set-di-misura"
+# La replica di CUAD sta in file a parte: quelli del test sono fissati per hash nella pre-registrazione.
+REPLICA = "replica"
+
+
+def _file(nome: str, estensione: str, insieme: str) -> Path:
+    return SET_DI_MISURA / (f"{nome}-replica.{estensione}" if insieme == REPLICA else f"{nome}.{estensione}")
 
 
 def _modulo(nome: str) -> ModuleType:
@@ -40,15 +47,17 @@ def _testi(benchmark: str) -> dict[str, str]:
 
 
 def contratti(benchmark: str, insieme: str) -> list[tuple[str, str]]:
-    """(id, testo) dei contratti del campione, nell'ordine di `campione.json`. Servono i file in `dati/cache`,
-    che `prepara.py` scarica."""
-    campione = json.loads((DATI / "set-di-misura" / "campione.json").read_text())
+    """(id, testo) dei contratti del campione, nell'ordine di `campione.json` (`campione-replica.json` per la replica).
+    Servono i file in `dati/cache`, che `prepara.py` scarica."""
+    campione = json.loads(_file("campione", "json", insieme).read_text())
+    if insieme not in campione.get(benchmark, {}):
+        raise SystemExit(f"{benchmark} non ha l'insieme {insieme}: la replica c'è solo su CUAD.")
     testi = _testi(benchmark)
     return [(cid, testi[cid]) for cid in campione[benchmark][insieme]]
 
 
 def _righe(benchmark: str, insieme: str):
-    for r in (DATI / "set-di-misura" / "risposte-giuste.jsonl").open():
+    for r in _file("risposte-giuste", "jsonl", insieme).open():
         riga = json.loads(r)
         if riga["benchmark"] == benchmark and riga["insieme"] == insieme:
             yield riga
@@ -81,7 +90,7 @@ def risposte_esperti(benchmark: str) -> dict[str, dict[str, dict]]:
     """contratto → categoria → {"da_segnalare", "prove"}: le risposte dei dataset, con i pezzi annotati, di tutti gli
     insiemi. Servono al sito dei giudici, per mostrare accanto al verdetto cosa hanno detto gli esperti."""
     esperti: dict[str, dict[str, dict]] = {}
-    for r in map(json.loads, (DATI / "set-di-misura" / "risposte-giuste.jsonl").open()):
+    for r in map(json.loads, (SET_DI_MISURA / "risposte-giuste.jsonl").open()):
         if r["benchmark"] == benchmark:
             esperti.setdefault(r["contratto"], {})[r["categoria"]] = {
                 "da_segnalare": r["da_segnalare"],
