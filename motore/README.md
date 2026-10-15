@@ -80,7 +80,7 @@ Le chiavi private stanno fuori dal repo, con permessi 600; nel repo vanno solo l
 
 ## Sulla MI300X (G1)
 
-- Torch nella build ROCm; `transformers` resta 4.57.x. Il modello e la cache nascono in bf16 e restano così.
+- Torch nella build ROCm. L'eval pre-registrato gira con `transformers` 4.57.6; con la 5 il motore regge anche Gemma 4 (spike), e il servizio usa la 5. Il modello e la cache nascono in bf16 e restano così.
 - Da, per la prova del primo giorno: confrontare con un riferimento fp32 e vietare il ripiego sul backend math di SDPA con `sdpa_kernel`.
 - Da misurare: il tempo degli hash su messaggi da qualche GB e se il ricalcolo dei pensieri resta identico in bf16. Sul Mac in fp32 la differenza è 0.
 

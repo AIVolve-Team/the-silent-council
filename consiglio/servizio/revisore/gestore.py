@@ -258,6 +258,8 @@ class Revisore:
             "link": link,
             "avviso": avviso(v, link),
             "modalita": modalita,
+            # Il modello che ha esaminato il contratto: con l'instradamento dipende dalla lunghezza.
+            "modello": revisione.get("modello"),
             "token_generati": revisione.get("token_generati"),
             "secondi": round(revisione.get("secondi") or 0, 1),
         }

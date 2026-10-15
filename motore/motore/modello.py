@@ -70,7 +70,13 @@ class Modello:
 
     @property
     def n_layer(self) -> int:
-        return self.rete.config.num_hidden_layers
+        return self.rete.config.get_text_config().num_hidden_layers
+
+    def logit(self, stato: torch.Tensor) -> torch.Tensor:
+        """I logit del token successivo, con il softcap finale se il modello lo ha (Gemma 4: 30)."""
+        logit = self.rete.lm_head(stato).float()
+        softcap = getattr(self.rete.config.get_text_config(), "final_logit_softcapping", None)
+        return torch.tanh(logit / softcap) * softcap if softcap else logit
 
     @torch.no_grad()
     def _riallineamento(self, righe_per_blocco: int = 8192) -> tuple[torch.Tensor, torch.Tensor]:
@@ -103,7 +109,9 @@ class Modello:
         return matrice.to(self.dispositivo), norma.to(self.dispositivo)
 
     def _token_di_fine(self) -> set[int]:
-        fine = {self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("<|im_end|>")}
+        fine = {self.tokenizer.eos_token_id}
+        if "<|im_end|>" in self.tokenizer.get_vocab():  # la fine del turno di Qwen3; Gemma 4 la dà nella generation_config
+            fine.add(self.tokenizer.convert_tokens_to_ids("<|im_end|>"))
         eos = self.rete.generation_config.eos_token_id
         fine.update(eos if isinstance(eos, list) else [eos])
         return {t for t in fine if t is not None}
@@ -172,7 +180,7 @@ class Modello:
         generati: list[int] = []
         passi: list[Passo] = []
         for _ in range(max_nuovi):
-            logprob = torch.log_softmax(self.rete.lm_head(stato).float(), dim=-1)[0]
+            logprob = torch.log_softmax(self.logit(stato), dim=-1)[0]
             if consentiti is None:
                 scelta = int(torch.argmax(logprob))
             else:

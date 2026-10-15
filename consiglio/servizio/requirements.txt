@@ -1,12 +1,13 @@
-# Verificato il 9/10/2026 su Mac (Apple M4, MPS) con Python 3.12. Stesse versioni del server dello Sportello.
+# Verificato il 15/10/2026 su Mac (M1 Max) con Python 3.12. transformers 5 per Gemma 4 (instradamento.py); Qwen3-14B
+# ci gira: 80 contratti CUAD train sulla MI300X in telepatia, F1 68,6 (spike di “Router spike”).
 -e ../../motore
 torch==2.14.1
-transformers==4.57.6
+transformers==5.19.0
 safetensors==0.8.0
-huggingface-hub==0.36.2
+huggingface-hub==2.2.0
 lm-format-enforcer==0.11.3
 cryptography==50.0.2
-tokenizers==0.22.2
+tokenizers==0.23.3
 mcp==2.3.0
 uvicorn==0.54.0
 python-multipart==0.0.32

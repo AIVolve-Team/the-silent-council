@@ -144,7 +144,17 @@ def cache_da_pezzi(pezzi: list[KV]) -> DynamicCache:
         (torch.cat([p[i][0] for p in pezzi], dim=-2), torch.cat([p[i][1] for p in pezzi], dim=-2))
         for i in range(len(pezzi[0]))
     )
-    return DynamicCache.from_legacy_cache(strati)
+    if hasattr(DynamicCache, "from_legacy_cache"):
+        return DynamicCache.from_legacy_cache(strati)
+    # transformers 5: senza config ogni strato è pieno, anche quelli a finestra di Gemma 4; la finestra la fa la maschera
+    return DynamicCache(ddp_cache_data=strati)
+
+
+def strati_kv(cache: DynamicCache) -> KV:
+    """Chiavi e valori di ogni strato, con transformers 4 e 5."""
+    if hasattr(cache, "to_legacy_cache"):
+        return list(cache.to_legacy_cache())
+    return [(strato.keys, strato.values) for strato in cache.layers]
 
 
 def cache_da(messaggi: list[MessaggioLatente]) -> DynamicCache:
@@ -154,4 +164,4 @@ def cache_da(messaggi: list[MessaggioLatente]) -> DynamicCache:
 
 def taglia(cache: DynamicCache, da: int, a: int) -> KV:
     """Le posizioni [da, a) della cache, copiate."""
-    return [(k[..., da:a, :].clone(), v[..., da:a, :].clone()) for k, v in cache.to_legacy_cache()]
+    return [(k[..., da:a, :].clone(), v[..., da:a, :].clone()) for k, v in strati_kv(cache)]

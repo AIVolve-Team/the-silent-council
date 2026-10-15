@@ -30,6 +30,9 @@ MODELLI = {
     "Qwen/Qwen3-8B": "b968826d9c46dd6066d109eabc6255188de91218",
     # Il modello del Consiglio, alla stessa revisione del tokenizer usato per contare i token.
     "Qwen/Qwen3-14B": "40c069824f4251a91eefaf281ebe4c544efd3e18",
+    # Spike Gemma 4: attenzione ibrida, 5 strati a finestra di 1024 token e 1 globale; serve transformers 5.
+    "google/gemma-4-12B-it": "707f0a3b8a3c7ad586ed01e27eafbad8a27dd0f7",
+    "google/gemma-4-31B-it": "842da3794eaa0b77d5f08bae87a17459d91ff475",
 }
 
 

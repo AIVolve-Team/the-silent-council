@@ -199,6 +199,15 @@ class Motore:
         )
 
     def _vincolo(self, schema: dict, ordine_campi: bool, max_spazi: int | None):
+        import sys
+
+        try:
+            from transformers.tokenization_utils import PreTrainedTokenizerBase  # noqa: F401
+        except ImportError:
+            # lm-format-enforcer 0.11.3 importa PreTrainedTokenizerBase da un modulo che transformers 5 ha tolto
+            import transformers.tokenization_utils_base as base
+
+            sys.modules["transformers.tokenization_utils"] = base
         from lmformatenforcer import CharacterLevelParserConfig, JsonSchemaParser, TokenEnforcer
         from lmformatenforcer.integrations.transformers import build_token_enforcer_tokenizer_data
 

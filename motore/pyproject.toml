@@ -5,7 +5,7 @@ description = "Motore telepatico: agenti Qwen3 che si passano messaggi latenti"
 requires-python = ">=3.12"
 dependencies = [
     "torch",
-    "transformers==4.57.6",
+    "transformers>=4.57.6,<6",
     "safetensors",
     "lm-format-enforcer",
     "cryptography",
