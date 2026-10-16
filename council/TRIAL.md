@@ -10,7 +10,7 @@ cd the-silent-council
 
 Since 12/10/2026 all the work is on `main`, the branch the clone starts on. If you had already cloned the repo, switch to `main` with `git fetch origin && git checkout -B main origin/main`, even if your `main` had fallen behind; if there are unsaved changes git stops, and you need `git stash` first.
 
-On a Mac there is also `council/trial.command`: with a double click in the Finder the trial starts in a Terminal window of its own, which stays open at the end with the summary. To start it from Claude Code see [With Claude Code](#with-claude-code).
+On a Mac there is also `council/trial.command`: with a double click in the Finder the trial starts in a Terminal window of its own, which stays open at the end with the summary. Before starting it read [Rules for the trial](#rules-for-the-trial).
 
 While it runs, the Mac does not go to sleep on its own: just keep it plugged in and with the lid open.
 
@@ -103,11 +103,11 @@ On a Mac there is also `council/diagnosis-cuad.command` (double click in the Fin
 - The results go to `council/results-trial/diagnosis-cuad/`, and at the end the script prepares the zip `council/results-trial/diagnosis-cuad.zip`.
 - **The zip contains only CUAD contracts, which are public:** nothing from the demo set.
 
-## With Claude Code
+## Rules for the trial
 
-If you ask Claude Code for the trial, these are the rules for it:
+Whoever runs the trial, by hand or with a coding assistant, follows these rules:
 
-- **Always in a fresh clone**, made just for the trial, even if the repo is already on the computer: never in a folder where other Claude Code sessions or other people work. If someone switches branch in that folder while the trial runs, the trial stops halfway, for example with `No module named review.run`.
+- **Always in a fresh clone**, made just for the trial, even if the repo is already on the computer: never in a folder where other people or tools are working. If someone switches branch in that folder while the trial runs, the trial stops halfway, for example with `No module named review.run`.
 
   ```bash
   FOLDER=~/council-trial-$(date +%Y%m%d-%H%M)
@@ -117,7 +117,7 @@ If you ask Claude Code for the trial, these are the rules for it:
   The model is not downloaded again, because it sits in the Hugging Face cache outside the clone, and the script takes the demo set again by itself from the private repo. If instead the set was handed to you, copy it into `council/data/demo-set/` of the fresh clone.
 - **Nothing is changed.** No modified files, no packages installed by hand, no different model: `trial.sh` does everything.
 - **The script downloads the model:** Qwen3-14B from Hugging Face, at a pinned revision. A Qwen already installed with Ollama or LM Studio cannot be used: the council passes the model's internal memory (the KV cache) from one agent to the next, and those programs do not expose it.
-- **The trial starts outside Claude Code**, in a Terminal window of its own:
+- **The trial starts in a Terminal window of its own**, outside an editor's terminal:
 
   ```bash
   open council/trial.command
@@ -125,7 +125,7 @@ If you ask Claude Code for the trial, these are the rules for it:
 
   For the [diagnosis trial](#the-diagnosis-trial) the command is `open council/diagnosis.command`, for the [check on CUAD](#the-check-on-cuad) `open council/diagnosis-cuad.command`.
 
-  The run takes hours and uses a lot of memory: a command launched inside Claude Code can be stopped when memory fills up. The first time macOS may ask permission for the Terminal to open the folder: accept it.
+  The run takes hours and uses a lot of memory: a command launched inside an editor or an assistant can be stopped when memory fills up. The first time macOS may ask permission for the Terminal to open the folder: accept it.
 - **To follow it**, just read `council/results-trial/trial.log` (for the diagnosis `council/results-trial/diagnosis/trial.log`, for the check on CUAD `council/results-trial/diagnosis-cuad/trial.log`), which grows as the trial goes on.
   - It has finished when the line starting with `Done.` appears at the bottom of the log.
   - It has stopped if `pgrep -f council/trial.sh` finds nothing any more and that line is not there.
@@ -148,5 +148,5 @@ By the pre-registered rules, whoever wrote or reviewed the expected answers of t
 ## If something goes wrong
 
 - **The Mac slows down a lot or swaps:** close heavy applications (virtual machines, browsers with many tabs) and run it again. Or try `./council/trial.sh --quick` first.
-- **You want another model:** `MODEL=Qwen/Qwen3-8B./council/trial.sh`.
+- **You want another model:** `MODEL=Qwen/Qwen3-8B ./council/trial.sh`.
 - **Everything that happened** is in `council/results-trial/trial.log`: if there are problems, just send that file.
