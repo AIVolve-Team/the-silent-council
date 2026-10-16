@@ -1,0 +1,7 @@
+{
+  "problems": 5,
+  "same_answers": 5,
+  "same_texts": 0,
+  "correct_fp32": 5,
+  "correct_bf16": 5
+}

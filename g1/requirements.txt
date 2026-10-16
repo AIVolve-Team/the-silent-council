@@ -1,6 +1,6 @@
-# Verificato l'8/10/2026 su Mac (Apple M4, MPS) con Python 3.12.
-# Sulla MI300X torch è quello della build ROCm dell'immagine: lì si installa requirements-rocm.txt (vedi README).
--e ../motore
+# Verified on 8 October 2026 on a Mac (Apple M4, MPS) with Python 3.12.
+# On the MI300X torch is the one from the image's ROCm build: there you install requirements-rocm.txt (see README).
+-e ../engine
 torch==2.14.1
 transformers==4.57.6
 safetensors==0.8.0
