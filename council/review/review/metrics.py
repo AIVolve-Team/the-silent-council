@@ -2,7 +2,7 @@
 
 Everything starts from the `.jsonl` rows (one review per contract, in the shape of `Review.as_dict()`) and from the
 correct answers: no model runs here. The rules, operational definitions included, are in the pre-registration
-(`council/PREREGISTRAZIONE.md`).
+(`council/PREREGISTRATION.md`).
 """
 
 from __future__ import annotations
@@ -246,7 +246,7 @@ def thoughts_help(f1_telepathy: float, f1_m0: float | None, f1_swapped: float | 
 
 
 SENTENCE_ALWAYS = "The agents hand each other their thoughts."
-# With 0 latent steps there are no thoughts: the mechanism is described for what it is (PREREGISTRAZIONE.md).
+# With 0 latent steps there are no thoughts: the mechanism is described for what it is (PREREGISTRATION.md).
 SENTENCE_MEMORY = "The agents hand each other the memory of what they read."
 SENTENCE_THOUGHTS = "The thoughts improve the result."
 SENTENCE_FALLBACK = (

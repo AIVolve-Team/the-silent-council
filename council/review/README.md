@@ -85,7 +85,7 @@ The link with Evolus (email with the link to the page, choices sent back by the 
 
 ## The eval
 
-The rules are in [`council/PREREGISTRAZIONE.md`](../PREREGISTRAZIONE.md), which must be frozen and committed before the test run.
+The rules are in [`council/PREREGISTRATION.md`](../PREREGISTRATION.md), which must be frozen and committed before the test run.
 
 ```bash
 # All the configurations with the model loaded once: telepathy, text, solo agent, vote among 4 and the three

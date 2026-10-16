@@ -114,7 +114,7 @@ Le prove di sabotaggio non bloccano la consegna: decidono la frase.
 
 ## Taratura sulla MI300X
 
-12/10/2026, 1× MI300X (AMD Developer Cloud, ROCm 7.2), container `vllm/vllm-openai-rocm:v0.30.0` con torch `2.12.0+git6bbd260` e transformers 4.57.6, codice al commit `1ad3b02`, riallineamento spento. Spiegazione completa in [TARATURA-MI300X.md](TARATURA-MI300X.md) e.
+12/10/2026, 1× MI300X (AMD Developer Cloud, ROCm 7.2), container `vllm/vllm-openai-rocm:v0.30.0` con torch `2.12.0+git6bbd260` e transformers 4.57.6, codice al commit `1ad3b02`, riallineamento spento. Spiegazione completa in [CALIBRATION-MI300X.md](CALIBRATION-MI300X.md) e.
 
 | F1 | 0 passi | 10 passi | 20 passi | 40 passi | testo |
 |---|---|---|---|---|---|

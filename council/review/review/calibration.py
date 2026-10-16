@@ -20,7 +20,7 @@ from .scoring import agreement, score
 
 # The steps to choose from: 10, 20 and 40 of “Pre-registered eval”, and 0, which is its early check of the thoughts. With the same tie
 # rule, 0 wins only if no value with thoughts beats it by at least 1 point: then the thoughts do not help and the
-# system is corrected before the freeze, as “Pre-registered eval” allows (PREREGISTRAZIONE.md).
+# system is corrected before the freeze, as “Pre-registered eval” allows (PREREGISTRATION.md).
 CANDIDATES = (0, 10, 20, 40)
 TIE = 1.0
 # The thresholds are proposed on a grid: the confidence is the probability of the chosen position, between 0.5 and 1.

@@ -2,7 +2,7 @@
 
 Code and guide for the Evolus side of the council service (`council/service`).
 It is the first slice: from the email with the contract to the notice for the person, **without an agent and without a GPU**.
-The whole flow is in `council/FLUSSO.md`; the server is in `council/service`.
+The whole flow is in `council/FLOW.md`; the server is in `council/service`.
 
 ```mermaid
 sequenceDiagram

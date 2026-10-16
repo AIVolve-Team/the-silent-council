@@ -8,7 +8,7 @@ Examples:
 The model is loaded once for all configurations. Each configuration writes
 `<benchmark>-<subset>-<configuration>.jsonl`, one review per line; `eval-<benchmark>-<subset>.json` says what it ran
 with. On the test set the eval starts only with the pre-registration frozen and committed
-(`council/PREREGISTRAZIONE.md`), and only once: a second run is a deviation and asks for the reason. The CUAD
+(`council/PREREGISTRATION.md`), and only once: a second run is a deviation and asks for the reason. The CUAD
 replication follows the same rules, and in addition starts only if the pre-registration has its section.
 """
 
@@ -33,7 +33,7 @@ from .data import REPLICATION, answers_grade_3, correct_answers, demo, evidence
 from .run import MODELS, _contracts_and_answers, free_memory, synopsis
 
 ROOT = Path(__file__).resolve().parents[3]
-PREREGISTRATION = ROOT / "council" / "PREREGISTRAZIONE.md"
+PREREGISTRATION = ROOT / "council" / "PREREGISTRATION.md"
 # The status line of the pre-registration until it is frozen: with this line the test does not start. The
 # pre-registration is a frozen Italian document, so these markers are its own words.
 DRAFT = "Stato: bozza"
@@ -95,7 +95,7 @@ def run(args: argparse.Namespace) -> None:
         raise SystemExit(f"The replication reruns only {', '.join(REPLICATION_CONFIGURATIONS)}.")
     if args.steps == 0 and {"m0", "swapped-thoughts"} & set(chosen):
         # With 0 steps there are no thoughts: "zeroed thoughts" would be the same run as telepathy and the thoughts of
-        # another contract do not exist. The two tests are not run (PREREGISTRAZIONE.md, sabotage tests).
+        # another contract do not exist. The two tests are not run (PREREGISTRATION.md, sabotage tests).
         print("0 latent steps: no tests on the thoughts (zeroed thoughts, swapped thoughts).", flush=True)
         chosen = [c for c in chosen if c not in ("m0", "swapped-thoughts")]
     if "swapped-thoughts" in chosen and "telepathy" not in chosen:

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Trial of the Silent Council with one command: prepares everything, runs the council and opens the
-# verdict pages. Guide: council/PROVA.md.
+# verdict pages. Guide: council/TRIAL.md.
 #
 #   ./council/trial.sh                            full run: demo set (if present) and CUAD dev,
 #                                                 in telepathy and in text
@@ -160,10 +160,10 @@ different = [f for h, f in rows if hashlib.sha256(open(f, "rb").read()).hexdiges
 sys.exit("The demo set does not match the fingerprints in the repo: " + ", ".join(different) if different else 0)
 ') && WITH_DEMO=1 && echo "Demo set found and verified: $(ls "$DEMO"/*.txt | wc -l | tr -d ' ') contracts."
 else
-  echo "Demo set not found: the run uses CUAD only (see PROVA.md to get it)."
+  echo "Demo set not found: the run uses CUAD only (see TRIAL.md to get it)."
 fi
 if [ "$DIAGNOSIS" = 1 ] && [ "$DIAGNOSIS_CUAD" = 0 ] && [ "$WITH_DEMO" = 0 ]; then
-  fail "The diagnosis runs on the verified demo set, which is missing here (see PROVA.md to get it)."
+  fail "The diagnosis runs on the verified demo set, which is missing here (see TRIAL.md to get it)."
 fi
 
 step "6/8 Model $MODEL (the first time it can take long: the 14B weighs about 30 GB)"

@@ -104,7 +104,7 @@ def test_vote_among_four_with_a_tie():
 
 
 def test_the_test_does_not_start_with_the_draft(tmp_path, monkeypatch):
-    draft = tmp_path / "PREREGISTRAZIONE.md"
+    draft = tmp_path / "PREREGISTRATION.md"
     draft.write_text(f"# Pre-registrazione\n\n{evaluation.DRAFT}\n")
     monkeypatch.setattr(evaluation, "PREREGISTRATION", draft)
     with pytest.raises(SystemExit, match="draft"):
@@ -127,7 +127,7 @@ def test_report_on_cuad_dev(tmp_path):
 
 
 def test_report_with_0_steps_no_tests_on_the_thoughts(tmp_path):
-    # With 0 latent steps there are no thoughts: the sentence for the jury talks about memory (PREREGISTRAZIONE.md).
+    # With 0 latent steps there are no thoughts: the sentence for the jury talks about memory (PREREGISTRATION.md).
     correct = correct_answers("cuad", "dev")
     contracts = sorted({c for c, _ in correct})
     perfect = [row(c, {k: v for (cc, k), v in correct.items() if cc == c}) for c in contracts]
@@ -172,7 +172,7 @@ def test_report_telepathy_against_solo_and_truncated_analyses(tmp_path):
 
 
 def test_the_shown_judgement_only_on_cuad(tmp_path):
-    # PREREGISTRAZIONE.md: ContractNLI and CLAUDETTE are reported without a threshold.
+    # PREREGISTRATION.md: ContractNLI and CLAUDETTE are reported without a threshold.
     correct = correct_answers("contractnli", "dev")
     contracts = sorted({c for c, _ in correct})
     perfect = [row(c, {k: v for (cc, k), v in correct.items() if cc == c}) for c in contracts]
@@ -186,7 +186,7 @@ def test_the_shown_judgement_only_on_cuad(tmp_path):
 
 
 def test_the_replication_does_not_start_without_its_section(tmp_path, monkeypatch):
-    frozen = tmp_path / "PREREGISTRAZIONE.md"
+    frozen = tmp_path / "PREREGISTRATION.md"
     frozen.write_text("# Pre-registrazione\n\nStato: congelata il 13/10/2026\n")
     monkeypatch.setattr(evaluation, "PREREGISTRATION", frozen)
     with pytest.raises(SystemExit, match="Replica su CUAD"):
