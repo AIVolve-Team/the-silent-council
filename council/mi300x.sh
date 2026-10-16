@@ -1,93 +1,93 @@
 #!/usr/bin/env bash
-# Il giro del Consiglio sulla MI300X, nel container del motore di G1, dopo i suoi passi 3 e 4 (container e
-# fp32 contro bf16, g1/README.md): la guida è consiglio/MI300X.md. La prima volta va lanciato
-# TORCH_DI_SISTEMA=1 SENZA_RIALLINEAMENTO=1 ./consiglio/prova.sh --veloce, che prepara Python, dati e modello e prova
-# che tutto gira sulla GPU.
+# The council's run on the MI300X, in G1's engine container, after its steps 3 and 4 (container and
+# fp32 against bf16, g1/README.md): the guide is council/MI300X.md. The first time, launch
+# SYSTEM_TORCH=1 NO_REALIGN=1 ./council/trial.sh --quick, which prepares Python, data and model and shows
+# that everything runs on the GPU.
 #
-#   ./consiglio/mi300x.sh taratura     telepatia con 0, 10, 20 e 40 passi e testo, su CUAD e dimostrativo di
-#                                      sviluppo; scrive le tabelle per scegliere passi e soglie
-#   ./consiglio/mi300x.sh sviluppo     l'eval di sviluppo su tutti i benchmark, con PASSI=<passi scelti>
-#   ./consiglio/mi300x.sh test         il giro di test, una volta sola, con la pre-registrazione congelata
-#   ./consiglio/mi300x.sh replica      i 72 CUAD di test non usati, una volta sola, telepatia, testo e agente
-#                                      solo; il rapporto mette insieme test, replica e totale
+#   ./council/mi300x.sh calibration    telepathy with 0, 10, 20 and 40 steps and text, on CUAD and demo
+#                                      dev; writes the tables to choose steps and thresholds
+#   ./council/mi300x.sh dev            the dev eval on every benchmark, with STEPS=<chosen steps>
+#   ./council/mi300x.sh test           the test run, only once, with the frozen pre-registration
+#   ./council/mi300x.sh replication    the 72 unused CUAD test contracts, only once, telepathy, text and
+#                                      solo agent; the report puts together test, replication and total
 #
-# Variabili: PASSI (sviluppo, test e replica); il riallineamento W_a è spento, come deciso con la diagnosi del 12/10
-# (SENZA_RIALLINEAMENTO=0 lo riaccende, solo per un confronto: non è la configurazione pre-registrata).
-# Per provare lo script senza GPU: MODELLO=Qwen/Qwen3-0.6B LIMITE=1 ./consiglio/mi300x.sh taratura (LIMITE=2 per
-# sviluppo, perché gli scambi servono almeno 2 contratti).
+# Variables: STEPS (dev, test and replication); the W_a realignment is off, as decided with the diagnosis of 12/10
+# (NO_REALIGN=0 turns it back on, only for a comparison: it is not the pre-registered configuration).
+# To try the script without a GPU: MODEL=Qwen/Qwen3-0.6B LIMIT=1 ./council/mi300x.sh calibration (LIMIT=2 for
+# dev, because the swaps need at least 2 contracts).
 set -euo pipefail
 
-RADICE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CONSIGLIO="$RADICE/consiglio"
-PY="${PY:-$CONSIGLIO/.venv/bin/python}"
-FASE="${1:-}"
-MODELLO="${MODELLO:-Qwen/Qwen3-14B}"
-case "$FASE" in
-  taratura | sviluppo | test | replica) ;;
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COUNCIL="$ROOT/council"
+PY="${PY:-$COUNCIL/.venv/bin/python}"
+PHASE="${1:-}"
+MODEL="${MODEL:-Qwen/Qwen3-14B}"
+case "$PHASE" in
+  calibration | dev | test | replication) ;;
   *) sed -n '2,17p' "$0"; exit 2 ;;
 esac
-[ -x "$PY" ] || { echo "Manca $PY: lancia prima ./consiglio/prova.sh --veloce"; exit 1; }
-USCITA="$CONSIGLIO/risultati-mi300x/$FASE"
-mkdir -p "$USCITA"
-exec > >(tee -a "$USCITA/giro.log") 2>&1
-echo "== $FASE con $MODELLO ($(date '+%d/%m %H:%M'))"
+[ -x "$PY" ] || { echo "$PY is missing: first launch ./council/trial.sh --quick"; exit 1; }
+OUTPUT="$COUNCIL/results-mi300x/$PHASE"
+mkdir -p "$OUTPUT"
+exec > >(tee -a "$OUTPUT/run.log") 2>&1
+echo "== $PHASE with $MODEL ($(date '+%d/%m %H:%M'))"
 
-opzioni=(--modello "$MODELLO" --dtype bfloat16)
-[ "${SENZA_RIALLINEAMENTO:-1}" = 1 ] && opzioni+=(--senza-riallineamento)
-prove=()
-[ -n "${LIMITE:-}" ] && prove+=(--limite "$LIMITE")
-filtra() { grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint"; }
-cd "$CONSIGLIO/revisione"
+options=(--model "$MODEL" --dtype bfloat16)
+[ "${NO_REALIGN:-1}" = 1 ] && options+=(--no-realign)
+trials=()
+[ -n "${LIMIT:-}" ] && trials+=(--limit "$LIMIT")
+filter() { grep --line-buffered -v -E "Warning|warn\(|Loading checkpoint"; }
+cd "$COUNCIL/review"
 
-case "$FASE" in
-  taratura)
-    for benchmark in cuad dimostrativo; do
-      echo "-- $benchmark: telepatia con 0, 10, 20, 40 passi ($(date +%H:%M))"
-      "$PY" -u -m revisione.esegui --benchmark "$benchmark" --modalita telepatia --passi 0 10 20 40 "${opzioni[@]}" \
-        ${prove[@]+"${prove[@]}"} --uscita "$USCITA" 2>&1 | filtra
-      echo "-- $benchmark: testo ($(date +%H:%M))"
-      "$PY" -u -m revisione.esegui --benchmark "$benchmark" --modalita testo --passi 10 "${opzioni[@]}" ${prove[@]+"${prove[@]}"} \
-        --uscita "$USCITA" 2>&1 | filtra
+case "$PHASE" in
+  calibration)
+    for benchmark in cuad demo; do
+      echo "-- $benchmark: telepathy with 0, 10, 20, 40 steps ($(date +%H:%M))"
+      "$PY" -u -m review.run --benchmark "$benchmark" --mode telepathy --steps 0 10 20 40 "${options[@]}" \
+        ${trials[@]+"${trials[@]}"} --output "$OUTPUT" 2>&1 | filter
+      echo "-- $benchmark: text ($(date +%H:%M))"
+      "$PY" -u -m review.run --benchmark "$benchmark" --mode text --steps 10 "${options[@]}" ${trials[@]+"${trials[@]}"} \
+        --output "$OUTPUT" 2>&1 | filter
     done
-    for benchmark in cuad dimostrativo; do "$PY" -m revisione.taratura "$USCITA" --benchmark "$benchmark"; done \
-      > "$USCITA/taratura.md"
-    echo "Fatto. Tabelle per la taratura in $USCITA/taratura.md: si scelgono passi e soglie e si scrivono nella pre-registrazione."
+    for benchmark in cuad demo; do "$PY" -m review.calibration "$OUTPUT" --benchmark "$benchmark"; done \
+      > "$OUTPUT/calibration.md"
+    echo "Done. Tables for the calibration in $OUTPUT/calibration.md: choose steps and thresholds and write them in the pre-registration."
     ;;
-  sviluppo | test)
-    [ -n "${PASSI:-}" ] || { echo "Serve PASSI, i passi latenti scelti in PASSI=10 $0 $FASE"; exit 2; }
-    insieme=sviluppo
-    if [ "$FASE" = test ]; then
-      insieme=test
-      [ -z "${LIMITE:-}" ] || { echo "Sul test girano tutti i contratti: niente LIMITE."; exit 2; }
+  dev | test)
+    [ -n "${STEPS:-}" ] || { echo "STEPS is needed, the latent steps chosen in STEPS=10 $0 $PHASE"; exit 2; }
+    subset=dev
+    if [ "$PHASE" = test ]; then
+      subset=test
+      [ -z "${LIMIT:-}" ] || { echo "On the test every contract runs: no LIMIT."; exit 2; }
     fi
     for benchmark in cuad contractnli claudette; do
-      echo "-- $benchmark, $insieme ($(date +%H:%M))"
-      "$PY" -u -m revisione.esame esegui --benchmark "$benchmark" --insieme "$insieme" --passi "$PASSI" "${opzioni[@]}" \
-        ${prove[@]+"${prove[@]}"} --uscita "$USCITA" 2>&1 | filtra
+      echo "-- $benchmark, $subset ($(date +%H:%M))"
+      "$PY" -u -m review.eval run --benchmark "$benchmark" --subset "$subset" --steps "$STEPS" "${options[@]}" \
+        ${trials[@]+"${trials[@]}"} --output "$OUTPUT" 2>&1 | filter
     done
-    # Il set dimostrativo non ha un test: è quello del controllo a mano alla cieca.
-    echo "-- dimostrativo ($(date +%H:%M))"
-    "$PY" -u -m revisione.esame esegui --benchmark dimostrativo --passi "$PASSI" "${opzioni[@]}" ${prove[@]+"${prove[@]}"} \
-      --uscita "$USCITA" 2>&1 | filtra
-    "$PY" -m revisione.esame rapporto "$USCITA" > /dev/null
-    "$PY" -m revisione.cieca prepara "$USCITA" --uscita "$USCITA/cieca"
-    echo "Fatto. Rapporto in $USCITA/rapporto.md (solo numeri aggregati, da pubblicare)."
-    echo "Per il controllo alla cieca: $USCITA/cieca/per-chi-controlla, con i contratti; la chiave resta a chi organizza."
+    # The demo set has no test: it is the one of the blind check by hand.
+    echo "-- demo ($(date +%H:%M))"
+    "$PY" -u -m review.eval run --benchmark demo --steps "$STEPS" "${options[@]}" ${trials[@]+"${trials[@]}"} \
+      --output "$OUTPUT" 2>&1 | filter
+    "$PY" -m review.eval report "$OUTPUT" > /dev/null
+    "$PY" -m review.blind prepare "$OUTPUT" --output "$OUTPUT/blind"
+    echo "Done. Report in $OUTPUT/report.md (aggregate numbers only, to publish)."
+    echo "For the blind check: $OUTPUT/blind/for-the-checker, with the contracts; the key stays with the organiser."
     ;;
-  replica)
-    [ -n "${PASSI:-}" ] || { echo "Serve PASSI, gli stessi del test: PASSI=0 $0 $FASE"; exit 2; }
-    [ -z "${LIMITE:-}" ] || { echo "Sulla replica girano tutti i contratti: niente LIMITE."; exit 2; }
-    echo "-- cuad, replica ($(date +%H:%M))"
-    "$PY" -u -m revisione.esame esegui --benchmark cuad --insieme replica --passi "$PASSI" "${opzioni[@]}" \
-      --uscita "$USCITA" 2>&1 | filtra
-    # Il totale mette insieme test e replica: i giri di CUAD del test si collegano qui, senza copiarli.
-    TEST="$CONSIGLIO/risultati-mi300x/test"
+  replication)
+    [ -n "${STEPS:-}" ] || { echo "STEPS is needed, the same as the test: STEPS=0 $0 $PHASE"; exit 2; }
+    [ -z "${LIMIT:-}" ] || { echo "On the replication every contract runs: no LIMIT."; exit 2; }
+    echo "-- cuad, replication ($(date +%H:%M))"
+    "$PY" -u -m review.eval run --benchmark cuad --subset replication --steps "$STEPS" "${options[@]}" \
+      --output "$OUTPUT" 2>&1 | filter
+    # The total puts together test and replication: the CUAD runs of the test are linked here, not copied.
+    TEST="$COUNCIL/results-mi300x/test"
     if ls "$TEST"/cuad-test-*.jsonl > /dev/null 2>&1; then
-      ln -sf "$TEST"/cuad-test-*.jsonl "$TEST/esame-cuad-test.json" "$USCITA/"
+      ln -sf "$TEST"/cuad-test-*.jsonl "$TEST/eval-cuad-test.json" "$OUTPUT/"
     else
-      echo "Non trovo i giri del test in $TEST: il rapporto ha solo la replica."
+      echo "The test runs are not in $TEST: the report has only the replication."
     fi
-    "$PY" -m revisione.esame rapporto "$USCITA" > /dev/null
-    echo "Fatto. Rapporto in $USCITA/rapporto.md: test, replica e totale, da riportare."
+    "$PY" -m review.eval report "$OUTPUT" > /dev/null
+    echo "Done. Report in $OUTPUT/report.md: test, replication and total, to report."
     ;;
 esac

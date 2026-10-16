@@ -1,62 +1,67 @@
-# casa/mi300x — la MI300X a finestre
+# site/mi300x — the MI300X in windows
 
-Codice, come deciso in "Dove gira l'app per i giudici": la MI300X nasce da uno snapshot quando serve e si distrugge quando non serve, **perché anche spenta si paga**.
-Le prove dal vivo della casa per i giudici funzionano solo a macchina accesa; i casi registrati funzionano sempre.
+Built as decided in "Where the app for the judges runs": the MI300X is born from a snapshot when needed and destroyed when not, **because even powered off it is billed**.
+The live reviews on the judges' site only work while the machine is running; the recorded cases always work.
 
-| File | Cosa fa |
+| File | What it does |
 |---|---|
-| `mi300x.sh` | conto, stato, crea, distruggi, snapshot, finestre: le chiamate all'API, provate contro un'API finta |
-| `../../.github/workflows/mi300x.yml` | ogni mezz'ora: accesa dentro le finestre di `../finestre.json`, distrutta fuori |
-| `../test/mi300x.test.mjs` | i test, con un'API di DigitalOcean finta (`npm test` in `casa/`) |
+| `mi300x.sh` | account, status, create, destroy, snapshot, windows: the API calls, tested against a fake API |
+| `../../.github/workflows/mi300x.yml` | every half hour: running inside the windows of `../windows.json`, destroyed outside |
+| `../test/mi300x.test.mjs` | the tests, with a fake DigitalOcean API (`npm test` in `site/`) |
 
-## Cosa sappiamo di AMD Developer Cloud
+## What we know about AMD Developer Cloud
 
-Ricerca del 9/10 sulle pagine di DigitalOcean e AMD; ciò che nessuna pagina conferma è da provare il 12/10.
+Research of 9/10 on the DigitalOcean and AMD pages; what no page confirms is to be tried on 12/10.
 
-- **È DigitalOcean:** console su devcloud.amd.com, stessa API `/v2` con un token personale ([DigitalOcean, AMD](https://docs.digitalocean.com/products/amd/), [creare una macchina](https://docs.digitalocean.com/products/amd/how-to/create/)). Il token si crea dalla console AMD, voce "API". *Da provare:* se il token AMD va su `api.digitalocean.com` o su `api.devcloud.amd.com` (`DO_API`): lo dice `mi300x.sh conto`.
-- **La macchina:** `gpu-mi300x1-192gb`, solo nella regione `atl1`; disco di avvio da 720 GB, che sta negli snapshot, e scratch da 5 TB, che **non** ci sta e si perde quando la macchina si distrugge ([dettagli](https://docs.digitalocean.com/products/amd/details/features/), [scratch](https://docs.digitalocean.com/products/amd/how-to/use-scratch-disk/)). Per questo modelli e codice vanno sul disco di avvio.
-- **Costi:** 2,59 $ l'ora; **spenta si paga lo stesso**, solo distrutta no ([prezzi](https://docs.digitalocean.com/products/amd/details/pricing/), [FAQ AMD](https://www.amd.com/en/developer/resources/cloud-access/amd-developer-cloud.html)). Gli snapshot costano 0,06 $ per GB al mese e non sono incrementali.
-- **Crediti:** 100 $ a persona, circa 38 ore di MI300X. Si chiedono dalla pagina AMD ("Member Perks" › "Request Cloud Credits"), arrivano in **2-3 giorni lavorativi**, scadono **30 giorni** dopo l'attivazione e serve una carta registrata ([AMD, 22/6/2026](https://www.amd.com/en/developer/resources/technical-articles/2026/how-to-claim-amd-cloud-credits.html), [crediti](https://docs.digitalocean.com/products/amd/details/credits/)). Se il credito finisce senza carta, AMD distrugge la macchina e i suoi dati.
-- **Una trappola dell'API:** l'elenco delle macchine nasconde le GPU se non si chiede `type=gpus`, e quel filtro non si combina con il tag ([droplets](https://docs.digitalocean.com/reference/api/reference/droplets/)). `mi300x.sh` elenca le GPU e filtra il tag da sé, distrugge per id e poi ricontrolla: se ne resta una accesa, esce con un errore.
+- **It is DigitalOcean:** console on devcloud.amd.com, same `/v2` API with a personal token ([DigitalOcean, AMD](https://docs.digitalocean.com/products/amd/), [creating a machine](https://docs.digitalocean.com/products/amd/how-to/create/)). The token is created from the AMD console, "API" entry. *To be tried:* whether the AMD token works on `api.digitalocean.com` or on `api.devcloud.amd.com` (`DO_API`): `mi300x.sh account` tells.
+- **The machine:** `gpu-mi300x1-192gb`, only in the `atl1` region; a 720 GB boot disk, which goes into the snapshots, and a 5 TB scratch disk, which does **not** and is lost when the machine is destroyed ([details](https://docs.digitalocean.com/products/amd/details/features/), [scratch](https://docs.digitalocean.com/products/amd/how-to/use-scratch-disk/)). That is why models and code go on the boot disk.
+- **Costs:** $2.59 an hour; **powered off it is billed all the same**, only destroyed it is not ([pricing](https://docs.digitalocean.com/products/amd/details/pricing/), [AMD FAQ](https://www.amd.com/en/developer/resources/cloud-access/amd-developer-cloud.html)). Snapshots cost $0.06 per GB per month and are not incremental.
+- **Credits:** $100 per person, about 38 hours of MI300X. They are requested from the AMD page ("Member Perks" › "Request Cloud Credits"), arrive in **2-3 business days**, expire **30 days** after activation and need a registered card ([AMD, 22/6/2026](https://www.amd.com/en/developer/resources/technical-articles/2026/how-to-claim-amd-cloud-credits.html), [credits](https://docs.digitalocean.com/products/amd/details/credits/)). If the credit runs out without a card, AMD destroys the machine and its data.
+- **An API trap:** the machine list hides the GPUs unless `type=gpus` is asked, and that filter does not combine with the tag ([droplets](https://docs.digitalocean.com/reference/api/reference/droplets/)). `mi300x.sh` lists the GPUs and filters the tag itself, destroys by id and then checks again: if one is still running, it exits with an error.
 
-## Comandi
+## Commands
 
 ```bash
-export DIGITALOCEAN_ACCESS_TOKEN=… # mai nel repo
-casa/mi300x/mi300x.sh conto # il token va? quanto si è speso?
-casa/mi300x/mi300x.sh stato
-MI300X_SSH=<impronta> casa/mi300x/mi300x.sh crea aspetta # dall'ultimo snapshot golden-*, con i tempi
-casa/mi300x/mi300x.sh distruggi
-casa/mi300x/mi300x.sh snapshot # spegne e fotografa la macchina accesa (golden-AAAAMMGG-HHMM)
+export DIGITALOCEAN_ACCESS_TOKEN=…            # never in the repo
+site/mi300x/mi300x.sh account                  # does the token work? how much has been spent?
+site/mi300x/mi300x.sh status
+MI300X_SSH=<fingerprint> site/mi300x/mi300x.sh create wait   # from the latest golden-* snapshot, with the timings
+site/mi300x/mi300x.sh destroy
+site/mi300x/mi300x.sh snapshot                 # powers off and snapshots the running machine (golden-YYYYMMDD-HHMM)
 ```
 
-- **Crea non ne accende mai due:** se ce n'è già una con il tag, si ferma lì.
-- **Le macchine a mano** (tag `sportello-mi300x`) e **quelle delle finestre** (tag `sportello-finestra`) sono separate. I tag tengono il nome dello Sportello anche se nel repo c'è solo il Consiglio: macchine e snapshot già creati li hanno così, e cambiarli li farebbe perdere di vista. l'automatico non spegne mai una macchina su cui qualcuno sta lavorando, per esempio l'esame della notte fra il 15 e il 16/10.
-- `crea aspetta` scrive quanti secondi servono per essere attiva e, con `MI300X_SALUTE=https://<motore>/salute`, per avere il motore pronto: è il **tempo di nascita da snapshot** che chiede.
+- **Create never starts two:** if one with the tag is already running, it stops there.
+- **The machines started by hand** (tag `council-mi300x`) and **those of the windows** (tag `council-window`) are separate, so the automation never powers off a machine someone is working on, for example the eval in the night between 15 and 16/10. New machines are named `council-YYYYMMDD-HHMM`.
+- **The legacy tags.** The old code tagged the machines with the name of the Help Desk: `sportello-mi300x` (by hand) and `sportello-finestra` (windows). Every command also sees the legacy tag that matches its own (`LEGACY_TAGS` in `mi300x.sh`), so `status` shows them and `destroy` destroys them: nothing started before the rename is left running and billed. New machines only get the new tag.
+- `create wait` prints how many seconds it takes to be active and, with `MI300X_HEALTH=https://<engine>/health`, to have the engine ready: it is the **boot time from a snapshot** that G1 asks for.
 
-## Il 12/10: la macchina d'oro
+## On 12/10: the golden machine
 
-1. **Si prepara una macchina** come nel runbook di G1 (`g1/README.md`), con modelli e codice sul **disco di avvio**.
-2. **I servizi ripartono da soli** quando una macchina nasce dallo snapshot: container con `--restart unless-stopped`.
-   - vLLM come al passo 5 del runbook di G1, sulla porta 8000;
-   - il server del Consiglio (`consiglio/servizio`, `--dal-vivo`) sulla porta **8001**, perché la 8000 è di vLLM;
-   - Caddy davanti, per TLS: `consiglio.<dominio>` → `127.0.0.1:8001`, `vllm.<dominio>` → `127.0.0.1:8000`.
-   - I segreti (`CONSIGLIO_SEGRETO`, `VLLM_API_KEY`) in un file del disco di avvio con permessi 600, letto dai container con `--env-file`.
-3. **Prima dello snapshot Caddy deve aver già preso il certificato.** Let's Encrypt dà al massimo 5 certificati a settimana per lo stesso nome: se ogni macchina nuova ne chiedesse uno, dal sesto giorno il motore resterebbe senza TLS. Con il certificato nello snapshot, le macchine nuove lo riusano (vale 90 giorni).
-4. **Lo snapshot:** `mi300x.sh snapshot`. Ci vogliono circa **1-3 minuti per GB usato**, e intanto la macchina si paga: con circa 130 GB fra modelli, immagine e codice, da 2 a 6 ore. Conviene lanciarlo a fine giornata e poi distruggere la macchina.
-5. **Il tempo di nascita** si misura la mattina dopo con `crea aspetta` e si scrive, accanto a quello di riscaricare i modelli da capo sullo scratch, per scegliere il più veloce.
+1. **Prepare a machine** as in the G1 runbook (`g1/README.md`), with models and code on the **boot disk**.
+2. **The services restart on their own** when a machine is born from the snapshot: containers with `--restart unless-stopped`.
+   - vLLM as in step 5 of the G1 runbook, on port 8000;
+   - the council server (`council/service`, `--live`) on port **8001**, because 8000 belongs to vLLM;
+   - Caddy in front, for TLS: `council.<domain>` → `127.0.0.1:8001`, `vllm.<domain>` → `127.0.0.1:8000`.
+   - The secrets (`COUNCIL_SECRET`, `VLLM_API_KEY`) in a file on the boot disk with permissions 600, read by the containers with `--env-file`.
+3. **Before the snapshot Caddy must already have its certificate.** Let's Encrypt gives at most 5 certificates a week for the same name: if every new machine asked for one, from the sixth day the engine would be left without TLS. With the certificate in the snapshot, new machines reuse it (it lasts 90 days).
+4. **The snapshot:** `mi300x.sh snapshot`. It takes about **1-3 minutes per GB used**, and meanwhile the machine is billed: with about 130 GB of models, image and code, from 2 to 6 hours. Better to launch it at the end of the day and then destroy the machine.
+5. **The boot time** is measured the next morning with `create wait` and written down, next to the time to download the models again from scratch onto the scratch disk, to pick the faster one.
 
-## Il nome del motore
+## The engine's name
 
-Ogni macchina nuova ha un IP nuovo, mentre Evolus e Vercel hanno bisogno di un nome fisso.
-Se il dominio sta nel DNS di DigitalOcean, con `MI300X_DNS_DOMINIO` e `MI300X_DNS_NOME` lo script punta il record A al nuovo IP (TTL 60 s).
-Con un dominio altrove basta delegare a DigitalOcean un sottodominio, per esempio `mi300x.<dominio>`. Quale dominio usare è una scelta del team, ancora aperta.
+Every new machine has a new IP, while Evolus and Vercel need a fixed name.
+If the domain is in DigitalOcean's DNS, with `MI300X_DNS_DOMAIN` and `MI300X_DNS_NAME` the script points the A record at the new IP (TTL 60 s).
+With a domain elsewhere it is enough to delegate a subdomain to DigitalOcean, for example `mi300x.<domain>`. Which domain to use is a team choice, still open.
 
-## Le finestre
+## The windows
 
-- `../finestre.json` è lo stesso file che legge la home: `[{"inizio": "2026-10-19T09:00:00+02:00", "fine": "2026-10-19T19:00:00+02:00"}, …]`.
-- I giorni si fissano il 12/10, quando si sa cosa dà l'organizzazione e fino a quando.
-- **Il workflow** gira ogni mezz'ora, a:13 e:43, solo dal ramo principale. Accende la macchina 45 minuti prima di una finestra e la distrugge alla fine; se GitHub salta un giro, quello dopo rimette a posto.
-  - Segreti del repo: `DIGITALOCEAN_ACCESS_TOKEN`, `MI300X_SSH`.
-  - Variabili facoltative: `DO_API`, `MI300X_DNS_DOMINIO`, `MI300X_DNS_NOME`.
-- **A mano**, da "Actions" › "MI300X a finestre" › "Run workflow": `stato`, `crea`, `distruggi`, e `distruggi-tutto`, che spegne anche le macchine accese a mano.
+- `../windows.json` is the same file the home page reads: `[{"start": "2026-10-19T09:00:00+02:00", "end": "2026-10-19T19:00:00+02:00"}, …]`.
+- The days are set on 12/10, when we know what the organisers provide and until when.
+- **The workflow** runs every half hour, at :13 and :43, only from the main branch. It starts the machine 45 minutes before a window and destroys it at the end; if GitHub skips a run, the next one puts things right.
+  - Repo secrets: `DIGITALOCEAN_ACCESS_TOKEN`, `MI300X_SSH`.
+  - Optional variables: `DO_API`, `MI300X_DNS_DOMAIN`, `MI300X_DNS_NAME`.
+- **By hand**, from "Actions" › "MI300X in windows" › "Run workflow": `status`, `create`, `destroy`, and `destroy-all`, which also powers off the machines started by hand.
+
+## Other variables of `mi300x.sh`
+
+`MI300X_TAG` (overrides the tag), `MI300X_CLOUD_INIT` (a cloud-init file passed at birth), `MI300X_POLL` (seconds between two checks, 15), `MI300X_LEAD` (minutes ahead of a window, 45), `MI300X_RETRIES` (retries of a failed read, 3).

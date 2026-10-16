@@ -1,205 +1,222 @@
 #!/usr/bin/env bash
-# La MI300X a finestre: nasce da uno snapshot quando serve e si distrugge quando non serve, perché anche
-# spenta si paga (2,59 $ l'ora). AMD Developer Cloud è costruita su DigitalOcean: stessa API /v2, stesso token.
+# The MI300X in windows: it is born from a snapshot when needed and destroyed when not, because even
+# powered off it is billed ($2.59 an hour). AMD Developer Cloud is built on DigitalOcean: same /v2 API, same token.
 #
-#   casa/mi300x/mi300x.sh conto              il token funziona? e il saldo
-#   casa/mi300x/mi300x.sh stato              le MI300X accese con il nostro tag, con IP
-#   casa/mi300x/mi300x.sh crea               dall'ultimo snapshot golden-*; se ce n'è già una, non ne crea un'altra
-#   casa/mi300x/mi300x.sh distruggi          tutte quelle con il nostro tag, poi ricontrolla che non ne resti nessuna
-#   casa/mi300x/mi300x.sh snapshot [id]      spegne la macchina e ne fa lo snapshot golden-AAAAMMGG-HHMM
-#   casa/mi300x/mi300x.sh finestre <file>    accesa durante le finestre del file (finestre.json), distrutta fuori
+#   site/mi300x/mi300x.sh account           does the token work? and the balance
+#   site/mi300x/mi300x.sh status            the MI300X machines running with our tag, with their IP
+#   site/mi300x/mi300x.sh create [wait]     from the latest golden-* snapshot; if one is already running, no second one
+#   site/mi300x/mi300x.sh destroy           every machine with our tag, then checks again that none is left
+#   site/mi300x/mi300x.sh snapshot [id]     powers the machine off and takes the snapshot golden-YYYYMMDD-HHMM
+#   site/mi300x/mi300x.sh windows <file>    running during the windows of the file (windows.json), destroyed outside
 #
-# Variabili:
-#   DIGITALOCEAN_ACCESS_TOKEN  il token personale del team AMD (obbligatorio)
-#   DO_API                     predefinito https://api.digitalocean.com; se non accetta il token AMD,
-#                              https://api.devcloud.amd.com (da provare il 12/10 con `conto`)
-#   MI300X_TAG                 predefinito sportello-mi300x; `finestre` usa sportello-finestra, così non tocca mai
-#                              una macchina accesa a mano per lavorare
-#   MI300X_SSH                 l'impronta di una chiave SSH già aggiunta al team (per crea)
-#   MI300X_AVVIO               un file cloud-init da passare alla nascita (facoltativo)
-#   MI300X_SALUTE              un indirizzo da aspettare dopo la nascita, per esempio https://motore.example.org/salute
-#   MI300X_DNS_DOMINIO, MI300X_DNS_NOME   se il dominio sta nel DNS di DigitalOcean: il record A da puntare all'IP
-#   MI300X_ATTESA              secondi fra due controlli (predefinito 15)
-#   MI300X_ANTICIPO            minuti di anticipo sull'inizio di una finestra (predefinito 45)
-#   MI300X_RITENTA             quante volte si ritenta una lettura fallita (predefinito 3)
+# Variables:
+#   DIGITALOCEAN_ACCESS_TOKEN  the personal token of the AMD team (required)
+#   DO_API                     default https://api.digitalocean.com; if it does not accept the AMD token,
+#                              https://api.devcloud.amd.com (to be tried on 12/10 with `account`)
+#   MI300X_TAG                 default council-mi300x; `windows` uses council-window, so it never touches
+#                              a machine started by hand to work on
+#   MI300X_SSH                 the fingerprint of an SSH key already added to the team (for create)
+#   MI300X_CLOUD_INIT          a cloud-init file to pass at birth (optional)
+#   MI300X_HEALTH              an address to wait for after birth, for example https://engine.example.org/health
+#   MI300X_DNS_DOMAIN, MI300X_DNS_NAME   if the domain is in DigitalOcean's DNS: the A record to point at the IP
+#   MI300X_POLL                seconds between two checks (default 15)
+#   MI300X_LEAD                minutes ahead of the start of a window (default 45)
+#   MI300X_RETRIES             how many times a failed read is retried (default 3)
+#
+# Machines started by the old code carry the tags of the Help Desk (sportello-mi300x, sportello-finestra): every
+# command also sees the legacy tag that matches its tag (LEGACY_TAGS), so `status` shows them, `destroy` destroys
+# them and `create` does not start a second machine next to one of them. New machines only get the new tag.
 set -euo pipefail
 
 API="${DO_API:-https://api.digitalocean.com}"
-ATTESA="${MI300X_ATTESA:-15}"
-TAGLIA="gpu-mi300x1-192gb" # 1× MI300X, 192 GB
-REGIONE="atl1"             # l'unica con le MI300X
+POLL="${MI300X_POLL:-15}"
+SIZE="gpu-mi300x1-192gb" # 1× MI300X, 192 GB
+REGION="atl1"            # the only one with MI300X
+# new tag=legacy tag
+LEGACY_TAGS="council-mi300x=sportello-mi300x council-window=sportello-finestra"
 
-ferma() {
+fail() {
 	echo "mi300x: $*" >&2
 	exit 1
 }
 
-# Le letture si ritentano; le scritture no, perché una creazione ritentata potrebbe accendere due macchine.
-leggi() { curl -fsS --retry "${MI300X_RITENTA:-3}" --retry-delay 5 -H "Authorization: Bearer $DIGITALOCEAN_ACCESS_TOKEN" "$@"; }
-scrivi() { curl -fsS -H "Authorization: Bearer $DIGITALOCEAN_ACCESS_TOKEN" -H "Content-Type: application/json" "$@"; }
+# Reads are retried; writes are not, because a retried creation could start two machines.
+read_api() { curl -fsS --retry "${MI300X_RETRIES:-3}" --retry-delay 5 -H "Authorization: Bearer $DIGITALOCEAN_ACCESS_TOKEN" "$@"; }
+write_api() { curl -fsS -H "Authorization: Bearer $DIGITALOCEAN_ACCESS_TOKEN" -H "Content-Type: application/json" "$@"; }
 
-# Le macchine accese con il tag. Senza type=gpus l'elenco nasconde le GPU, e type non si combina con tag_name:
-# si filtra qui. Se l'elenco fallisce, lo script si ferma prima di creare o distruggere qualcosa.
-accese() {
-	leggi "$API/v2/droplets?type=gpus&per_page=200" | jq -r --arg t "$TAG" '.droplets[] | select(any(.tags[]?; . == $t)) | .id'
+# The tag plus its legacy tag, if it has one.
+tags_for() {
+	local pair tags="$1"
+	for pair in $LEGACY_TAGS; do
+		[ "${pair%%=*}" = "$1" ] && tags="$tags ${pair#*=}"
+	done
+	echo "$tags"
 }
 
-stato_di() { leggi "$API/v2/droplets/$1" | jq -r .droplet.status; }
-ip_di() { leggi "$API/v2/droplets/$1" | jq -r '[.droplet.networks.v4[]? | select(.type == "public") | .ip_address][0] // empty'; }
-
-conto() {
-	leggi "$API/v2/account" | jq -r '.account | "account \(.email // "?"): \(.status)"'
-	leggi "$API/v2/customers/my/balance" 2>/dev/null |
-		jq -r '"usati questo mese: \(.month_to_date_usage) $; saldo: \(.account_balance) $ (negativo = credito)"' || true
+# The machines running with one of the tags. Without type=gpus the list hides the GPUs, and type does not combine
+# with tag_name: the filtering happens here. If the list fails, the script stops before creating or destroying anything.
+running() {
+	read_api "$API/v2/droplets?type=gpus&per_page=200" |
+		jq -r --arg t "$TAGS" '($t | split(" ")) as $tags | .droplets[] | select(any(.tags[]?; . as $x | any($tags[]; . == $x))) | .id'
 }
 
-stato() {
+status_of() { read_api "$API/v2/droplets/$1" | jq -r .droplet.status; }
+ip_of() { read_api "$API/v2/droplets/$1" | jq -r '[.droplet.networks.v4[]? | select(.type == "public") | .ip_address][0] // empty'; }
+
+account() {
+	read_api "$API/v2/account" | jq -r '.account | "account \(.email // "?"): \(.status)"'
+	read_api "$API/v2/customers/my/balance" 2>/dev/null |
+		jq -r '"used this month: $\(.month_to_date_usage); balance: $\(.account_balance) (negative = credit)"' || true
+}
+
+status() {
 	local ids id
-	ids=$(accese)
+	ids=$(running)
 	if [ -z "$ids" ]; then
-		echo "spenta: nessuna MI300X con il tag $TAG"
+		echo "off: no MI300X with the tags $TAGS"
 		return 0
 	fi
 	for id in $ids; do
-		leggi "$API/v2/droplets/$id" | jq -r '.droplet | "\(.id) \(.name) \(.status) IP \([.networks.v4[]? | select(.type == "public") | .ip_address][0] // "-") dal \(.created_at)"'
+		read_api "$API/v2/droplets/$id" | jq -r '.droplet | "\(.id) \(.name) \(.status) IP \([.networks.v4[]? | select(.type == "public") | .ip_address][0] // "-") since \(.created_at)"'
 	done
 }
 
-punta_dns() { # $1 = IP; solo se il dominio sta nel DNS di DigitalOcean
-	[ -n "${MI300X_DNS_DOMINIO:-}" ] && [ -n "${MI300X_DNS_NOME:-}" ] && [ -n "$1" ] || return 0
-	local record attuale
-	record=$(leggi "$API/v2/domains/$MI300X_DNS_DOMINIO/records?type=A&name=$MI300X_DNS_NOME.$MI300X_DNS_DOMINIO" | jq -r '.domain_records[0] | "\(.id) \(.data)"')
-	attuale="${record#* }"
+point_dns() { # $1 = IP; only if the domain is in DigitalOcean's DNS
+	[ -n "${MI300X_DNS_DOMAIN:-}" ] && [ -n "${MI300X_DNS_NAME:-}" ] && [ -n "$1" ] || return 0
+	local record current
+	record=$(read_api "$API/v2/domains/$MI300X_DNS_DOMAIN/records?type=A&name=$MI300X_DNS_NAME.$MI300X_DNS_DOMAIN" | jq -r '.domain_records[0] | "\(.id) \(.data)"')
+	current="${record#* }"
 	if [ "$record" = "null null" ]; then
-		scrivi -X POST "$API/v2/domains/$MI300X_DNS_DOMINIO/records" \
-			-d "$(jq -n --arg n "$MI300X_DNS_NOME" --arg ip "$1" '{type: "A", name: $n, data: $ip, ttl: 60}')" >/dev/null
-	elif [ "$attuale" != "$1" ]; then
-		scrivi -X PUT "$API/v2/domains/$MI300X_DNS_DOMINIO/records/${record%% *}" -d "$(jq -n --arg ip "$1" '{data: $ip}')" >/dev/null
+		write_api -X POST "$API/v2/domains/$MI300X_DNS_DOMAIN/records" \
+			-d "$(jq -n --arg n "$MI300X_DNS_NAME" --arg ip "$1" '{type: "A", name: $n, data: $ip, ttl: 60}')" >/dev/null
+	elif [ "$current" != "$1" ]; then
+		write_api -X PUT "$API/v2/domains/$MI300X_DNS_DOMAIN/records/${record%% *}" -d "$(jq -n --arg ip "$1" '{data: $ip}')" >/dev/null
 	else
 		return 0
 	fi
-	echo "DNS: $MI300X_DNS_NOME.$MI300X_DNS_DOMINIO → $1"
+	echo "DNS: $MI300X_DNS_NAME.$MI300X_DNS_DOMAIN → $1"
 }
 
-crea() { # $1 = "aspetta" per aspettare che sia attiva (e il motore, con MI300X_SALUTE)
-	local ids immagine corpo inizio id ip
-	ids=$(accese)
+create() { # $1 = "wait" to wait until it is active (and the engine, with MI300X_HEALTH)
+	local ids image body start id ip
+	ids=$(running)
 	if [ -n "$ids" ]; then
-		echo "già accesa, non ne creo un'altra: $ids"
+		echo "already running, not creating another one: $ids"
 		return 0
 	fi
-	[ -n "${MI300X_SSH:-}" ] || ferma "manca MI300X_SSH: l'impronta di una chiave SSH già aggiunta al team"
-	immagine=$(leggi "$API/v2/snapshots?resource_type=droplet&per_page=200" |
+	[ -n "${MI300X_SSH:-}" ] || fail "MI300X_SSH is missing: the fingerprint of an SSH key already added to the team"
+	image=$(read_api "$API/v2/snapshots?resource_type=droplet&per_page=200" |
 		jq -r '[.snapshots[] | select(.name | startswith("golden-"))] | sort_by(.created_at) | last | .id // empty')
-	[ -n "$immagine" ] || ferma "nessuno snapshot golden-*: prima si prepara una macchina e se ne fa lo snapshot (README)"
-	corpo=$(jq -n --arg nome "sportello-$(date -u +%Y%m%d-%H%M)" --argjson immagine "$immagine" --arg tag "$TAG" \
-		--arg ssh "$MI300X_SSH" --arg taglia "$TAGLIA" --arg regione "$REGIONE" \
-		'{name: $nome, region: $regione, size: $taglia, image: $immagine, ssh_keys: [$ssh], tags: [$tag]}')
-	if [ -n "${MI300X_AVVIO:-}" ]; then
-		corpo=$(jq --rawfile avvio "$MI300X_AVVIO" '. + {user_data: $avvio}' <<<"$corpo")
+	[ -n "$image" ] || fail "no golden-* snapshot: first prepare a machine and take its snapshot (README)"
+	body=$(jq -n --arg name "council-$(date -u +%Y%m%d-%H%M)" --argjson image "$image" --arg tag "$TAG" \
+		--arg ssh "$MI300X_SSH" --arg size "$SIZE" --arg region "$REGION" \
+		'{name: $name, region: $region, size: $size, image: $image, ssh_keys: [$ssh], tags: [$tag]}')
+	if [ -n "${MI300X_CLOUD_INIT:-}" ]; then
+		body=$(jq --rawfile init "$MI300X_CLOUD_INIT" '. + {user_data: $init}' <<<"$body")
 	fi
-	inizio=$(date +%s)
-	id=$(scrivi -X POST "$API/v2/droplets" -d "$corpo" | jq -r '.droplet.id // empty')
-	[ -n "$id" ] || ferma "la creazione non ha restituito un id"
-	echo "creata $id dallo snapshot $immagine"
-	[ "${1:-}" = aspetta ] || return 0
-	for _ in $(seq 240); do # al massimo un'ora
-		[ "$(stato_di "$id")" = active ] && break
-		sleep "$ATTESA"
+	start=$(date +%s)
+	id=$(write_api -X POST "$API/v2/droplets" -d "$body" | jq -r '.droplet.id // empty')
+	[ -n "$id" ] || fail "the creation returned no id"
+	echo "created $id from the snapshot $image"
+	[ "${1:-}" = wait ] || return 0
+	for _ in $(seq 240); do # one hour at most
+		[ "$(status_of "$id")" = active ] && break
+		sleep "$POLL"
 	done
-	[ "$(stato_di "$id")" = active ] || ferma "dopo un'ora $id non è ancora attiva: se non serve va distrutta"
-	ip=$(ip_di "$id")
-	echo "attiva in $(($(date +%s) - inizio)) s, IP $ip"
-	punta_dns "$ip"
-	if [ -n "${MI300X_SALUTE:-}" ]; then
+	[ "$(status_of "$id")" = active ] || fail "after one hour $id is still not active: if it is not needed it must be destroyed"
+	ip=$(ip_of "$id")
+	echo "active in $(($(date +%s) - start)) s, IP $ip"
+	point_dns "$ip"
+	if [ -n "${MI300X_HEALTH:-}" ]; then
 		for _ in $(seq 240); do
-			curl -fsS -m 10 "$MI300X_SALUTE" >/dev/null 2>&1 && break
-			sleep "$ATTESA"
+			curl -fsS -m 10 "$MI300X_HEALTH" >/dev/null 2>&1 && break
+			sleep "$POLL"
 		done
-		curl -fsS -m 10 "$MI300X_SALUTE" >/dev/null 2>&1 || ferma "il motore non risponde su $MI300X_SALUTE"
-		echo "motore pronto in $(($(date +%s) - inizio)) s"
+		curl -fsS -m 10 "$MI300X_HEALTH" >/dev/null 2>&1 || fail "the engine does not answer on $MI300X_HEALTH"
+		echo "engine ready in $(($(date +%s) - start)) s"
 	fi
 }
 
-distruggi() {
+destroy() {
 	local ids id
-	ids=$(accese)
+	ids=$(running)
 	for id in $ids; do
-		scrivi -X DELETE "$API/v2/droplets/$id" >/dev/null
-		echo "distrutta $id"
+		write_api -X DELETE "$API/v2/droplets/$id" >/dev/null
+		echo "destroyed $id"
 	done
 	for _ in $(seq 20); do
-		ids=$(accese)
+		ids=$(running)
 		[ -z "$ids" ] && break
-		sleep "$ATTESA"
+		sleep "$POLL"
 	done
-	[ -z "$ids" ] || ferma "ATTENZIONE: risultano ancora accese ($ids) e si pagano: vanno distrutte dal pannello"
-	echo "nessuna MI300X accesa con il tag $TAG"
+	[ -z "$ids" ] || fail "WARNING: still running ($ids) and billed: they must be destroyed from the control panel"
+	echo "no MI300X running with the tags $TAGS"
 }
 
 snapshot() {
-	local id="${1:-}" azione s inizio
-	[ -n "$id" ] || id=$(accese | head -n 1)
-	[ -n "$id" ] || ferma "nessuna MI300X accesa da cui fare lo snapshot"
-	scrivi -X POST "$API/v2/droplets/$id/actions" -d '{"type":"shutdown"}' >/dev/null
+	local id="${1:-}" action s start
+	[ -n "$id" ] || id=$(running | head -n 1)
+	[ -n "$id" ] || fail "no MI300X running to take the snapshot from"
+	write_api -X POST "$API/v2/droplets/$id/actions" -d '{"type":"shutdown"}' >/dev/null
 	for _ in $(seq 40); do
-		[ "$(stato_di "$id")" = off ] && break
-		sleep "$ATTESA"
+		[ "$(status_of "$id")" = off ] && break
+		sleep "$POLL"
 	done
-	if [ "$(stato_di "$id")" != off ]; then
-		scrivi -X POST "$API/v2/droplets/$id/actions" -d '{"type":"power_off"}' >/dev/null
+	if [ "$(status_of "$id")" != off ]; then
+		write_api -X POST "$API/v2/droplets/$id/actions" -d '{"type":"power_off"}' >/dev/null
 		for _ in $(seq 40); do
-			[ "$(stato_di "$id")" = off ] && break
-			sleep "$ATTESA"
+			[ "$(status_of "$id")" = off ] && break
+			sleep "$POLL"
 		done
 	fi
-	[ "$(stato_di "$id")" = off ] || ferma "$id non si spegne: niente snapshot"
-	inizio=$(date +%s)
-	azione=$(scrivi -X POST "$API/v2/droplets/$id/actions" \
+	[ "$(status_of "$id")" = off ] || fail "$id does not power off: no snapshot"
+	start=$(date +%s)
+	action=$(write_api -X POST "$API/v2/droplets/$id/actions" \
 		-d "$(jq -n --arg n "golden-$(date -u +%Y%m%d-%H%M)" '{type: "snapshot", name: $n}')" | jq -r '.action.id // empty')
-	[ -n "$azione" ] || ferma "lo snapshot non è partito"
-	while s=$(leggi "$API/v2/actions/$azione" | jq -r .action.status) && [ "$s" = in-progress ]; do
-		sleep "$ATTESA" # circa 1-3 minuti per GB usato
+	[ -n "$action" ] || fail "the snapshot did not start"
+	while s=$(read_api "$API/v2/actions/$action" | jq -r .action.status) && [ "$s" = in-progress ]; do
+		sleep "$POLL" # about 1-3 minutes per GB used
 	done
-	[ "$s" = completed ] || ferma "snapshot $azione: $s"
-	echo "snapshot fatto in $(($(date +%s) - inizio)) s. La macchina $id è spenta ma si paga ancora: va distrutta (distruggi)."
+	[ "$s" = completed ] || fail "snapshot $action: $s"
+	echo "snapshot taken in $(($(date +%s) - start)) s. The machine $id is off but still billed: it must be destroyed (destroy)."
 }
 
-finestre() { # $1 = finestre.json: [{"inizio": "2026-10-19T09:00:00+02:00", "fine": "2026-10-19T19:00:00+02:00"}, …]
-	[ -f "${1:-}" ] || ferma "serve il file delle finestre"
-	local adesso dentro
-	adesso=$(date -u +%s)
-	# L'ora con il fuso (2026-10-19T09:00:00+02:00) in secondi UTC: mktime di jq ignorerebbe il fuso.
-	dentro=$(jq --argjson adesso "$adesso" --argjson anticipo "$((${MI300X_ANTICIPO:-45} * 60))" '
-		def secondi: capture("^(?<t>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:?[0-9]{2})$") as $c
+windows() { # $1 = windows.json: [{"start": "2026-10-19T09:00:00+02:00", "end": "2026-10-19T19:00:00+02:00"}, …]
+	[ -f "${1:-}" ] || fail "the windows file is needed"
+	local now inside
+	now=$(date -u +%s)
+	# The time with its offset (2026-10-19T09:00:00+02:00) in UTC seconds: jq's mktime would ignore the offset.
+	inside=$(jq --argjson now "$now" --argjson lead "$((${MI300X_LEAD:-45} * 60))" '
+		def seconds: capture("^(?<t>[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2})(\\.[0-9]+)?(?<z>Z|[+-][0-9]{2}:?[0-9]{2})$") as $c
 			| ($c.t + "Z" | fromdateiso8601)
 			- (if $c.z == "Z" then 0 else ($c.z[1:3] | tonumber) * 3600 + ($c.z[-2:] | tonumber) * 60
 				| if $c.z[0:1] == "-" then -. else . end end);
-		[.[] | select($adesso >= (.inizio | secondi) - $anticipo and $adesso < (.fine | secondi))] | length > 0' "$1")
-	if [ "$dentro" = true ]; then
-		echo "dentro una finestra: la MI300X deve essere accesa"
-		crea
+		[.[] | select($now >= (.start | seconds) - $lead and $now < (.end | seconds))] | length > 0' "$1")
+	if [ "$inside" = true ]; then
+		echo "inside a window: the MI300X must be running"
+		create
 		local id
-		for id in $(accese); do punta_dns "$(ip_di "$id")"; done
+		for id in $(running); do point_dns "$(ip_of "$id")"; done
 	else
-		echo "fuori dalle finestre: la MI300X deve essere spenta"
-		distruggi
+		echo "outside the windows: the MI300X must be off"
+		destroy
 	fi
 }
 
 case "${1:-}" in
-conto | stato | crea | distruggi | snapshot | finestre) ;;
+account | status | create | destroy | snapshot | windows) ;;
 *)
-	echo "uso: $0 conto | stato | crea [aspetta] | distruggi | snapshot [id] | finestre <finestre.json>" >&2
+	echo "usage: $0 account | status | create [wait] | destroy | snapshot [id] | windows <windows.json>" >&2
 	exit 2
 	;;
 esac
-[ -n "${DIGITALOCEAN_ACCESS_TOKEN:-}" ] || ferma "manca DIGITALOCEAN_ACCESS_TOKEN"
-if [ "$1" = finestre ]; then
-	TAG="${MI300X_TAG:-sportello-finestra}"
+[ -n "${DIGITALOCEAN_ACCESS_TOKEN:-}" ] || fail "DIGITALOCEAN_ACCESS_TOKEN is missing"
+if [ "$1" = windows ]; then
+	TAG="${MI300X_TAG:-council-window}"
 else
-	TAG="${MI300X_TAG:-sportello-mi300x}"
+	TAG="${MI300X_TAG:-council-mi300x}"
 fi
-comando="$1"
+TAGS=$(tags_for "$TAG")
+cmd="$1"
 shift
-"$comando" "$@"
+"$cmd" "$@"

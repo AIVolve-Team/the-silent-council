@@ -1,6 +1,6 @@
-// La MI300X a finestre: mi300x.sh contro un'API di DigitalOcean finta, senza token veri né macchine vere.
-// L'API finta fa come quella vera dove conta: senza type=gpus l'elenco nasconde le GPU, la macchina appena creata
-// diventa attiva con il suo IP, lo snapshot finisce dopo qualche controllo.
+// The MI300X in windows: mi300x.sh against a fake DigitalOcean API, with no real tokens or machines.
+// The fake API behaves like the real one where it matters: without type=gpus the list hides the GPUs, a freshly
+// created machine becomes active with its IP, the snapshot finishes after a few checks.
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { mkdtempSync, writeFileSync } from "node:fs";
@@ -12,170 +12,192 @@ import { fileURLToPath } from "node:url";
 
 const SCRIPT = fileURLToPath(new URL("../mi300x/mi300x.sh", import.meta.url));
 
-function apiFinta({ elencoRotto = false, nonSiCancella = false, accese = [] } = {}) {
+function fakeApi({ brokenList = false, neverDeleted = false, running = [] } = {}) {
   const s = {
-    droplets: accese.map((tags, i) => ({ id: 900 + i, name: `a-mano-${i}`, status: "active", tags, networks: { v4: [] } })),
+    droplets: running.map((tags, i) => ({ id: 900 + i, name: `by-hand-${i}`, status: "active", tags, networks: { v4: [] } })),
     snapshots: [
       { id: "111", name: "golden-20261012-1800", created_at: "2026-10-12T18:00:00Z" },
       { id: "222", name: "golden-20261013-1800", created_at: "2026-10-13T18:00:00Z" },
-      { id: "333", name: "un-altro", created_at: "2026-10-14T00:00:00Z" },
+      { id: "333", name: "another-one", created_at: "2026-10-14T00:00:00Z" },
     ],
-    creazioni: [], cancellate: [], azioni: {}, record: [], richieste: [],
+    creations: [], deleted: [], actions: {}, records: [], requests: [],
   }; // prettier-ignore
-  let prossimo = 1000;
+  let next = 1000;
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, "http://api");
-    let corpo = "";
-    for await (const pezzo of req) corpo += pezzo;
-    s.richieste.push(`${req.method} ${url.pathname}`);
-    const rispondi = (codice, dati) => {
-      res.writeHead(codice, { "content-type": "application/json" });
-      res.end(dati === undefined ? "" : JSON.stringify(dati));
+    let body = "";
+    for await (const chunk of req) body += chunk;
+    s.requests.push(`${req.method} ${url.pathname}`);
+    const reply = (code, data) => {
+      res.writeHead(code, { "content-type": "application/json" });
+      res.end(data === undefined ? "" : JSON.stringify(data));
     };
-    if (req.headers.authorization !== "Bearer finto") return rispondi(401, { id: "Unauthorized" });
+    if (req.headers.authorization !== "Bearer fake") return reply(401, { id: "Unauthorized" });
     const p = url.pathname;
     let m;
-    if (req.method === "GET" && p === "/v2/account") return rispondi(200, { account: { email: "team@example.org", status: "active" } });
+    if (req.method === "GET" && p === "/v2/account") return reply(200, { account: { email: "team@example.org", status: "active" } });
     if (req.method === "GET" && p === "/v2/droplets") {
-      if (elencoRotto) return rispondi(500, { id: "server_error" });
-      return rispondi(200, { droplets: url.searchParams.get("type") === "gpus" ? s.droplets : [] });
+      if (brokenList) return reply(500, { id: "server_error" });
+      return reply(200, { droplets: url.searchParams.get("type") === "gpus" ? s.droplets : [] });
     }
     if (req.method === "POST" && p === "/v2/droplets") {
-      const c = JSON.parse(corpo);
-      s.creazioni.push(c);
-      s.droplets.push({ id: prossimo, name: c.name, status: "new", tags: c.tags, networks: { v4: [] } });
-      return rispondi(202, { droplet: { id: prossimo++ } });
+      const c = JSON.parse(body);
+      s.creations.push(c);
+      s.droplets.push({ id: next, name: c.name, status: "new", tags: c.tags, networks: { v4: [] } });
+      return reply(202, { droplet: { id: next++ } });
     }
     if ((m = p.match(/^\/v2\/droplets\/(\d+)$/))) {
       const d = s.droplets.find((x) => x.id === Number(m[1]));
-      if (!d) return rispondi(404, { id: "not_found" });
+      if (!d) return reply(404, { id: "not_found" });
       if (req.method === "DELETE") {
-        s.cancellate.push(d.id);
-        if (!nonSiCancella) s.droplets = s.droplets.filter((x) => x !== d);
-        return rispondi(204);
+        s.deleted.push(d.id);
+        if (!neverDeleted) s.droplets = s.droplets.filter((x) => x !== d);
+        return reply(204);
       }
       if (d.status === "new") {
         d.status = "active";
         d.networks.v4 = [{ type: "private", ip_address: "10.0.0.5" }, { type: "public", ip_address: "203.0.113.7" }];
       }
-      return rispondi(200, { droplet: d });
+      return reply(200, { droplet: d });
     }
-    if (req.method === "GET" && p === "/v2/snapshots") return rispondi(200, { snapshots: s.snapshots });
+    if (req.method === "GET" && p === "/v2/snapshots") return reply(200, { snapshots: s.snapshots });
     if (req.method === "POST" && (m = p.match(/^\/v2\/droplets\/(\d+)\/actions$/))) {
-      const a = JSON.parse(corpo);
+      const a = JSON.parse(body);
       if (a.type === "shutdown") s.droplets.find((x) => x.id === Number(m[1])).status = "off";
-      s.azioni[prossimo] = { ...a, letture: 0 };
-      return rispondi(201, { action: { id: prossimo++, status: "in-progress" } });
+      s.actions[next] = { ...a, reads: 0 };
+      return reply(201, { action: { id: next++, status: "in-progress" } });
     }
     if ((m = p.match(/^\/v2\/actions\/(\d+)$/))) {
-      const a = s.azioni[m[1]];
-      a.letture += 1;
-      return rispondi(200, { action: { id: Number(m[1]), status: a.letture >= 3 ? "completed" : "in-progress" } });
+      const a = s.actions[m[1]];
+      a.reads += 1;
+      return reply(200, { action: { id: Number(m[1]), status: a.reads >= 3 ? "completed" : "in-progress" } });
     }
     if (p === "/v2/domains/example.org/records") {
-      if (req.method === "GET") return rispondi(200, { domain_records: s.record });
-      s.record.push({ id: 7, ...JSON.parse(corpo) });
-      return rispondi(201, {});
+      if (req.method === "GET") return reply(200, { domain_records: s.records });
+      s.records.push({ id: 7, ...JSON.parse(body) });
+      return reply(201, {});
     }
     if (req.method === "PUT" && p === "/v2/domains/example.org/records/7") {
-      Object.assign(s.record[0], JSON.parse(corpo));
-      return rispondi(200, {});
+      Object.assign(s.records[0], JSON.parse(body));
+      return reply(200, {});
     }
-    rispondi(404, { id: "not_found" });
+    reply(404, { id: "not_found" });
   });
   return { server, s };
 }
 
-async function conApi(opzioni, prova) {
-  const { server, s } = apiFinta(opzioni);
-  await new Promise((fatto) => server.listen(0, "127.0.0.1", fatto));
-  const ambiente = {
-    PATH: process.env.PATH, DIGITALOCEAN_ACCESS_TOKEN: "finto", DO_API: `http://127.0.0.1:${server.address().port}`,
-    MI300X_ATTESA: "0", MI300X_RITENTA: "0", MI300X_SSH: "aa:bb:cc",
+async function withApi(options, check) {
+  const { server, s } = fakeApi(options);
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const environment = {
+    PATH: process.env.PATH, DIGITALOCEAN_ACCESS_TOKEN: "fake", DO_API: `http://127.0.0.1:${server.address().port}`,
+    MI300X_POLL: "0", MI300X_RETRIES: "0", MI300X_SSH: "aa:bb:cc",
   }; // prettier-ignore
-  const esegui = (argomenti, altro = {}) =>
-    new Promise((fatto) =>
-      execFile("bash", [SCRIPT, ...argomenti], { env: { ...ambiente, ...altro } }, (errore, stdout, stderr) =>
-        fatto({ codice: errore ? errore.code : 0, stdout, stderr }),
+  const run = (args, extra = {}) =>
+    new Promise((done) =>
+      execFile("bash", [SCRIPT, ...args], { env: { ...environment, ...extra } }, (error, stdout, stderr) =>
+        done({ code: error ? error.code : 0, stdout, stderr }),
       ),
     );
   try {
-    await prova(esegui, s);
+    await check(run, s);
   } finally {
     server.close();
   }
 }
 
-test("crea dall'ultimo snapshot golden, aspetta l'IP e non ne crea una seconda", () =>
-  conApi({}, async (esegui, s) => {
-    const prima = await esegui(["crea", "aspetta"]);
-    assert.equal(prima.codice, 0, prima.stderr);
-    assert.deepEqual(s.creazioni.map(({ image, size, region, tags, ssh_keys }) => ({ image, size, region, tags, ssh_keys })), [
-      { image: 222, size: "gpu-mi300x1-192gb", region: "atl1", tags: ["sportello-mi300x"], ssh_keys: ["aa:bb:cc"] },
-    ]); // l'id dello snapshot va come numero
-    assert.match(prima.stdout, /IP 203\.0\.113\.7/);
-    const seconda = await esegui(["crea"]);
-    assert.equal(seconda.codice, 0);
-    assert.match(seconda.stdout, /già accesa/);
-    assert.equal(s.creazioni.length, 1);
+test("creates from the latest golden snapshot, waits for the IP and does not create a second one", () =>
+  withApi({}, async (run, s) => {
+    const first = await run(["create", "wait"]);
+    assert.equal(first.code, 0, first.stderr);
+    assert.deepEqual(s.creations.map(({ image, size, region, tags, ssh_keys }) => ({ image, size, region, tags, ssh_keys })), [
+      { image: 222, size: "gpu-mi300x1-192gb", region: "atl1", tags: ["council-mi300x"], ssh_keys: ["aa:bb:cc"] },
+    ]); // the snapshot id goes as a number
+    assert.match(s.creations[0].name, /^council-\d{8}-\d{4}$/);
+    assert.match(first.stdout, /IP 203\.0\.113\.7/);
+    const second = await run(["create"]);
+    assert.equal(second.code, 0);
+    assert.match(second.stdout, /already running/);
+    assert.equal(s.creations.length, 1);
   }));
 
-test("se l'elenco non risponde non crea niente", () =>
-  conApi({ elencoRotto: true }, async (esegui, s) => {
-    const r = await esegui(["crea"]);
-    assert.notEqual(r.codice, 0);
-    assert.ok(!s.richieste.includes("POST /v2/droplets"));
+test("if the list does not answer it creates nothing", () =>
+  withApi({ brokenList: true }, async (run, s) => {
+    const r = await run(["create"]);
+    assert.notEqual(r.code, 0);
+    assert.ok(!s.requests.includes("POST /v2/droplets"));
   }));
 
-test("distrugge per id quelle con il tag, e se una resta accesa esce con un errore", async () => {
-  await conApi({ accese: [["sportello-mi300x"], ["altro-progetto"]] }, async (esegui, s) => {
-    const r = await esegui(["distruggi"]);
-    assert.equal(r.codice, 0, r.stderr);
-    assert.deepEqual(s.cancellate, [900]); // quella di un altro progetto non si tocca
+test("destroys by id the machines with the tag, and exits with an error if one stays running", async () => {
+  await withApi({ running: [["council-mi300x"], ["other-project"]] }, async (run, s) => {
+    const r = await run(["destroy"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(s.deleted, [900]); // the one of another project is not touched
   });
-  await conApi({ accese: [["sportello-mi300x"]], nonSiCancella: true }, async (esegui) => {
-    const r = await esegui(["distruggi"]);
-    assert.equal(r.codice, 1);
-    assert.match(r.stderr, /ancora accese/);
+  await withApi({ running: [["council-mi300x"]], neverDeleted: true }, async (run) => {
+    const r = await run(["destroy"]);
+    assert.equal(r.code, 1);
+    assert.match(r.stderr, /still running/);
   });
 });
 
-test("lo snapshot spegne prima la macchina e aspetta la fine", () =>
-  conApi({ accese: [["sportello-mi300x"]] }, async (esegui, s) => {
-    const r = await esegui(["snapshot"]);
-    assert.equal(r.codice, 0, r.stderr);
+test("machines with the legacy tags of the old code are seen and destroyed, each with its own new tag", async () => {
+  const machines = [["sportello-mi300x"], ["sportello-finestra"], ["council-window"], ["other-project"]];
+  await withApi({ running: machines }, async (run, s) => {
+    const status = await run(["status"]);
+    assert.equal(status.code, 0, status.stderr);
+    assert.match(status.stdout, /^900 by-hand-0 active/m);
+    assert.doesNotMatch(status.stdout, /by-hand-[123]/);
+    const created = await run(["create"]);
+    assert.match(created.stdout, /already running/); // no second machine next to an old one
+    assert.equal(s.creations.length, 0);
+    const r = await run(["destroy"]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(s.deleted, [900]);
+  });
+  await withApi({ running: machines }, async (run, s) => {
+    const r = await run(["destroy"], { MI300X_TAG: "council-window" });
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(s.deleted, [901, 902]); // the hand-started machines stay
+  });
+});
+
+test("the snapshot powers the machine off first and waits for the end", () =>
+  withApi({ running: [["council-mi300x"]] }, async (run, s) => {
+    const r = await run(["snapshot"]);
+    assert.equal(r.code, 0, r.stderr);
     assert.deepEqual(
-      Object.values(s.azioni).map((a) => a.type),
+      Object.values(s.actions).map((a) => a.type),
       ["shutdown", "snapshot"],
     );
-    assert.match(Object.values(s.azioni)[1].name, /^golden-\d{8}-\d{4}$/);
-    assert.match(r.stdout, /va distrutta/);
+    assert.match(Object.values(s.actions)[1].name, /^golden-\d{8}-\d{4}$/);
+    assert.match(r.stdout, /must be destroyed/);
   }));
 
-test("finestre: dentro accende, fuori distrugge solo la macchina delle finestre", async () => {
-  const cartella = mkdtempSync(join(tmpdir(), "finestre-"));
-  const ora = Date.now();
+test("windows: inside it starts, outside it destroys only the windows machine", async () => {
+  const folder = mkdtempSync(join(tmpdir(), "windows-"));
+  const now = Date.now();
   const iso = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, "+00:00");
-  const dentro = join(cartella, "dentro.json");
-  writeFileSync(dentro, JSON.stringify([{ inizio: iso(ora + 30 * 60e3), fine: iso(ora + 5 * 3600e3) }])); // fra 30 minuti
-  const fuori = join(cartella, "fuori.json");
-  writeFileSync(fuori, JSON.stringify([{ inizio: iso(ora - 5 * 3600e3), fine: iso(ora - 3600e3) }]));
-  await conApi({}, async (esegui, s) => {
-    const r = await esegui(["finestre", dentro]);
-    assert.equal(r.codice, 0, r.stderr);
-    assert.deepEqual(s.creazioni[0].tags, ["sportello-finestra"]);
+  const inside = join(folder, "inside.json");
+  writeFileSync(inside, JSON.stringify([{ start: iso(now + 30 * 60e3), end: iso(now + 5 * 3600e3) }])); // in 30 minutes
+  const outside = join(folder, "outside.json");
+  writeFileSync(outside, JSON.stringify([{ start: iso(now - 5 * 3600e3), end: iso(now - 3600e3) }]));
+  await withApi({}, async (run, s) => {
+    const r = await run(["windows", inside]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(s.creations[0].tags, ["council-window"]);
   });
-  await conApi({ accese: [["sportello-finestra"], ["sportello-mi300x"]] }, async (esegui, s) => {
-    const r = await esegui(["finestre", fuori]);
-    assert.equal(r.codice, 0, r.stderr);
-    assert.deepEqual(s.cancellate, [900]); // la macchina accesa a mano per lavorare resta
+  await withApi({ running: [["council-window"], ["council-mi300x"], ["sportello-finestra"]] }, async (run, s) => {
+    const r = await run(["windows", outside]);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(s.deleted, [900, 902]); // the machine started by hand to work on stays
   });
 });
 
-test("con il dominio nel DNS di DigitalOcean il nome punta al nuovo IP", () =>
-  conApi({}, async (esegui, s) => {
-    const dns = { MI300X_DNS_DOMINIO: "example.org", MI300X_DNS_NOME: "motore" };
-    const r = await esegui(["crea", "aspetta"], dns);
-    assert.equal(r.codice, 0, r.stderr);
-    assert.deepEqual(s.record, [{ id: 7, type: "A", name: "motore", data: "203.0.113.7", ttl: 60 }]);
+test("with the domain in DigitalOcean's DNS the name points at the new IP", () =>
+  withApi({}, async (run, s) => {
+    const dns = { MI300X_DNS_DOMAIN: "example.org", MI300X_DNS_NAME: "engine" };
+    const r = await run(["create", "wait"], dns);
+    assert.equal(r.code, 0, r.stderr);
+    assert.deepEqual(s.records, [{ id: 7, type: "A", name: "engine", data: "203.0.113.7", ttl: 60 }]);
   }));
