@@ -37,6 +37,8 @@ import anyio.to_thread
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
+from python_multipart.exceptions import MultipartParseError
+from python_multipart.multipart import MultipartParser, parse_options_header
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
@@ -46,6 +48,7 @@ from .gestore import Occupato, Revisore, Rifiuto
 log = logging.getLogger("consiglio.servizio")
 MAX_CORPO = 16 * 2**20  # un PDF di 10 MB in base64, più i campi
 MAX_FILE = 5
+TESTO_DI_EVOLUS = (None, "body")  # dove «Chiama un endpoint» di Evolus mette il testo che riceve
 GUASTO = "Consiglio: errore interno. Riprova una volta; se non risponde ancora, passa il contratto a una persona."
 ISTRUZIONI = (
     "Consiglio silenzioso: quattro agenti (legale, finanza, rischio e un relatore avvocato del diavolo) rivedono un "
@@ -100,20 +103,78 @@ async def corpo(request: Request) -> bytes:
     return letto
 
 
+def parti_del_modulo(contenuto: bytes, tipo: str) -> list[tuple[str | None, str | None, bytes]]:
+    """Le parti di un modulo `multipart/form-data`: (nome, nome del file, contenuto). Il nome può mancare: «Chiama un
+    endpoint» di Evolus manda i file della partenza senza `name`, che il parser di Starlette rifiuta."""
+    _, opzioni = parse_options_header(tipo)
+    confine = opzioni.get(b"boundary")
+    if not confine:
+        raise Rifiuto("modulo senza boundary")
+    parti: list[tuple[str | None, str | None, bytes]] = []
+    stato: dict = {}
+
+    def inizio() -> None:
+        stato.update(intestazioni={}, campo=b"", valore=b"", dati=[])
+
+    def fine_intestazione() -> None:
+        stato["intestazioni"][stato["campo"].lower()] = stato["valore"]
+        stato["campo"], stato["valore"] = b"", b""
+
+    def fine() -> None:
+        if len(parti) >= MAX_FILE + 20:
+            raise Rifiuto("modulo con troppe parti")
+        _, disposizione = parse_options_header(stato["intestazioni"].get(b"content-disposition", b""))
+        nome, file = disposizione.get(b"name"), disposizione.get(b"filename")
+        parti.append(
+            (
+                nome.decode("utf-8", "replace") if nome is not None else None,
+                file.decode("utf-8", "replace") if file is not None else None,
+                b"".join(stato["dati"]),
+            )
+        )
+
+    parser = MultipartParser(
+        confine,
+        {
+            "on_part_begin": inizio,
+            "on_header_field": lambda d, a, b: stato.update(campo=stato["campo"] + d[a:b]),
+            "on_header_value": lambda d, a, b: stato.update(valore=stato["valore"] + d[a:b]),
+            "on_header_end": fine_intestazione,
+            "on_part_data": lambda d, a, b: stato["dati"].append(d[a:b]),
+            "on_part_end": fine,
+        },
+    )
+    try:
+        parser.write(contenuto)
+        parser.finalize()
+    except MultipartParseError as errore:
+        raise Rifiuto("il modulo non si legge") from errore
+    return parti
+
+
 async def campi(request: Request) -> tuple[dict, bool]:
     """JSON, oppure un modulo con il contratto come file PDF (il campo `contratto`, oppure il primo file che è un PDF,
-    perché «Call an endpoint» di Evolus non documenta i nomi). Il secondo valore dice se era un modulo."""
+    perché «Chiama un endpoint» di Evolus non documenta i nomi e a volte non li mette). Senza PDF, il contratto è il
+    testo della parte `body` o di una parte senza nome: in Evolus un endpoint riceve solo testo, e il PDF ci arriva letto
+    da «Leggi il documento». Il secondo valore dice se era un modulo."""
     if int(request.headers.get("content-length") or 0) > MAX_CORPO:
         raise Rifiuto("richiesta troppo grande")
-    if request.headers.get("content-type", "").startswith("multipart/form-data"):
-        async with request.form(max_files=MAX_FILE, max_fields=20, max_part_size=MAX_CORPO) as modulo:
-            dati = {k: v for k, v in modulo.items() if isinstance(v, str)}
-            file = [modulo.get("contratto")] + [v for k, v in modulo.multi_items() if k != "contratto"]
-            for f in file:
-                if f is not None and not isinstance(f, str) and (contenuto := await f.read()).startswith(b"%PDF"):
-                    dati["pdf_base64"] = base64.b64encode(contenuto).decode()
-                    break
-            return dati, True
+    tipo = request.headers.get("content-type", "")
+    if tipo.startswith("multipart/form-data"):
+        parti = parti_del_modulo(await corpo(request), tipo)
+        dati = {nome: v.decode("utf-8", "replace") for nome, file, v in parti if nome and file is None}
+        pdf = [v for nome, file, v in parti if nome == "contratto"] + [
+            v for nome, file, v in parti if nome != "contratto"
+        ]
+        if contenuto := next((v for v in pdf if v.startswith(b"%PDF")), None):
+            dati["pdf_base64"] = base64.b64encode(contenuto).decode()
+        elif "testo" not in dati and (
+            testo := next(
+                (v for nome, file, v in parti if nome in TESTO_DI_EVOLUS and file is None and v.strip()), None
+            )
+        ):
+            dati["testo"] = testo.decode("utf-8", "replace")
+        return dati, True
     try:
         dati = json.loads(await corpo(request))
     except ValueError as errore:

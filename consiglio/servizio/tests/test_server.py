@@ -68,6 +68,45 @@ def test_il_pdf_in_un_modulo_e_i_campi_in_piu(app, consiglio):
     assert base.status_code == 400 and in_piu.status_code == 400 and "passi" in in_piu.json()["errore"]
 
 
+def test_il_pdf_di_evolus_senza_nome_del_campo(app, consiglio):
+    # «Chiama un endpoint» di Evolus manda i file della partenza senza `name` nel Content-Disposition.
+    confine = "confine-di-evolus"
+    corpo = b"".join(
+        [
+            f'--{confine}\r\nContent-Disposition: form-data; name="input"\r\n\r\ntesto dell\'email\r\n'.encode(),
+            f'--{confine}\r\nContent-Disposition: form-data; filename="contratto.pdf"\r\n'.encode(),
+            b"Content-Type: application/pdf\r\n\r\n" + pdf_con_testo("Il Fornitore fornisce") + b"\r\n",
+            f"--{confine}--\r\n".encode(),
+        ]
+    )
+    with TestClient(app) as http:
+        r = http.post(
+            "/revisiona_contratto",
+            content=corpo,
+            headers=CHIAVE | {"Content-Type": f"multipart/form-data; boundary={confine}"},
+        )
+    assert r.status_code == 200 and "Il Fornitore fornisce" in consiglio.chiamate[0][1]
+
+
+def test_il_testo_di_evolus_nella_parte_body_o_senza_nome(app, consiglio):
+    # In Evolus un endpoint riceve solo testo: il PDF passa da «Leggi il documento», che ne manda il testo nella parte
+    # `body` o in una parte senza nome. Una parte vuota resta un contratto che manca.
+    def modulo(testo: str, intestazione: str = "") -> dict:
+        confine = "confine-di-evolus"
+        corpo = f"--{confine}\r\n{intestazione}\r\n{testo}\r\n--{confine}--\r\n".encode()
+        return {"content": corpo, "headers": CHIAVE | {"Content-Type": f'multipart/form-data; boundary="{confine}"'}}
+
+    with TestClient(app) as http:
+        letto = http.post("/revisiona_contratto", **modulo(CONTRATTO))
+        nel_body = http.post(
+            "/revisiona_contratto", **modulo(CONTRATTO + "Art. 2", 'Content-Disposition: form-data; name="body"\r\n')
+        )
+        vuoto = http.post("/revisiona_contratto", **modulo(""))
+    assert letto.status_code == 200 and consiglio.chiamate[0][1] == CONTRATTO
+    assert nel_body.status_code == 200 and consiglio.chiamate[1][1] == CONTRATTO + "Art. 2"
+    assert vuoto.status_code == 400 and "serve il contratto" in vuoto.json()["errore"]
+
+
 def test_un_guasto_del_consiglio_e_un_500_senza_dettagli(app, consiglio):
     consiglio.guasto = TypeError("dettaglio interno")
     with TestClient(app) as http:
