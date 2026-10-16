@@ -1,7 +1,7 @@
-"""Il Consiglio silenzioso sul motore telepatico."""
+"""The Silent Council on the telepathic engine."""
 
-from .categorie import BENCHMARK, Benchmark, Categoria
-from .consiglio import Consiglio, Dissenso, Revisione, Scritto
-from .taglio import Taglio, taglia
+from .categories import BENCHMARK, Benchmark, Category
+from .council import Council, Dissent, Review, Written
+from .split import Split, split_contract
 
-__all__ = ["BENCHMARK", "Benchmark", "Categoria", "Consiglio", "Dissenso", "Revisione", "Scritto", "Taglio", "taglia"]
+__all__ = ["BENCHMARK", "Benchmark", "Category", "Council", "Dissent", "Review", "Split", "Written", "split_contract"]

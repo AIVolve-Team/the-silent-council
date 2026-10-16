@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verdetto del Consiglio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Verdict page (rules of “Verdict and dissent”): a document to read from the top, the recommendation first of all.
+   Same fonts and colours as the judges' site: Archivo for the page, Source Serif for the words of the
+   contract, one colour per expert. In Italian for the client business, in English for the judges. */
+:root {
+  --paper: #f6f7f9; --sheet: #ffffff; --ink: #151a30; --muted: #565d70; --line: #dcdfe6;
+  --accent: #087a6d; --accent-soft: #ddf3ef;
+  --legal: #2f62c8; --finance: #12a594; --risk: #7458d6;
+  --sign: #1f7a4d; --sign-soft: #e3f3ea; --negotiate: #8a5208; --negotiate-soft: #fbf0dc;
+  --refuse: #b42318; --refuse-soft: #fde7e4; --major: #b42318; --minor: #8a5208;
+  --page-font: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --contract-font: "Source Serif 4", Georgia, serif;
+  --code-font: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1324; --sheet: #161c31; --ink: #e8ebf4; --muted: #a4aabb; --line: #2b3350;
+    --accent: #4fd1bf; --accent-soft: #123833; --legal: #7aa2f2; --finance: #35c2ae; --risk: #a893f2;
+    --sign: #5bc48e; --sign-soft: #16301f; --negotiate: #e6b35e; --negotiate-soft: #362a14;
+    --refuse: #f08a7f; --refuse-soft: #3a1a17; --major: #f08a7f; --minor: #e6b35e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1324; --sheet: #161c31; --ink: #e8ebf4; --muted: #a4aabb; --line: #2b3350;
+  --accent: #4fd1bf; --accent-soft: #123833; --legal: #7aa2f2; --finance: #35c2ae; --risk: #a893f2;
+  --sign: #5bc48e; --sign-soft: #16301f; --negotiate: #e6b35e; --negotiate-soft: #362a14;
+  --refuse: #f08a7f; --refuse-soft: #3a1a17; --major: #f08a7f; --minor: #e6b35e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.6 var(--page-font); font-variation-settings: "wdth" 100; padding-inline: 16px; padding-block: 20px 72px; }
+.sheet { max-width: 920px; margin-inline: auto; display: grid; gap: 32px; }
+h1, h2, h3 { line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(1.7rem, 4.2vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; font-variation-settings: "wdth" 108; overflow-wrap: anywhere; }
+h2 { font-size: 1.2rem; font-weight: 740; letter-spacing: -0.01em; font-variation-settings: "wdth" 106; }
+h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 0.18em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.muted { color: var(--muted); }
+.label { font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+
+/* bar */
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.bar a { font-weight: 600; font-size: 0.9375rem; text-decoration: none; }
+.languages { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--sheet); margin-left: auto; }
+.languages button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
+.languages button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+
+/* header */
+.head { display: flex; flex-wrap: wrap; gap: 18px; justify-content: space-between; align-items: flex-start; }
+.head .titles { display: grid; gap: 10px; min-width: 0; flex: 1 1 420px; }
+.seal { border: 1px solid var(--line); background: var(--sheet); border-radius: 12px; padding: 10px 14px; display: grid; gap: 4px; min-width: 230px; color: inherit; }
+.seal summary { cursor: pointer; display: grid; gap: 2px; }
+.seal strong { font-size: 0.95rem; }
+.seal.intact strong { color: var(--sign); }
+.seal.broken { border-color: var(--refuse); background: var(--refuse-soft); }
+.seal.broken strong { color: var(--refuse); }
+.fingerprints { font: 0.75rem/1.5 var(--code-font); color: var(--muted); overflow-wrap: anywhere; }
+.model-language { font-size: 0.9375rem; color: var(--muted); border-left: 3px solid var(--line); padding-left: 12px; }
+
+/* recommendation */
+.recommendation { background: var(--sheet); border: 1px solid var(--line); border-top: 6px solid var(--colour); border-radius: 14px; padding: 22px 24px 24px; display: grid; gap: 12px; }
+.recommendation .value { font-weight: 850; font-size: clamp(2.4rem, 7vw, 3.6rem); line-height: 1; letter-spacing: -0.03em; font-variation-settings: "wdth" 116; color: var(--colour); }
+.recommendation.sign { --colour: var(--sign); }
+.recommendation.negotiate { --colour: var(--negotiate); }
+.recommendation.do-not-sign { --colour: var(--refuse); }
+.recommendation .reason { max-width: 46rem; }
+.red-notice { background: var(--refuse-soft); border: 2px solid var(--refuse); border-radius: 14px; padding: 20px 22px; display: grid; gap: 8px; }
+.red-notice h2 { color: var(--refuse); }
+.numbers { display: flex; flex-wrap: wrap; gap: 6px 24px; font-size: 0.9375rem; color: var(--muted); }
+.numbers b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* comparison with the dataset's correct answers: only on the judges' site */
+.comparison { border-left: 3px solid var(--accent); padding: 4px 0 4px 16px; display: grid; gap: 6px; }
+.comparison .count { font-weight: 700; font-size: 1.1rem; }
+.comparison a { color: var(--ink); }
+
+/* objections */
+.objections { display: grid; gap: 10px; }
+.objections ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+
+/* rows */
+.group { display: grid; gap: 10px; }
+.group > header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; border-bottom: 2px solid var(--c); padding-bottom: 6px; }
+.group > header h2 { display: flex; align-items: center; gap: 10px; }
+.group > header h2::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; }
+.rows { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.row { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; display: grid; gap: 10px; min-width: 0; }
+.row.flagged { border-left: 4px solid var(--c); }
+.row .top { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; justify-content: space-between; }
+.row .name { font-weight: 650; }
+.row .key { font-size: 0.8125rem; color: var(--muted); margin-left: 6px; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill { font-size: 0.8125rem; font-weight: 600; line-height: 1; padding: 6px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.yes { background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--ink); border-color: transparent; }
+.pill.ok { color: var(--sign); }
+.pill.not-found { color: var(--refuse); border-color: var(--refuse); }
+.quote { margin: 0; padding: 4px 0 4px 14px; border-left: 3px solid var(--line); font: 400 1.0625rem/1.55 var(--contract-font); color: var(--ink); overflow-wrap: anywhere; }
+.rationale { color: var(--muted); }
+.experts { border-radius: 8px; padding: 8px 12px; display: grid; gap: 6px; background: var(--paper); font-size: 0.9375rem; }
+.experts.different { background: var(--refuse-soft); }
+.experts .outcome { font-weight: 600; }
+.experts.same .outcome { color: var(--sign); }
+.experts.different .outcome { color: var(--refuse); }
+.experts details > summary { cursor: pointer; color: var(--muted); }
+.experts .quote { margin-top: 6px; }
+.dissent { border-radius: 8px; padding: 10px 12px; display: grid; gap: 8px; background: var(--negotiate-soft); }
+.dissent.major { background: var(--refuse-soft); }
+.dissent .who { font-weight: 600; }
+.dissent.major .who { color: var(--major); }
+details.dissent > summary { cursor: pointer; font-weight: 600; color: var(--minor); }
+details.dissent.major > summary { color: var(--major); }
+.choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice button { border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 6px 12px; }
+.choice button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+
+/* actions and experts' notes */
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions button { border: 1.5px solid var(--ink); background: var(--ink); color: var(--sheet); border-radius: 10px; padding: 9px 16px; font-weight: 650; }
+.actions button.secondary { background: transparent; color: var(--ink); }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; }
+.note { background: var(--sheet); border: 1px solid var(--line); border-top: 3px solid var(--c, var(--line)); border-radius: 10px; padding: 14px 16px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.note ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; font-size: 0.9375rem; }
+footer { font-size: 0.875rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; display: grid; gap: 6px; }
+footer code { font: 0.8125rem var(--code-font); }
+.load { background: var(--sheet); border: 2px dashed var(--line); border-radius: 14px; padding: 28px; text-align: center; display: grid; gap: 10px; }
+
+/* summary to print as PDF: recommendation, flagged clauses, dissents and the person's choices */
+.print-only { display: none; }
+@media print {
+  body { background: #fff; color: #000; padding: 0; font-size: 11pt; }
+  .no-print { display: none !important; }
+  .print-only { display: block; }
+  .row:not(.flagged):not(.with-dissent) { display: none; }
+  .row, .recommendation, .seal { border-color: #999; break-inside: avoid; }
+  details.dissent > *:not(summary) { display: block; }
+}
+</style>
+</head>
+<body>
+<main class="sheet" id="page">
+  <section class="load no-print" id="load">
+    <h1>Verdetto del Consiglio</h1>
+    <p class="muted">Apri il file della revisione (<code>view.json</code>) per vedere il verdetto.</p>
+    <p><input type="file" id="file" accept="application/json,.json" aria-label="File della revisione"></p>
+  </section>
+</main>
+
+<script id="data" type="application/json">{"title": "Contratto di fornitura di componenti (esempio)", "contract": "example-supply", "benchmark": "demo", "mode": "telepathy", "model": "Qwen/Qwen3-14B", "latent_steps": 10, "recommendation": {"value": "negotiate", "rationale": "Three years of exclusivity with a minimum of 180,000 euros a year, while the supplier can get out with 30 days' notice and is liable for at most 10%: to be rebalanced before signing."}, "objections": [{"key": "Change Of Control", "name_it": "Cambio di controllo", "objection": "Risk flags the change of control, but the clause only gives the supplier a right to terminate: weigh it."}], "seal": {"intact": true, "messages": 3, "fingerprints": ["7f3a000000000000000000000000000000000000000000000000000000000000", "c91e111111111111111111111111111111111111111111111111111111111111", "52bd222222222222222222222222222222222222222222222222222222222222"], "check": null, "reason": null}, "rows": [{"key": "Uncapped Liability", "name_it": "Responsabilità illimitata", "role": "legal", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Cap On Liability", "name_it": "Tetto alla responsabilità", "role": "legal", "flag": true, "confidence": "high", "quote": "non potrà superare il 10% dei corrispettivi pagati dal Cliente", "quote_found": true, "rationale": "The supplier is liable for at most 10% of what was paid in the year.", "dissent": null, "experts": null}, {"key": "Ip Ownership Assignment", "name_it": "Cessione della proprietà intellettuale", "role": "legal", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Joint Ip Ownership", "name_it": "Proprietà intellettuale condivisa", "role": "legal", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Irrevocable Or Perpetual License", "name_it": "Licenza irrevocabile o perpetua", "role": "legal", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Covenant Not To Sue", "name_it": "Rinuncia a fare causa", "role": "legal", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Non-Disparagement", "name_it": "Divieto di denigrazione", "role": "legal", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Liquidated Damages", "name_it": "Penale predeterminata", "role": "finance", "flag": true, "confidence": "high", "quote": "a titolo di penale, € 2.500,00 per ogni settimana di ritardo", "quote_found": true, "rationale": "A penalty of 2,500 euros a week if the business does not collect the goods.", "dissent": null, "experts": null}, {"key": "Minimum Commitment", "name_it": "Minimo d'acquisto", "role": "finance", "flag": true, "confidence": "high", "quote": "Componenti per un importo complessivo non inferiore a € 180.000,00", "quote_found": true, "rationale": "A minimum of 180,000 euros a year, with the difference to pay if it is not reached.", "dissent": null, "experts": null}, {"key": "Volume Restriction", "name_it": "Limite di volume", "role": "finance", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Most Favored Nation", "name_it": "Cliente più favorito", "role": "finance", "flag": true, "confidence": "low", "quote": null, "quote_found": null, "rationale": null, "dissent": {"type": "minor", "role": "finance", "role_name": "Finance", "expert_says": false, "expert_confidence": "low", "verdict_confidence": "high", "expert_quote": null, "expert_quote_found": null, "highlighted": false}, "experts": null}, {"key": "Change Of Control", "name_it": "Cambio di controllo", "role": "risk", "flag": false, "confidence": "low", "quote": null, "quote_found": null, "rationale": null, "dissent": {"type": "major", "role": "risk", "role_name": "Risk", "expert_says": true, "expert_confidence": "high", "verdict_confidence": "low", "expert_quote": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto", "expert_quote_found": true, "highlighted": true}, "experts": null}, {"key": "Anti-Assignment", "name_it": "Divieto di cessione", "role": "risk", "flag": true, "confidence": "high", "quote": "Il Cliente non può cedere il contratto senza il consenso scritto", "quote_found": false, "rationale": "The business cannot assign the contract, the supplier can.", "dissent": null, "experts": null}, {"key": "Rofr/Rofo/Rofn", "name_it": "Diritto di prelazione", "role": "risk", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Termination For Convenience", "name_it": "Recesso senza motivo", "role": "risk", "flag": true, "confidence": "high", "quote": "Il Fornitore potrà recedere dal contratto in qualsiasi momento, senza obbligo di motivazione", "quote_found": true, "rationale": "Only the supplier can get out, with 30 days' notice.", "dissent": null, "experts": null}, {"key": "Non-Compete", "name_it": "Non concorrenza", "role": "risk", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "Exclusivity", "name_it": "Esclusiva", "role": "risk", "flag": true, "confidence": "high", "quote": "si impegna ad acquistare i Componenti esclusivamente dal Fornitore", "quote_found": true, "rationale": "For three years the business cannot buy the components from anyone else.", "dissent": null, "experts": null}, {"key": "No-Solicit Of Customers", "name_it": "Divieto di sottrarre clienti", "role": "risk", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}, {"key": "No-Solicit Of Employees", "name_it": "Divieto di assumere dipendenti", "role": "risk", "flag": false, "confidence": "high", "quote": null, "quote_found": null, "rationale": null, "dissent": null, "experts": null}], "comparison": null, "notes": [{"role": "legal", "name": "Legal", "valid": true, "rows": [{"key": "Uncapped Liability", "name_it": "Responsabilità illimitata", "flag": false, "confidence": null}, {"key": "Cap On Liability", "name_it": "Tetto alla responsabilità", "flag": true, "confidence": "high"}, {"key": "Ip Ownership Assignment", "name_it": "Cessione della proprietà intellettuale", "flag": false, "confidence": null}, {"key": "Joint Ip Ownership", "name_it": "Proprietà intellettuale condivisa", "flag": false, "confidence": null}, {"key": "Irrevocable Or Perpetual License", "name_it": "Licenza irrevocabile o perpetua", "flag": false, "confidence": null}, {"key": "Covenant Not To Sue", "name_it": "Rinuncia a fare causa", "flag": false, "confidence": null}, {"key": "Non-Disparagement", "name_it": "Divieto di denigrazione", "flag": false, "confidence": null}], "quotes": [{"key": "Cap On Liability", "name_it": "Tetto alla responsabilità", "text": "non potrà superare il 10% dei corrispettivi pagati dal Cliente", "found": true}], "amounts_dates_parties": ["10% of the fees"]}, {"role": "finance", "name": "Finance", "valid": true, "rows": [{"key": "Liquidated Damages", "name_it": "Penale predeterminata", "flag": true, "confidence": "high"}, {"key": "Minimum Commitment", "name_it": "Minimo d'acquisto", "flag": true, "confidence": "high"}, {"key": "Volume Restriction", "name_it": "Limite di volume", "flag": false, "confidence": null}, {"key": "Most Favored Nation", "name_it": "Cliente più favorito", "flag": false, "confidence": "low"}], "quotes": [{"key": "Minimum Commitment", "name_it": "Minimo d'acquisto", "text": "non inferiore a € 180.000,00", "found": true}], "amounts_dates_parties": ["€ 180.000,00 a year", "€ 2.500,00 a week"]}, {"role": "risk", "name": "Risk", "valid": true, "rows": [{"key": "Change Of Control", "name_it": "Cambio di controllo", "flag": true, "confidence": "high"}, {"key": "Anti-Assignment", "name_it": "Divieto di cessione", "flag": true, "confidence": "high"}, {"key": "Rofr/Rofo/Rofn", "name_it": "Diritto di prelazione", "flag": false, "confidence": null}, {"key": "Termination For Convenience", "name_it": "Recesso senza motivo", "flag": true, "confidence": "high"}, {"key": "Non-Compete", "name_it": "Non concorrenza", "flag": false, "confidence": null}, {"key": "Exclusivity", "name_it": "Esclusiva", "flag": true, "confidence": "high"}, {"key": "No-Solicit Of Customers", "name_it": "Divieto di sottrarre clienti", "flag": false, "confidence": null}, {"key": "No-Solicit Of Employees", "name_it": "Divieto di assumere dipendenti", "flag": false, "confidence": null}], "quotes": [{"key": "Change Of Control", "name_it": "Cambio di controllo", "text": "Se il controllo del Cliente passa a un soggetto diverso, il Fornitore potrà risolvere il contratto", "found": true}], "amounts_dates_parties": ["three years", "30 days' notice"]}], "cost": {"tokens_generated": 1120, "tokens_read": 18300, "latent_positions": 30, "seconds": 41.2}}</script>
+<script>
+"use strict";
+const ROLES = ["legal", "finance", "risk"];
+const RECOMMENDATIONS = { "sign": "sign", "negotiate": "negotiate", "do not sign": "do-not-sign" };
+const T = {
+  it: {
+    who: { legal: "il legale", finance: "l'esperto di finanza", risk: "l'esperto di rischio" },
+    expert: { legal: "Legale", finance: "Finanza", risk: "Rischio" },
+    group: { legal: "Clausole del legale", finance: "Clausole della finanza", risk: "Clausole del rischio" },
+    rec: { "sign": "Firmare", "negotiate": "Negoziare", "do not sign": "Non firmare" },
+    level: { high: "alta", medium: "media", low: "bassa" },
+    confidence: (l) => `confidenza ${l}`, confidenceTitle: "Quanto era sicuro il modello",
+    found: "✓ trovata nel contratto", foundTitle: "La citazione compare parola per parola nel contratto",
+    notFound: "⚠ non trovata nel contratto", notFoundTitle: "La citazione non compare nel contratto: va controllata",
+    majorDissent: (who) => `${who} non è d'accordo: secondo l'esperto questa clausola va segnalata.`,
+    minorDissent: (who) => `${who} non l'aveva segnalata: è il relatore ad averla trovata.`,
+    confidences: (e, v) => `Confidenza dell'esperto: ${e}. Confidenza del verdetto: ${v}.`, unknown: "non nota",
+    openMajor: "⚠ Un esperto non è d'accordo", openMinor: "⚠ Dissenso lieve",
+    whoIsRight: "Chi ha ragione?", isRight: (who) => `Ha ragione ${who}`, verdictIsRight: "Ha ragione il verdetto",
+    toFlag: "da segnalare", noIssue: "nessun problema", undecided: "non deciso",
+    shouldFlag: "va segnalata", nothing: "non c'è niente da segnalare",
+    agreeRow: (who, theirs) => `✓ D'accordo con ${who}: ${theirs}.`, disagreeRow: (who, theirs) => `✗ Non d'accordo con ${who}: per loro ${theirs}.`, onlyTheirs: (who, theirs) => `Per ${who} ${theirs}.`,
+    passage: "Il pezzo segnato da loro", passages: "I pezzi segnati da loro",
+    invalidNote: "La nota non è valida.", quotes: "Citazioni", amounts: "Importi, date e parti", yes: "da segnalare", no: "no",
+    printTitle: "Le scelte della persona sui dissensi", printRight: (who) => `ha ragione ${who}`, printVerdict: "ha ragione il verdetto", printNone: "nessuna scelta", noDissent: "Nessun dissenso.",
+    review: "Revisione del Consiglio silenzioso",
+    text: (n) => `Versione a testo, per confronto: ${n} esperti e il relatore si sono scritti.`,
+    telepathy: (n) => `${n} esperti e il relatore si sono passati la memoria invece di scriversi.`,
+    intact: "🔒 Comunicazione tra esperti integra", broken: "⛔ Comunicazione tra esperti alterata",
+    signed: (n) => `${n} messaggi latenti firmati e verificati`, check: (c) => `controllo: ${c}`, message: (i, h) => `messaggio ${i}: ${h}…`,
+    forYou: "Consiglio per la tua impresa",
+    flagged: (a, b) => [el("b", {}, a), " clausole da segnalare su ", el("b", {}, b)],
+    dissents: (n, g) => [el("b", {}, n), n === 1 ? " dissenso" : " dissensi", g ? [" (", el("b", {}, g), g === 1 ? " grave)" : " gravi)"] : ""],
+    noVerdict: "Verdetto non emesso", noVerdictText: "Un messaggio fra gli esperti non ha superato i controlli della macchina della verità, quindi il Consiglio si è fermato.",
+    checkReason: (c, m) => `Controllo: ${c}. ${m}`, invalid: "verdetto non valido",
+    comparison: (name) => `Confronto con ${name}`, agreement: (who, a, b) => `D'accordo con ${who} su ${a} clausole su ${b}.`,
+    foundCount: (a, b) => `Delle ${a} clausole che per loro vanno segnalate, il Consiglio ne ha trovate ${b}.`,
+    nothingHere: "Per loro in questo contratto non c'è niente da segnalare.", source: "Vedi la fonte",
+    eachRow: "In ogni riga trovi la loro risposta accanto a quella del Consiglio, anche dove il Consiglio sbaglia.",
+    objections: "Le obiezioni dell'avvocato del diavolo",
+    showNotes: "Mostra cosa ha pensato ogni esperto", hideNotes: "Nascondi le note degli esperti", notesTitle: "Cosa ha pensato ogni esperto",
+    print: "Scarica il riepilogo (PDF)", save: "Salva le scelte",
+    send: "Invia le scelte", sendFirst: "Scegli prima chi ha ragione su almeno un dissenso.", sending: "Invio in corso…",
+    sent: (n) => `Scelte inviate: ${n}.`, notSent: (e) => `Non inviate: ${e}`, noAnswer: "Non inviate: il server non risponde. Riprova, oppure salva le scelte.",
+    cost: (v) => `Modello ${v.model}, modalità ${v.mode === "text" ? "testo" : "telepatia"}: ${v.cost.tokens_generated} token scritti, ${v.cost.latent_positions} pensieri latenti, ${v.cost.seconds} secondi.`,
+    footer: ["Le citazioni sono controllate parola per parola nel contratto. Le firme dei messaggi si verificano con ", "python -m engine.verify", "."],
+    title: (t) => `Verdetto: ${t}`, index: "Tutti i verdetti", liveIndex: "Le prove dal vivo", languagesGroup: "Lingua",
+    modelLanguage: "Il Consiglio scrive le sue motivazioni in inglese. Le citazioni sono nella lingua del contratto.",
+    live: (q) => `Revisione dal vivo, ${new Date(q).toLocaleString("it-IT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
+    notHere: "Questa prova dal vivo non è in questo browser: le prove restano nel browser dove sono state fatte.",
+  },
+  en: {
+    who: { legal: "the legal expert", finance: "the finance expert", risk: "the risk expert" },
+    expert: { legal: "Legal", finance: "Finance", risk: "Risk" },
+    group: { legal: "Legal expert's clauses", finance: "Finance expert's clauses", risk: "Risk expert's clauses" },
+    rec: { "sign": "Sign", "negotiate": "Negotiate", "do not sign": "Do not sign" },
+    level: { high: "high", medium: "medium", low: "low" },
+    confidence: (l) => `${l} confidence`, confidenceTitle: "How sure the model was",
+    found: "✓ found in the contract", foundTitle: "The quote appears word for word in the contract",
+    notFound: "⚠ not found in the contract", notFoundTitle: "The quote does not appear in the contract: check it",
+    majorDissent: (who) => `${who} disagrees: according to the expert this clause should be flagged.`,
+    minorDissent: (who) => `${who} had not flagged it: the devil's advocate found it.`,
+    confidences: (e, v) => `Expert's confidence: ${e}. Verdict's confidence: ${v}.`, unknown: "unknown",
+    openMajor: "⚠ An expert disagrees", openMinor: "⚠ Mild dissent",
+    whoIsRight: "Who is right?", isRight: (who) => `${who.charAt(0).toUpperCase()}${who.slice(1)} is right`, verdictIsRight: "The verdict is right",
+    toFlag: "flag it", noIssue: "no issue", undecided: "undecided",
+    shouldFlag: "it should be flagged", nothing: "there is nothing to flag",
+    agreeRow: (who, theirs) => `✓ Agrees with ${who}: ${theirs}.`, disagreeRow: (who, theirs) => `✗ Disagrees with ${who}: for them ${theirs}.`, onlyTheirs: (who, theirs) => `For ${who} ${theirs}.`,
+    passage: "The passage they marked", passages: "The passages they marked",
+    invalidNote: "This note is not valid.", quotes: "Quotes", amounts: "Amounts, dates and parties", yes: "flag it", no: "no",
+    printTitle: "The person's choices on the dissents", printRight: (who) => `${who} is right`, printVerdict: "the verdict is right", printNone: "no choice", noDissent: "No dissent.",
+    review: "Review by the silent council",
+    text: (n) => `Text version, for comparison: ${n} experts and the devil's advocate wrote to each other.`,
+    telepathy: (n) => `${n} experts and the devil's advocate handed over their memory instead of writing to each other.`,
+    intact: "🔒 Communication between experts intact", broken: "⛔ Communication between experts tampered with",
+    signed: (n) => `${n} latent messages signed and verified`, check: (c) => `check: ${c}`, message: (i, h) => `message ${i}: ${h}…`,
+    forYou: "Advice for your business",
+    flagged: (a, b) => [el("b", {}, a), " of ", el("b", {}, b), " clauses to flag"],
+    dissents: (n, g) => [el("b", {}, n), n === 1 ? " dissent" : " dissents", g ? [" (", el("b", {}, g), " strong)"] : ""],
+    noVerdict: "No verdict", noVerdictText: "A message between experts failed the truth machine's checks, so the council stopped.",
+    checkReason: (c, m) => `Check: ${c}. ${m}`, invalid: "invalid verdict",
+    comparison: (name) => `Compared with ${name}`, agreement: (who, a, b) => `Agrees with ${who} on ${a} of ${b} clauses.`,
+    foundCount: (a, b) => `Of the ${a} clauses they say should be flagged, the council found ${b}.`,
+    nothingHere: "For them there is nothing to flag in this contract.", source: "See the source",
+    eachRow: "Each row shows their answer next to the council's, including where the council is wrong.",
+    objections: "The devil's advocate's objections",
+    showNotes: "Show what each expert thought", hideNotes: "Hide the experts' notes", notesTitle: "What each expert thought",
+    print: "Download the summary (PDF)", save: "Save the choices",
+    send: "Send the choices", sendFirst: "First choose who is right on at least one dissent.", sending: "Sending…",
+    sent: (n) => `Choices sent: ${n}.`, notSent: (e) => `Not sent: ${e}`, noAnswer: "Not sent: the server does not answer. Try again, or save the choices.",
+    cost: (v) => `Model ${v.model}, ${v.mode === "text" ? "text" : "telepathy"} mode: ${v.cost.tokens_generated} tokens written, ${v.cost.latent_positions} latent thoughts, ${v.cost.seconds} seconds.`,
+    footer: ["Quotes are checked word for word against the contract. Message signatures can be verified with ", "python -m engine.verify", "."],
+    title: (t) => `Verdict: ${t}`, index: "All verdicts", liveIndex: "Live reviews", languagesGroup: "Language",
+    live: (q) => `Live review, ${new Date(q).toLocaleString("en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
+    notHere: "This live review is not in this browser: live reviews stay in the browser where they were made.",
+    modelLanguage: null,
+  },
+};
+let language = "it";
+
+function el(tag, attributes = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attributes)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") node.className = v;
+    else if (k === "style") node.style.cssText = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else node.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat()) if (c !== null && c !== undefined && c !== false) node.append(c.nodeType ? c : String(c));
+  return node;
+}
+const t = () => T[language];
+const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+// In English the categories are called by their CUAD name; in Italian by their Italian name.
+const nameOf = (r) => (language === "en" ? r.key : r.name_it);
+const whoOf = (d) => t().who[d.role] ?? d.role_name;
+const colourOf = (role) => (ROLES.includes(role) ? `--c: var(--${role})` : null);
+const sourceText = (x) => (x && typeof x === "object" ? x[language] ?? x.it : x);
+// The schema truncates the model's texts at the maximum length: a cut sentence ends with an ellipsis.
+const whole = (x) => (typeof x === "string" && x.trim() && !/[.!?…»”")\]]\s*$/.test(x) ? `${x.trimEnd()}…` : x);
+// Links and addresses come from the view data: only http(s) or the page's own scheme (file: if it is opened from disk),
+// never javascript: or data:. The view of ?view= and the sending of the choices stay on the same site: otherwise a link
+// could make the page show, on our domain, a verdict prepared by others.
+const safe = (u) => {
+  if (typeof u !== "string" || !u) return null;
+  try { const x = new URL(u, location.href); return ["http:", "https:", location.protocol].includes(x.protocol) ? x.href : null; } catch { return null; }
+};
+const sameSite = (u) => {
+  if (typeof u !== "string" || !u) return false;
+  // The scheme is compared separately: opened from disk, the page has origin "null" like javascript: and data:.
+  try { const x = new URL(u, location.href); return x.protocol === location.protocol && x.origin === location.origin; } catch { return false; }
+};
+
+function choicesKey(view) { return `council-choices:${view.benchmark}/${view.contract}`; }
+function readChoices(view) {
+  try { return JSON.parse(localStorage.getItem(choicesKey(view)) || "{}"); } catch { return {}; }
+}
+function saveChoices(view, choices) {
+  try { localStorage.setItem(choicesKey(view), JSON.stringify(choices)); } catch { /* convenience only */ }
+}
+
+function confidencePill(level) {
+  return level ? el("span", { class: "pill", title: t().confidenceTitle }, t().confidence(t().level[level] ?? level)) : null;
+}
+function quotePill(found) {
+  if (found === null || found === undefined) return null;
+  return found
+    ? el("span", { class: "pill ok", title: t().foundTitle }, t().found)
+    : el("span", { class: "pill not-found", title: t().notFoundTitle }, t().notFound);
+}
+
+function dissentBlock(view, row, choices) {
+  const d = row.dissent;
+  const Who = capital(whoOf(d));
+  const level = (l) => (l ? t().level[l] ?? l : t().unknown);
+  const body = [
+    el("p", { class: "who" }, d.expert_says ? t().majorDissent(Who) : t().minorDissent(Who)),
+    el("p", { class: "muted" }, t().confidences(level(d.expert_confidence), level(d.verdict_confidence))),
+    d.expert_quote ? el("blockquote", { class: "quote" }, `“${whole(d.expert_quote)}”`) : null,
+    d.expert_quote ? el("div", { class: "pills" }, quotePill(d.expert_quote_found)) : null,
+    personChoice(view, row, choices),
+  ];
+  if (d.highlighted) return el("div", { class: `dissent ${d.type}`, role: "note" }, body);
+  return el("details", { class: `dissent ${d.type}` }, el("summary", {}, d.type === "major" ? t().openMajor : t().openMinor), ...body);
+}
+
+function personChoice(view, row, choices) {
+  const container = el("div", { class: "choice", role: "group", "aria-label": t().whoIsRight });
+  const options = [["expert", t().isRight(whoOf(row.dissent))], ["verdict", t().verdictIsRight]];
+  for (const [value, label] of options) {
+    const button = el("button", {
+      type: "button",
+      "aria-pressed": choices[row.key] === value ? "true" : "false",
+      onclick: () => {
+        choices[row.key] = value;
+        saveChoices(view, choices);
+        for (const b of container.querySelectorAll("button")) b.setAttribute("aria-pressed", b === button ? "true" : "false");
+        updatePrint(view, choices);
+      },
+    }, label);
+    container.append(button);
+  }
+  return container;
+}
+
+function expertsBlock(view, r) {
+  const e = r.experts;
+  if (!e) return null;
+  const who = sourceText(view.comparison?.who) ?? (language === "it" ? "gli esperti" : "the experts");
+  const theirs = e.should_flag ? t().shouldFlag : t().nothing;
+  const outcome = e.agrees === true ? t().agreeRow(who, theirs) : e.agrees === false ? t().disagreeRow(who, theirs) : t().onlyTheirs(who, theirs);
+  return el("div", { class: `experts${e.agrees === true ? " same" : e.agrees === false ? " different" : ""}` },
+    el("p", { class: "outcome" }, outcome),
+    e.should_flag && e.evidence.length
+      ? el("details", {}, el("summary", {}, e.evidence.length === 1 ? t().passage : t().passages),
+          e.evidence.map(p => el("blockquote", { class: "quote" }, `“${p}”`)))
+      : null);
+}
+
+function row(view, r, choices) {
+  const flagged = r.flag === true;
+  return el("li", { class: `row${flagged ? " flagged" : ""}${r.dissent ? " with-dissent" : ""}`, style: colourOf(r.role) },
+    el("div", { class: "top" },
+      el("div", {}, el("span", { class: "name" }, nameOf(r)), language === "en" ? null : el("span", { class: "key" }, r.key)),
+      el("div", { class: "pills" },
+        el("span", { class: `pill${flagged ? " yes" : ""}` }, flagged ? t().toFlag : r.flag === false ? t().noIssue : t().undecided),
+        confidencePill(r.confidence))),
+    flagged && r.quote ? el("blockquote", { class: "quote" }, `“${whole(r.quote)}”`) : null,
+    flagged && r.quote ? el("div", { class: "pills" }, quotePill(r.quote_found)) : null,
+    flagged && r.rationale ? el("p", { class: "rationale" }, whole(r.rationale)) : null,
+    expertsBlock(view, r),
+    r.dissent ? dissentBlock(view, r, choices) : null);
+}
+
+function notes(view) {
+  return el("div", { class: "notes" }, view.notes.map(n => el("article", { class: "note", style: colourOf(n.role) },
+    el("h3", {}, t().expert[n.role] ?? n.name),
+    n.valid ? null : el("p", { class: "muted" }, t().invalidNote),
+    el("ul", {}, n.rows.map(r => el("li", {}, `${nameOf(r)}: ${r.flag ? t().yes : t().no}${r.confidence ? ` (${t().level[r.confidence] ?? r.confidence})` : ""}`))),
+    n.quotes.length ? el("div", {}, el("p", { class: "label" }, t().quotes),
+      n.quotes.map(q => el("div", {}, el("blockquote", { class: "quote" }, `“${whole(q.text)}”`), el("div", { class: "pills" }, quotePill(q.found))))) : null,
+    n.amounts_dates_parties.length ? el("div", {}, el("p", { class: "label" }, t().amounts), el("ul", {}, n.amounts_dates_parties.map(x => el("li", {}, x)))) : null)));
+}
+
+function updatePrint(view, choices) {
+  const node = document.getElementById("print-choices");
+  if (!node) return;
+  const withDissent = view.rows.filter(r => r.dissent);
+  node.replaceChildren(el("h2", {}, t().printTitle),
+    withDissent.length ? el("ul", {}, withDissent.map(r => el("li", {}, `${nameOf(r)}: ${choices[r.key] === "expert" ? t().printRight(whoOf(r.dissent)) : choices[r.key] === "verdict" ? t().printVerdict : t().printNone}`))) : el("p", {}, t().noDissent));
+}
+
+function downloadChoices(view, choices) {
+  const data = { contract: view.contract, benchmark: view.benchmark, choices, saved: new Date().toISOString() };
+  const link = el("a", { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })), download: `choices-${view.contract}.json` });
+  document.body.append(link); link.click(); link.remove();
+}
+
+// With the council's server the page sends the choices to its address, with the key of the person's link.
+async function sendChoices(view, choices, outcome) {
+  const toSend = Object.fromEntries(Object.entries(choices).filter(([k]) => view.rows.some(r => r.key === k && r.dissent)));
+  if (!Object.keys(toSend).length) { outcome.textContent = t().sendFirst; return; }
+  outcome.textContent = t().sending;
+  try {
+    const response = await fetch(view.choices_url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ choices: toSend }) });
+    const data = await response.json();
+    outcome.textContent = response.ok ? t().sent(data.recorded) : t().notSent(data.error);
+  } catch {
+    outcome.textContent = t().noAnswer;
+  }
+}
+
+function show(view) {
+  document.documentElement.lang = language;
+  const page = document.getElementById("page");
+  const choices = readChoices(view);
+  const flagged = view.rows.filter(r => r.flag === true).length;
+  const dissents = view.rows.filter(r => r.dissent);
+  const major = dissents.filter(r => r.dissent.type === "major").length;
+  const s = view.seal;
+  const seal = el("details", { class: `seal ${s.intact ? "intact" : "broken"}` },
+    el("summary", {}, el("strong", {}, s.intact ? t().intact : t().broken),
+      el("span", { class: "muted" }, s.intact ? t().signed(s.messages) : t().check(s.check))),
+    el("div", { class: "fingerprints" }, s.intact ? s.fingerprints.map((h, i) => el("div", {}, t().message(i + 1, h.slice(0, 16)))) : s.reason));
+
+  const groups = ROLES.filter(role => view.rows.some(r => r.role === role)).map(role => {
+    const own = view.rows.filter(r => r.role === role);
+    return el("section", { class: "group", style: colourOf(role) },
+      el("header", {}, el("h2", {}, t().group[role]),
+        el("span", { class: "muted" }, t().flagged(own.filter(r => r.flag).length, own.length))),
+      el("ul", { class: "rows" }, own.map(r => row(view, r, choices))));
+  });
+
+  const notesPanel = el("section", { class: "no-print", hidden: true, id: "notes-panel" }, el("h2", {}, t().notesTitle), notes(view));
+  const notesButton = el("button", { type: "button", class: "secondary", "aria-expanded": "false", "aria-controls": "notes-panel",
+    onclick: e => { const open = notesPanel.hidden; notesPanel.hidden = !open; e.currentTarget.setAttribute("aria-expanded", String(open)); e.currentTarget.textContent = open ? t().hideNotes : t().showNotes; } },
+    t().showNotes);
+
+  // The language: the reader chooses it; the client business starts from Italian, the judges' site from English (view.language).
+  const languages = el("div", { class: "languages", role: "group", "aria-label": t().languagesGroup },
+    ["en", "it"].map(l => el("button", { type: "button", "aria-pressed": String(l === language), onclick: () => {
+      if (l === language) return;
+      language = l;
+      try { localStorage.setItem("council-language", JSON.stringify(l)); } catch { /* valid for this visit */ }
+      show(view);
+    } }, l === "en" ? "English" : "Italiano")));
+
+  const r = view.recommendation;
+  const c = view.comparison;
+  const index = safe(view.index);
+  const source = c ? safe(c.link) : null;
+  const sending = sameSite(view.choices_url);
+  page.replaceChildren(
+    el("div", { class: "bar no-print" }, index ? el("a", { href: index }, `← ${view.live ? t().liveIndex : t().index}`) : null, languages),
+    el("header", { class: "head" },
+      el("div", { class: "titles" }, el("span", { class: "label" }, t().review), el("h1", {}, view.title),
+        el("p", { class: "muted" }, view.mode === "text" ? t().text(view.notes.length) : t().telepathy(view.notes.length)),
+        view.live ? el("p", { class: "label" }, t().live(view.live)) : null),
+      seal),
+    t().modelLanguage ? el("p", { class: "model-language" }, t().modelLanguage) : null,
+    s.intact && r
+      ? el("section", { class: `recommendation ${RECOMMENDATIONS[r.value]}` },
+          el("span", { class: "label" }, t().forYou), el("div", { class: "value" }, t().rec[r.value] ?? r.value), el("p", { class: "reason" }, whole(r.rationale)),
+          el("div", { class: "numbers" }, el("span", {}, t().flagged(flagged, view.rows.length)), el("span", {}, t().dissents(dissents.length, major))))
+      : el("section", { class: "red-notice", role: "alert" }, el("h2", {}, t().noVerdict),
+          el("p", {}, t().noVerdictText),
+          el("p", { class: "muted" }, t().checkReason(s.check ?? t().invalid, s.reason ?? ""))),
+    c && r ? el("section", { class: "comparison" },
+      el("span", { class: "label" }, t().comparison(c.name)),
+      el("p", { class: "count" }, t().agreement(sourceText(c.who), c.agreed, c.compared)),
+      c.to_find ? el("p", {}, t().foundCount(c.to_find, c.found)) : el("p", {}, t().nothingHere),
+      el("p", { class: "muted" }, sourceText(c.explanation) ?? "", source ? [" ", el("a", { href: source, target: "_blank", rel: "noopener" }, t().source)] : null),
+      el("p", { class: "muted" }, t().eachRow)) : null,
+    view.objections.length ? el("section", { class: "objections" }, el("h2", {}, t().objections),
+      el("ul", {}, view.objections.map(o => el("li", {}, el("b", {}, language === "en" ? o.key : o.name_it), `: ${whole(o.objection)}`)))) : null,
+    ...(r ? groups : []),
+    el("div", { class: "actions no-print" },
+      notesButton,
+      el("button", { type: "button", onclick: () => window.print() }, t().print),
+      sending ? el("button", { type: "button", onclick: () => sendChoices(view, choices, document.getElementById("send-outcome")) }, t().send) : null,
+      el("button", { type: "button", class: "secondary", onclick: () => downloadChoices(view, choices) }, t().save),
+      sending ? el("span", { id: "send-outcome", role: "status", class: "muted" }) : null),
+    notesPanel,
+    el("section", { class: "print-only", id: "print-choices" }),
+    el("footer", {}, el("span", {}, t().cost(view)), el("span", {}, t().footer[0], el("code", {}, t().footer[1]), t().footer[2])));
+  updatePrint(view, choices);
+  document.title = t().title(view.title);
+}
+
+function chooseLanguage(view) {
+  const asked = new URLSearchParams(location.search).get("lang");
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("council-language")); } catch { /* nothing */ }
+  for (const l of [asked, saved, view.language, "it"]) if (l === "it" || l === "en") return l;
+  return "it";
+}
+
+async function start() {
+  const see = (view) => { language = chooseLanguage(view); show(view); };
+  const embedded = JSON.parse(document.getElementById("data").textContent);
+  if (embedded) return see(embedded);
+  // A judge's live review (site/src/council/live.html): the view is in their browser.
+  const live = new URLSearchParams(location.search).get("live");
+  if (live) {
+    let done = [];
+    try { done = JSON.parse(localStorage.getItem("council-live")) || []; } catch { /* nothing */ }
+    const item = Array.isArray(done) ? done.find(f => f && f.case_id === live) : null;
+    if (item) return see(item.view);
+    language = chooseLanguage({});
+    document.getElementById("load").replaceChildren(el("h1", {}, capital(t().liveIndex)), el("p", { class: "muted" }, t().notHere),
+      el("p", {}, el("a", { href: "live.html" }, `← ${t().liveIndex}`)));
+    return;
+  }
+  const path = new URLSearchParams(location.search).get("view");
+  if (path && sameSite(path)) {
+    try { return see(await (await fetch(path)).json()); } catch (e) { console.error(e); }
+  }
+  document.getElementById("file").addEventListener("change", async e => {
+    const file = e.target.files[0];
+    if (file) see(JSON.parse(await file.text()));
+  });
+}
+start();
+</script>
+</body>
+</html>

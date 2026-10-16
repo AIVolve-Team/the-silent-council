@@ -1,8 +1,8 @@
 # NOTICE
 
-Il codice di questa cartella è del team. I prompt contengono testi derivati da dati di terzi:
+The code in this folder belongs to the team. The prompts contain texts derived from third-party data:
 
-- **CUAD v1** (The Atticus Project, CC BY 4.0): le descrizioni italiane delle 19 categorie in `revisione/categorie.py` riassumono le definizioni ufficiali delle categorie di CUAD.
-- **ContractNLI** (Koreeda e Manning, 2021, CC BY 4.0, con i "Terms and Conditions of Use" di Hitachi America): le 17 ipotesi in `revisione/categorie.py` sono copiate dal dataset.
+- **CUAD v1** (The Atticus Project, CC BY 4.0): the descriptions of the 19 categories in `review/categories.py` summarize the official definitions of the CUAD categories.
+- **ContractNLI** (Koreeda and Manning, 2021, CC BY 4.0, with Hitachi America's "Terms and Conditions of Use"): the 17 hypotheses in `review/categories.py` are copied from the dataset.
 
-Attribuzioni complete e licenze in `consiglio/dati/NOTICE.md`.
+Full attributions and licenses in `council/data/NOTICE.md`.
