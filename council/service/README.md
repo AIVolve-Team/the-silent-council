@@ -35,7 +35,7 @@ sequenceDiagram
 - **Without an intact seal** there is no verdict: `verdict` is false and the notice asks for a person.
 - **The contract** arrives as text, in base64 or as a PDF file in a form. The PDF's text is read; a scan without text is rejected, because there is no OCR. **The text is not saved:** the case keeps review, view, page and choices, plus the contract's fingerprint.
 - **The choices:** for each category in dissent, `expert` or `verdict`, like the two buttons of the page.
-- **The notice** (`notice.subject`, `notice.text`) is written in Italian, like the client's verdict page: it goes to an Italian business.
+- **The notice** (`notice.subject`, `notice.text`) is written in English, like the council's rationale.
 - **Errors:** a bad request returns 400 before touching the model; a failure returns 500 without details. Error bodies are `{"error": "…"}`.
 
 ## HTTP API

@@ -35,9 +35,6 @@ MAX_CONTRACT = 200_000  # characters: the longest of the CUAD sample has about 1
 MAX_TEXT = 1000
 CASE_ID = re.compile(r"council-[0-9a-f]{12}")
 CHOICES = ("expert", "verdict")  # the two buttons of the verdict page
-# The notice is an email for an Italian business, in Italian like the client's verdict page.
-RECOMMENDATION_IT = {"sign": "firmare", "negotiate": "negoziare", "do not sign": "non firmare"}
-ROLE_IT = {"legal": "Legale", "finance": "Finanza", "risk": "Rischio"}
 
 
 class Rejected(ValueError):
@@ -78,35 +75,33 @@ def case_key(secret: str, case_id: str) -> str:
 
 
 def notice(v: dict, link: str) -> dict:
-    """The email for the person, in Italian like the page: the service writes it and Evolus sends it as is."""
+    """The email for the person: the service writes it and Evolus sends it as is."""
     title = v["title"]
     if not v["seal"]["intact"] or v["recommendation"] is None:
         return {
-            "subject": f"[Consiglio] {title}: serve una persona",
+            "subject": f"[Council] {title}: needs a person",
             "text": "\n".join(
                 [
-                    f"Il Consiglio non ha dato un verdetto su «{title}».",
-                    "La comunicazione fra gli esperti non ha superato il controllo, oppure il verdetto non è valido.",
-                    "Il contratto va rivisto da una persona.",
-                    f"Dettagli: {link}",
+                    f"The council did not give a verdict on “{title}”.",
+                    "The communication between the experts did not pass the check, or the verdict is not valid.",
+                    "The contract must be reviewed by a person.",
+                    f"Details: {link}",
                 ]
             ),
         }
-    recommendation = RECOMMENDATION_IT.get(v["recommendation"]["value"], v["recommendation"]["value"])
-    flagged = [r["name_it"] for r in v["rows"] if r["flag"]]
+    recommendation = v["recommendation"]["value"]
+    flagged = [r["key"] for r in v["rows"] if r["flag"]]
     highlighted = [r for r in v["rows"] if r["dissent"] and r["dissent"]["highlighted"]]
     lines = [
-        f"Il Consiglio ha rivisto «{title}». Raccomandazione: {recommendation}.",
-        f"Perché: {v['recommendation']['rationale']}",
-        "Clausole segnalate: " + (", ".join(flagged) if flagged else "nessuna") + ".",
+        f"The council reviewed “{title}”. Recommendation: {recommendation}.",
+        f"Why: {v['recommendation']['rationale']}",
+        "Flagged clauses: " + (", ".join(flagged) if flagged else "none") + ".",
     ]
     if highlighted:
-        names = ", ".join(
-            f"{r['name_it']} ({ROLE_IT.get(r['dissent']['role'], r['dissent']['role_name'])})" for r in highlighted
-        )
-        lines.append(f"Attenzione: un esperto sicuro non è d'accordo con il verdetto su {names}.")
-    lines.append(f"Apri il verdetto e scegli chi ha ragione sui dissensi: {link}")
-    return {"subject": f"[Consiglio] {title}: {recommendation}", "text": "\n".join(lines)}
+        names = ", ".join(f"{r['key']} ({r['dissent']['role_name']})" for r in highlighted)
+        lines.append(f"Warning: a confident expert disagrees with the verdict on {names}.")
+    lines.append(f"Open the verdict and choose who is right on the dissents: {link}")
+    return {"subject": f"[Council] {title}: {recommendation}", "text": "\n".join(lines)}
 
 
 class Reviewer:

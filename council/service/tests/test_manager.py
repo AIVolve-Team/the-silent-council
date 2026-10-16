@@ -12,7 +12,7 @@ def test_a_contract_becomes_a_case_with_page_link_and_notice(reviewer, council):
     assert r["case_id"].startswith("council-") and r["verdict"] and r["seal_intact"]
     assert r["recommendation"]["value"] == EXAMPLE["verdict"]["data"]["recommendation"]
     assert r["link"] == f"https://council.example.org/verdict/{r['case_id']}?key={case_key(SECRET, r['case_id'])}"
-    assert r["notice"]["subject"].startswith("[Consiglio] Contratto di fornitura:") and r["link"] in r["notice"]["text"]
+    assert r["notice"]["subject"].startswith("[Council] Contratto di fornitura:") and r["link"] in r["notice"]["text"]
     major = [d for d in EXAMPLE["dissents"] if d["type"] == "major"]
     assert len(r["major_dissents"]) == len(major)
     folder = reviewer.cases / r["case_id"]
@@ -28,10 +28,9 @@ def test_a_contract_becomes_a_case_with_page_link_and_notice(reviewer, council):
     assert council.calls == [(r["case_id"], CONTRACT, "telepathy", "demo")]
 
 
-def test_the_notice_speaks_italian_to_the_business(reviewer):
+def test_the_notice_names_the_recommendation(reviewer):
     r = reviewer.review_contract(None, CONTRACT, **email())
-    italian = {"sign": "firmare", "negotiate": "negoziare", "do not sign": "non firmare"}
-    assert f"Raccomandazione: {italian[r['recommendation']['value']]}." in r["notice"]["text"]
+    assert f"Recommendation: {r['recommendation']['value']}." in r["notice"]["text"]
 
 
 def test_the_same_email_is_the_same_case_and_the_council_does_not_run_again(reviewer, council):
@@ -71,7 +70,7 @@ def test_without_a_seal_no_verdict_and_the_notice_asks_for_a_person(reviewer, co
     council.stopped = {"check": "chain", "reason": "different previous hash"}
     r = reviewer.review_contract(None, CONTRACT, **email())
     assert not r["verdict"] and not r["seal_intact"] and r["recommendation"] is None
-    assert "serve una persona" in r["notice"]["subject"]
+    assert "needs a person" in r["notice"]["subject"]
 
 
 def test_the_persons_choices(reviewer):

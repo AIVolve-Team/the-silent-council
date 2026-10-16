@@ -122,7 +122,7 @@ The secret lives only there, never in a file of the repo.
 | subject | `notice.subject` of the «Chiama il Consiglio» response |
 | text | `notice.text` of the same response, as is |
 
-The server writes the notice, in Italian, with recommendation, flagged clauses, highlighted dissents and the link to the verdict page.
+The server writes the notice, in English, with recommendation, flagged clauses, highlighted dissents and the link to the verdict page.
 Without an intact seal it asks for a person.
 
 ## What it sends and what it receives
