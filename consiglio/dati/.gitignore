@@ -1,7 +1,0 @@
-cache/
-.venv/
-__pycache__/
-.ruff_cache/
-.pytest_cache/
-# Il set dimostrativo resta fuori dal repo fino alla consegna: nel repo va solo il suo hash.
-set-dimostrativo/

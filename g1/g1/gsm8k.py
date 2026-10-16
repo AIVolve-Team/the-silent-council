@@ -1,4 +1,4 @@
-"""Le risposte di GSM8K: quella giusta, scritta dopo `####`, e quella del modello, nell'ultimo `\\boxed{}`."""
+"""The GSM8K answers: the correct one, written after `####`, and the model's, in the last `\\boxed{}`."""
 
 from __future__ import annotations
 
@@ -9,66 +9,65 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
-NUMERO = re.compile(r"-?\d[\d,]*(?:\.\d+)?|-?\.\d+")
-RIQUADRO = re.compile(r"\\boxed\{((?:[^{}]|\{[^{}]*\})*)\}")
+NUMBER = re.compile(r"-?\d[\d,]*(?:\.\d+)?|-?\.\d+")
+BOX = re.compile(r"\\boxed\{((?:[^{}]|\{[^{}]*\})*)\}")
 
-# Le prime 100 righe di grade_school_math/data/test.jsonl di openai/grade-school-math al commit 3101c7d (MIT).
-# Il file intero (1.319 righe) ha impronta 3730d312…9d14; queste 100 righe hanno quella qui sotto.
-FILE_PROBLEMI = Path(__file__).resolve().parent.parent / "dati" / "gsm8k-test-100.jsonl"
-IMPRONTA_PROBLEMI = "1d266ea030421507ae8e9434bd76a7830553081c0f3d002250c429357b21ff90"
+# The first 100 lines of grade_school_math/data/test.jsonl of openai/grade-school-math at commit 3101c7d (MIT).
+# The whole file (1,319 lines) has fingerprint 3730d312…9d14; these 100 lines have the one below.
+PROBLEMS_FILE = Path(__file__).resolve().parent.parent / "data" / "gsm8k-test-100.jsonl"
+PROBLEMS_FINGERPRINT = "1d266ea030421507ae8e9434bd76a7830553081c0f3d002250c429357b21ff90"
 
 
 @dataclass(frozen=True)
-class Problema:
+class Problem:
     id: str
-    domanda: str
-    risposta: str
+    question: str
+    answer: str
 
 
-def carica_problemi(n: int = 100, *, file: Path = FILE_PROBLEMI) -> list[Problema]:
-    """I primi `n` problemi del test di GSM8K, solo se il file è quello pre-registrato."""
-    dati = file.read_bytes()
-    if hashlib.sha256(dati).hexdigest() != IMPRONTA_PROBLEMI:
-        raise ValueError(f"l'impronta di {file} non è quella pre-registrata: il file è stato toccato")
-    righe = [json.loads(riga) for riga in dati.decode("utf-8").splitlines()]
+def load_problems(n: int = 100, *, file: Path = PROBLEMS_FILE) -> list[Problem]:
+    """The first `n` problems of the GSM8K test, only if the file is the pre-registered one."""
+    data = file.read_bytes()
+    if hashlib.sha256(data).hexdigest() != PROBLEMS_FINGERPRINT:
+        raise ValueError(f"the fingerprint of {file} is not the pre-registered one: the file has been touched")
+    rows = [json.loads(row) for row in data.decode("utf-8").splitlines()]
     return [
-        Problema(f"gsm8k-test-{i:04d}", riga["question"], risposta_giusta(riga["answer"]))
-        for i, riga in enumerate(righe[:n])
+        Problem(f"gsm8k-test-{i:04d}", row["question"], correct_answer(row["answer"])) for i, row in enumerate(rows[:n])
     ]
 
 
-def normalizza(numero: str) -> str | None:
-    """`1,250.00` → `1250`, `.5` → `0.5`: lo stesso numero ha sempre la stessa scrittura."""
+def normalize(number: str) -> str | None:
+    """`1,250.00` → `1250`, `.5` → `0.5`: the same number is always written the same way."""
     try:
-        valore = Decimal(numero.replace(",", ""))
+        value = Decimal(number.replace(",", ""))
     except InvalidOperation:
         return None
-    if valore == valore.to_integral_value():
-        return str(int(valore))
-    return format(valore.normalize(), "f")
+    if value == value.to_integral_value():
+        return str(int(value))
+    return format(value.normalize(), "f")
 
 
-def ultimo_numero(testo: str) -> str | None:
-    numeri = NUMERO.findall(testo)
-    return normalizza(numeri[-1]) if numeri else None
+def last_number(text: str) -> str | None:
+    numbers = NUMBER.findall(text)
+    return normalize(numbers[-1]) if numbers else None
 
 
-def risposta_giusta(soluzione: str) -> str:
-    risposta = ultimo_numero(soluzione.split("####")[-1])
-    if risposta is None:
-        raise ValueError(f"soluzione senza risposta dopo ####: {soluzione[-80:]!r}")
-    return risposta
+def correct_answer(solution: str) -> str:
+    answer = last_number(solution.split("####")[-1])
+    if answer is None:
+        raise ValueError(f"solution without an answer after ####: {solution[-80:]!r}")
+    return answer
 
 
-def estrai_risposta(testo: str) -> str | None:
-    """L'ultimo numero dell'ultimo riquadro; senza riquadro, o se il riquadro non ha numeri, l'ultimo del testo."""
-    riquadri = RIQUADRO.findall(testo)
-    if riquadri and (dentro := ultimo_numero(riquadri[-1])) is not None:
-        return dentro
-    return ultimo_numero(testo)
+def extract_answer(text: str) -> str | None:
+    """The last number of the last box; with no box, or if the box has no numbers, the last one in the text."""
+    boxes = BOX.findall(text)
+    if boxes and (inside := last_number(boxes[-1])) is not None:
+        return inside
+    return last_number(text)
 
 
-def corretta(predetta: str | None, giusta: str) -> bool:
-    if predetta is None:
+def is_correct(predicted: str | None, correct: str) -> bool:
+    if predicted is None:
         return False
-    return Decimal(predetta) == Decimal(normalizza(giusta) or "NaN")
+    return Decimal(predicted) == Decimal(normalize(correct) or "NaN")

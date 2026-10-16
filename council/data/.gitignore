@@ -1,0 +1,9 @@
+cache/
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+# The demo set stays out of the repo until delivery: only its hash goes in the repo.
+demo-set/
+# Old name of the same folder, before the English rename.
+set-dimostrativo/

@@ -1,0 +1,16 @@
+# Verified on 15/10/2026 on a Mac (M1 Max) with Python 3.12. transformers 5 for Gemma 4 (routing.py); Qwen3-14B
+# runs on it: 80 CUAD train contracts on the MI300X in telepathy, F1 68.6.
+-e ../../engine
+torch==2.14.1
+transformers==5.19.0
+safetensors==0.8.0
+huggingface-hub==2.2.0
+lm-format-enforcer==0.11.3
+cryptography==50.0.2
+tokenizers==0.23.3
+mcp==2.3.0
+uvicorn==0.54.0
+python-multipart==0.0.32
+pypdf==6.19.0
+pytest==9.1.1
+ruff==0.16.10

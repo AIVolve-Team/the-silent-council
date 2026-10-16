@@ -1,4 +1,0 @@
-# Verificato il 06/10/2026 con Python 3.12. Il tokenizer è quello di Qwen3-14B, fissato in prepara.py.
-tokenizers==0.23.2
-pytest==9.1.1
-ruff==0.16.10

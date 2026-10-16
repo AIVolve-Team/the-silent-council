@@ -1,144 +1,146 @@
-# g1 — il primo cancello: il motore sulla MI300X
+# g1 — the first gate: the engine on the MI300X
 
-Le regole sono pre-registrate in Eval pre-registrato §2; qui ci sono lo script e le istruzioni per il 12/10.
-Usa il motore telepatico di `../motore`.
+The rules were pre-registered by the team before the run; here are the script and the instructions for 12 October.
+It uses the telepathic engine in `../engine`.
 
-## Cosa decide G1
+## What G1 decides
 
-- **G1 passa se:**
-  - il motore (Qwen3-14B su Transformers) e l'agente principale (Qwen3.6-35B-A3B su vLLM) girano **sulla stessa MI300X senza errori di memoria**;
-  - in telepatia i **token generati** sono **almeno il 50% in meno** che a testo.
-- **Precisione** della telepatia con 10 passi latenti, contro il testo, in tre zone:
-  - **entro 3 punti:** *"dimostrato"*;
-  - **da 3 a 10 punti sotto:** si va avanti, e decidono G2 e l'eval del Consiglio;
-  - **più di 10 punti sotto:** ci si ferma e si passa al pavimento a testo.
+- **G1 passes if:**
+  - the engine (Qwen3-14B on Transformers) and the main agent (Qwen3.6-35B-A3B on vLLM) run **on the same MI300X without memory errors**;
+  - in telepathy the **tokens generated** are **at least 50% fewer** than in text.
+- **Accuracy** of telepathy with 10 latent steps, against text, in three zones:
+  - **within 3 points:** *"demonstrated"*;
+  - **from 3 to 10 points below:** we go on, and G2 and the council's eval decide;
+  - **more than 10 points below:** we stop and fall back to the text floor.
 
-## Scelte fissate qui, prima di misurare
+## Choices fixed here, before measuring
 
-non le fissava; valgono da questo commit, e ogni cambiamento dopo la misura è una deviazione da scrivere.
+The pre-registration did not fix them; they hold from this commit, and any change after the measurement is a deviation to write down in the report.
 
-- **Problemi:** i primi 100 del test ufficiale di GSM8K ([openai/grade-school-math](https://github.com/openai/grade-school-math) al commit `3101c7d`, licenza MIT), copiati in `dati/gsm8k-test-100.jsonl`. Lo script controlla l'impronta del file (`1d266ea0…ff90`) a ogni avvio.
-- **Agenti:** tre analisti (`pianificatore`, `revisore`, `perfezionatore`) e un `risolutore` che scrive la risposta in `\boxed{}`, come la catena di LatentMAS ma con nomi e prompt nostri. I prompt sono in inglese, come i problemi.
-- **Tre giri:** testo, telepatia con 10 passi latenti (il valore degli autori su GSM8K), telepatia senza pensieri (`m=0`). Il terzo è il confronto `m=0` contro `m>0` promesso.
-- **Lunghezze:** nel modo a testo ogni analista scrive al massimo **1.024 token**, come lo Sportello; la risposta finale al massimo 1.024 token in tutti i modi. Il rapporto conta i messaggi troncati.
-- **Decodifica** deterministica (greedy) e thinking spento, come nel motore; un solo giro.
-- **Risposta del modello:** l'ultimo numero dell'ultimo `\boxed{}`; senza riquadro, l'ultimo numero del testo. Si confronta come numero (`18` = `18.0`).
-- **Modello:** `Qwen/Qwen3-14B` alla revisione `40c069824f4251a91eefaf281ebe4c544efd3e18`, la stessa del Consiglio; in bf16 sulla MI300X.
-- **SDPA:** sulla MI300X solo i kernel flash ed efficient; il ripiego sul backend math è vietato, così un problema dei kernel dà un errore invece di numeri sbagliati.
-- **Ordine:** un problema alla volta nei tre modi. Se il tempo finisce, il rapporto confronta i problemi finiti e scrive "parziale".
+- **Problems:** the first 100 of the official GSM8K test ([openai/grade-school-math](https://github.com/openai/grade-school-math) at commit `3101c7d`, MIT license), copied to `data/gsm8k-test-100.jsonl`. The script checks the file's fingerprint (`1d266ea0…ff90`) on every start.
+- **Agents:** three analysts (`strategist`, `reviewer`, `polisher`) and a `solver` that writes the answer in `\boxed{}`, like the LatentMAS chain but with names and prompts of our own. The prompts are in English, like the problems.
+- **Three runs:** text, telepathy with 10 latent steps (the authors' value on GSM8K), telepathy with no thoughts (`m=0`). The third is the `m=0` versus `m>0` comparison promised in the pre-registration.
+- **Lengths:** in text mode each analyst writes at most **1,024 tokens**, like the Help Desk; the final answer at most 1,024 tokens in every mode. The report counts the truncated messages.
+- **Decoding** deterministic (greedy) and thinking off, as in the engine; a single run.
+- **Model's answer:** the last number of the last `\boxed{}`; with no box, the last number in the text. Compared as a number (`18` = `18.0`).
+- **Model:** `Qwen/Qwen3-14B` at revision `40c069824f4251a91eefaf281ebe4c544efd3e18`, the same as the council's; in bf16 on the MI300X.
+- **SDPA:** on the MI300X only the flash and efficient kernels; the fallback to the math backend is forbidden, so a kernel problem gives an error instead of wrong numbers.
+- **Order:** one problem at a time in the three modes. If time runs out, the report compares the finished problems and says "partial".
 
-| File | Cosa fa |
+| File | What it does |
 |---|---|
-| `g1/esegui.py` | i tre giri: ogni problema finito si scrive subito, e rilanciando si riparte da dove ci si era fermati |
-| `g1/agente.py` | controllo dell'endpoint vLLM dell'agente principale: chiamata a `esamina_fattura`, niente pensiero |
-| `g1/misure.py` | memoria con i due modelli insieme, impronta, ricalcolo dei pensieri, confronto fp32 contro bf16 |
-| `g1/riepilogo.py` | il verdetto e il rapporto da incollare |
-| `g1/gsm8k.py` | i 100 problemi e l'estrazione delle risposte |
-| `tests/` | i test, con e senza modello |
+| `g1/run.py` | the three runs: every finished problem is written right away, and relaunching restarts from where it stopped |
+| `g1/agent.py` | check of the main agent's vLLM endpoint: a call to `examine_invoice`, no thinking |
+| `g1/metrics.py` | memory with the two models together, fingerprint, recomputation of the thoughts, fp32 versus bf16 comparison |
+| `g1/summary.py` | the verdict and the report |
+| `g1/gsm8k.py` | the 100 problems and the extraction of the answers |
+| `tests/` | the tests, with and without a model |
 
-## Sul Mac
+## On the Mac
 
 ```bash
 cd g1
-uv venv -p 3.12.venv && uv pip install -p.venv/bin/python -r requirements.txt
-.venv/bin/python -m pytest # i test con Qwen3-0.6B girano in circa un minuto
-.venv/bin/ruff check. &&.venv/bin/ruff format --check.
+uv venv -p 3.12 .venv && uv pip install -p .venv/bin/python -r requirements.txt
+.venv/bin/python -m pytest           # the tests with Qwen3-0.6B take about a minute
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
 
-# la prova completa, con un modello piccolo e pochi problemi
-M="--modello Qwen/Qwen3-0.6B --revisione c1899de289a04d12100db370d81485cdf75e47ca"
-.venv/bin/python -m g1.esegui $M --problemi 3 --uscita /tmp/g1
-.venv/bin/python -m g1.misure memoria $M --pesi-vllm-gb 71.9 --uscita /tmp/g1/memoria.json
-.venv/bin/python -m g1.riepilogo /tmp/g1
+# the full trial, with a small model and a few problems
+M="--model Qwen/Qwen3-0.6B --revision c1899de289a04d12100db370d81485cdf75e47ca"
+.venv/bin/python -m g1.run $M --problems 3 --output /tmp/g1
+.venv/bin/python -m g1.metrics memory $M --vllm-weights-gb 71.9 --output /tmp/g1/memory.json
+.venv/bin/python -m g1.summary /tmp/g1
 ```
 
-Prova dell'8/10/2026 su un Mac M4 da 16 GB (MPS, fp32), con Qwen3-0.6B, 3 problemi e i limiti veri (1.024 token):
+The model tests read `G1_MODEL` and `G1_REVISION` to use a model other than Qwen3-0.6B.
 
-| Giro | Precisione | Token generati | Secondi per problema |
+Trial of 8 October 2026 on a 16 GB Mac M4 (MPS, fp32), with Qwen3-0.6B, 3 problems and the real limits (1,024 tokens):
+
+| Run | Accuracy | Tokens generated | Seconds per problem |
 |---|---|---|---|
-| testo | 2 su 3 | 2.572 | 38,4 |
-| telepatia (10 passi) | 2 su 3 | 372 | 6,9 |
-| senza pensieri | 2 su 3 | 456 | 7,0 |
+| text | 2 of 3 | 2,572 | 38.4 |
+| telepathy (10 steps) | 2 of 3 | 372 | 6.9 |
+| no thoughts | 2 of 3 | 456 | 7.0 |
 
-Misura della memoria con un testo da 1.000 token: messaggio di 0,25 GB, impronta in 0,26 s, ricalcolo dei pensieri identico, picco di 6,6 GB.
-Con 4.000 token il Mac va in swap: la staffetta arriva a circa 16.000 posizioni, circa 3,7 GB per copia in fp32, e il motore ne tiene circa tre.
-Sulla MI300X, con Qwen3-14B in bf16, un messaggio da 4.000 token pesa circa 0,66 GB.
-Il verdetto della prova non conta: serve solo a vedere che tutto gira.
+Memory measurement with a 1,000-token text: a 0.25 GB message, fingerprint in 0.26 s, identical recomputation of the thoughts, a 6.6 GB peak.
+With 4,000 tokens the Mac swaps: the relay reaches about 16,000 positions, about 3.7 GB per copy in fp32, and the engine holds about three of them.
+On the MI300X, with Qwen3-14B in bf16, a 4,000-token message weighs about 0.66 GB.
+The verdict of the trial does not count: it only shows that everything runs.
 
-## Il 12/10 sulla MI300X
+## On 12 October on the MI300X
 
-La scheda per i partecipanti arriva al kickoff (17:00) e **G1 scade alle 22:00**. Non sappiamo ancora in che forma arriva:
-- **una macchina con Docker**, come il droplet di AMD Developer Cloud dello spike: si seguono i passi qui sotto;
-- **un ambiente tipo notebook** con PyTorch ROCm già installato, come in ACT II: si salta Docker, si crea il venv del passo 3 e si continua uguale. vLLM deve comunque girare sulla stessa scheda per la misura della memoria.
+The participants' card arrives at the kickoff (17:00) and **G1 is due at 22:00**. We do not know yet what form it comes in:
+- **a machine with Docker**, like the AMD Developer Cloud droplet of the spike: follow the steps below;
+- **a notebook-like environment** with PyTorch ROCm already installed, like in ACT II: skip Docker, create the venv of step 3 and carry on the same way. vLLM must still run on the same card for the memory measurement.
 
-Tempi *(stima)* da correggere qui dopo il giro vero:
+Times *(estimate)* to correct here after the real run:
 
-| # | Passo | Tempo |
+| # | Step | Time |
 |---|---|---|
-| 1 | Controllare la scheda, avviare i download | 5 min, poi i download in background |
-| 2 | Copiare `g1/` e `motore/` dal Mac | 2 min |
-| 3 | Container e venv del motore | 10 min |
-| 4 | Confronto fp32 contro bf16, con vLLM spento | 10-15 min |
-| 5 | Avviare vLLM con Qwen3.6 | 5-10 min |
-| 6 | Misura della memoria con i due modelli insieme | 5 min |
-| 7 | I tre giri sui 100 problemi | da misurare: lo dice il passo 7 dopo 5 problemi |
-| 8 | Rapporto | 5 min |
+| 1 | Check the card, start the downloads | 5 min, then the downloads in background |
+| 2 | Copy `g1/` and `engine/` from the Mac | 2 min |
+| 3 | Container and venv of the engine | 10 min |
+| 4 | fp32 versus bf16 comparison, with vLLM off | 10-15 min |
+| 5 | Start vLLM with Qwen3.6 | 5-10 min |
+| 6 | Memory measurement with the two models together | 5 min |
+| 7 | The three runs on the 100 problems | to be measured: step 7 tells after 5 problems |
+| 8 | Write the report | 5 min |
 
-### 1. La scheda e i download
+### 1. The card and the downloads
 
 ```bash
-rocm-smi --showproductname --showmeminfo vram --showdriverversion # 1x MI300X, circa 192 GB
-df -h # servono circa 130 GB liberi: 72 GB di Qwen3.6, 30 di Qwen3-14B, 12 di immagine
-export HF_HOME=/root/hf # sul disco grande; in ~/.bashrc se servono altre sessioni SSH
-command -v hf || pip install -U "huggingface_hub[cli]" # il comando hf sull'host
+rocm-smi --showproductname --showmeminfo vram --showdriverversion   # 1x MI300X, about 192 GB
+df -h                                    # about 130 GB free are needed: 72 GB of Qwen3.6, 30 of Qwen3-14B, 12 of image
+export HF_HOME=/root/hf                  # on the big disk; in ~/.bashrc if other SSH sessions need it
+command -v hf || pip install -U "huggingface_hub[cli]"   # the hf command on the host
 nohup docker pull vllm/vllm-openai-rocm:v0.30.0 > pull.log 2>&1 &
 nohup hf download Qwen/Qwen3-14B --revision 40c069824f4251a91eefaf281ebe4c544efd3e18 > dl-14b.log 2>&1 &
 nohup hf download Qwen/Qwen3.6-35B-A3B --revision 995ad96eacd98c81ed38be0c5b274b04031597b0 > dl-36.log 2>&1 &
 ```
 
-Se la macchina è un droplet di DigitalOcean, **si paga anche da spenta**: alla fine va distrutta.
-I modelli vanno sul disco di avvio, non sullo scratch: lo snapshot del passo finale copre solo il disco di avvio.
+If the machine is a DigitalOcean droplet, **you pay for it even when it is off**: at the end it must be destroyed.
+The models go on the boot disk, not on the scratch disk: the snapshot of the final step only covers the boot disk.
 
-### 2. Il codice
+### 2. The code
 
-Nessun token GitHub sulla macchina (come nello spike): il codice si copia dal Mac.
+No GitHub token on the machine (as in the spike): the code is copied from the Mac.
 
 ```bash
-# sul Mac, dalla radice del repo
-rsync -a --exclude.venv --exclude risultati g1 motore root@<IP>:~/hackathon/
+# on the Mac, from the root of the repo
+rsync -a --exclude .venv --exclude results g1 engine root@<IP>:~/hackathon/
 ```
 
-### 3. Container e venv del motore
+### 3. Container and venv of the engine
 
-Il motore usa il torch ROCm dell'immagine e il suo `transformers` 4.57.6, in un venv separato da quello di vLLM.
+The engine uses the image's ROCm torch and its own `transformers` 4.57.6, in a venv separate from vLLM's.
 
 ```bash
-docker run -d --name motore --network=host --ipc=host --shm-size 16G \
+docker run -d --name engine --network=host --ipc=host --shm-size 16G \
   --device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
   -v "$HF_HOME":/root/hf -e HF_HOME=/root/hf -v ~/hackathon:/work -w /work/g1 \
   --entrypoint sleep vllm/vllm-openai-rocm:v0.30.0 infinity
-docker exec -it motore bash
-# dentro il container
-python -m venv --system-site-packages /root/venv &&. /root/venv/bin/activate
+docker exec -it engine bash
+# inside the container
+python -m venv --system-site-packages /root/venv && . /root/venv/bin/activate
 pip install -r requirements-rocm.txt
 python -c "import torch, transformers; print(torch.__version__, torch.version.hip, torch.cuda.get_device_name(0), transformers.__version__)"
-python -m pytest -m "not modello" # i test senza modello
+python -m pytest -m "not model"        # the tests without a model
 ```
 
-Se `torch.cuda.is_available` è falso o il nome della scheda non è MI300X, ci si ferma qui e si scrive l'errore.
+If `torch.cuda.is_available()` is false or the card's name is not MI300X, stop here and note the error.
 
-### 4. fp32 contro bf16 (vLLM spento)
+### 4. fp32 versus bf16 (vLLM off)
 
-Da: su ROCm le maschere di SDPA hanno avuto bug, quindi si confronta con un riferimento fp32.
+On ROCm the SDPA masks have had bugs, so we compare against an fp32 reference.
 
 ```bash
-python -m g1.misure fp32 --problemi 5 --uscita risultati/fp32.json
+python -m g1.metrics fp32 --problems 5 --output results/fp32.json
 ```
 
-Ci si aspetta che le risposte coincidano; i testi possono divergere di poco. Se le risposte divergono su più di 1 problema su 5, si scrive prima di andare avanti.
+The answers are expected to match; the texts may diverge slightly. If the answers diverge on more than 1 problem out of 5, note it before going on.
 
-### 5. vLLM con Qwen3.6
+### 5. vLLM with Qwen3.6
 
-vLLM si prende di solito il 90% della memoria della scheda: qui è limitato alla metà, così il motore ci sta. Si avvia **prima** del motore.
+vLLM usually takes 90% of the card's memory: here it is limited to half, so the engine fits. Start it **before** the engine.
 
 ```bash
 docker run -d --name vllm --network=host --ipc=host --shm-size 16G \
@@ -149,51 +151,57 @@ docker run -d --name vllm --network=host --ipc=host --shm-size 16G \
   --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 \
   --default-chat-template-kwargs '{"enable_thinking": false}' \
   --override-generation-config '{"temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0, "presence_penalty": 1.5, "repetition_penalty": 1.0}'
-docker logs -f vllm 2>&1 | grep -m2 -E "Model loading took|startup complete" # annota i GB del primo
-python -m g1.agente --url http://127.0.0.1:8000 --chiave "$VLLM_API_KEY" # deve finire con ✓
+docker logs -f vllm 2>&1 | grep -m2 -E "Model loading took|startup complete"   # note the GB of the first one
+python -m g1.agent --url http://127.0.0.1:8000 --key "$VLLM_API_KEY"     # must end with ✓
 ```
 
-`--max-num-seqs 256` serve dal giro del 12/10. Qwen3.6 è un modello ibrido e con metà scheda ha 785 blocchi di cache Mamba, meno dei 1.024 che vLLM prepara di default. Senza il flag l'avvio si ferma con `max_num_seqs (1024) exceeds available Mamba cache blocks`.
+`--max-num-seqs 256` has been needed since the run of 12 October. Qwen3.6 is a hybrid model and with half a card it has 785 Mamba cache blocks, fewer than the 1,024 that vLLM prepares by default. Without the flag the start stops with `max_num_seqs (1024) exceeds available Mamba cache blocks`.
 
-I parametri dell'agente principale sono quelli di Building block Evolus (non `hermes`).
-Evolus non passa parametri di richiesta, quindi "pensiero" e campionamento si fissano qui, lato server:
+The main agent's parameters are those of the Evolus building block (not `hermes`).
+Evolus does not pass request parameters, so "thinking" and sampling are fixed here, on the server side:
 
-- **Niente pensiero** (`enable_thinking: false`): l'agente sceglie il percorso e scrive un avviso breve, il ragionamento sulla fattura lo fa il motore; così è più veloce e prevedibile, e il timeout di Evolus non lo conosciamo ancora.
-- **Campionamento** della scheda di Qwen3.6 per la modalità senza pensiero: temperature 0.7, top_p 0.80, top_k 20, min_p 0, presence_penalty 1.5.
-- Se `vllm serve --help` della v0.30.0 non ha uno dei due flag, si cerca il nome nuovo nell'aiuto: il controllo `g1.agente` dice se il pensiero è spento davvero.
+- **No thinking** (`enable_thinking: false`): the agent chooses the path and writes a short notice, the reasoning on the invoice is done by the engine; that way it is faster and more predictable, and we do not know Evolus's timeout yet.
+- **Sampling** from the Qwen3.6 model card for the non-thinking mode: temperature 0.7, top_p 0.80, top_k 20, min_p 0, presence_penalty 1.5.
+- If `vllm serve --help` of v0.30.0 lacks one of the two flags, look for the new name in the help: the `g1.agent` check says whether thinking is really off.
 
-`g1.agente` manda la richiesta come la manderebbe Evolus, con lo strumento `esamina_fattura` e senza parametri, e controlla che torni una vera chiamata allo strumento (non XML nel testo, quindi parser giusto), con argomenti JSON e senza pensiero.
+`g1.agent` sends the request the way Evolus would, with the `examine_invoice` tool and no parameters, and checks that a real tool call comes back (not XML in the text, so the right parser), with JSON arguments and no thinking.
 
-### 6. Memoria con i due modelli insieme
+### 6. Memory with the two models together
 
 ```bash
-python -m g1.misure memoria --pesi-vllm-gb <GB del log di vLLM> --uscita risultati/memoria.json
+python -m g1.metrics memory --vllm-weights-gb <GB from the vLLM log> --output results/memory.json
 ```
 
-Misura la staffetta in telepatia su un testo da 4.000 token (al posto della fattura più lunga, se il generatore non c'è ancora): picco del motore, memoria della scheda vista da `rocm-smi` con vLLM acceso, tempo dell'impronta (: se pesa, BLAKE3) e ricalcolo dei pensieri in bf16.
+It measures the relay in telepathy on a 4,000-token text (instead of the longest invoice, if the invoice generator is not there yet): the engine's peak, the card's memory as seen by `rocm-smi` with vLLM on, the time of the fingerprint (if it weighs, BLAKE3) and the recomputation of the thoughts in bf16.
 
-### 7. I tre giri
+### 7. The three runs
 
 ```bash
-nohup python -m g1.esegui --uscita risultati > risultati/esegui.log 2>&1 &
-tail -f risultati/esegui.log
+nohup python -m g1.run --output results > results/run.log 2>&1 &
+tail -f results/run.log
 ```
 
-Dopo 5 problemi `python -m g1.riepilogo risultati` dà i secondi per problema di ogni modo: moltiplicati per 100 dicono se si finisce entro le 22:00.
-Se il giro si interrompe, si rilancia lo stesso comando e riparte dal primo problema che manca.
+After 5 problems `python -m g1.summary results` gives the seconds per problem of each mode: multiplied by 100 they tell whether it finishes by 22:00.
+If the run is interrupted, relaunch the same command and it restarts from the first missing problem.
 
-### 8. Il rapporto
+### 8. The report
 
 ```bash
-python -m g1.riepilogo risultati > risultati/rapporto.md
+python -m g1.summary results > results/report.md
 ```
 
-Si copia `risultati/` sul Mac (`rsync -a root@<IP>:~/hackathon/g1/risultati/ g1/risultati-mi300x/`) e si pubblica il rapporto (`gh issue comment 78 --body-file g1/risultati-mi300x/rapporto.md`), entro le 22:00.
+Copy `results/` to the Mac (`rsync -a root@<IP>:~/hackathon/g1/results/ g1/results-mi300x/`) and publish the report, by 22:00.
 
-### Dopo G1, se la macchina è un droplet
+### After G1, if the machine is a droplet
 
-Con `casa/mi300x/mi300x.sh` della casa per i giudici, che parla con l'API di AMD Developer Cloud (è quella di DigitalOcean):
+With `site/mi300x/mi300x.sh` of the judges' site, which talks to the AMD Developer Cloud API (it is DigitalOcean's):
 
-- **Snapshot** del disco di avvio, con i modelli dentro: `mi300x.sh snapshot`. Ci vogliono circa 1-3 minuti per GB usato, e intanto la macchina si paga: conviene lanciarlo a fine giornata. Prima si preparano i servizi che devono ripartire da soli (`casa/mi300x/README.md`, "La macchina d'oro").
-- **Distruggere la macchina:** `mi300x.sh distruggi`, che ricontrolla e dà errore se ne resta una accesa.
-- **Il tempo di nascita da snapshot**, la mattina dopo: `mi300x.sh crea aspetta`, che stampa i secondi fino alla macchina attiva e, con `MI300X_SALUTE`, fino al motore pronto. Va scritto.
+- **Snapshot** of the boot disk, with the models inside: `mi300x.sh snapshot`. It takes about 1-3 minutes per GB used, and meanwhile you pay for the machine: better to launch it at the end of the day. First prepare the services that must restart on their own (`site/mi300x/README.md`, "The golden machine").
+- **Destroy the machine:** `mi300x.sh destroy`, which checks again and gives an error if one is still on.
+- **The boot time from a snapshot**, the next morning: `mi300x.sh create wait`, which prints the seconds until the machine is active and, with `MI300X_HEALTH`, until the engine is ready. It goes in the report.
+
+## The recorded results
+
+`results-mi300x/` holds the run of 12 October, renamed to English after the fact: file names (`text.jsonl`, `telepathy.jsonl`, `no_thoughts.jsonl`, `environment.json`, `memory.json`, `report.md`, `run.log`, `vllm-first-start.log`) and, in the `.json`/`.jsonl` files, the keys and the mode values, so that `g1.summary` still reads them. The values are untouched, including what the model wrote (`final_text`). `report.md` was regenerated from the migrated files with `python -m g1.summary results-mi300x`: same numbers as the report published on 12 October, now in English.
+
+The `.log` files stay as the program printed them on the day, so they are in Italian (for example `testo gsm8k-test-0000: giusta (959 token, 32.196 s)`, today `text gsm8k-test-0000: correct (959 tokens, 32.196 s)`).

@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+# The reviews of the dev set and of the demo set stay local.
+results*/
+# Old name of the same folders, before the English rename.
+risultati*/

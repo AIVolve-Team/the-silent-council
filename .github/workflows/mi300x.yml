@@ -1,24 +1,25 @@
-# La MI300X a finestre: ogni mezz'ora si confronta l'ora con casa/finestre.json. Dentro una finestra, con 45
-# minuti di anticipo, la MI300X dev'essere accesa; fuori va distrutta, perché anche spenta si paga (2,59 $ l'ora).
-# Tocca solo le macchine con il tag sportello-finestra: quelle accese a mano per lavorare restano.
-# GitHub può far slittare o saltare un orario: girando spesso e fuori dall'ora tonda, il giro dopo rimette a posto.
-# Gli orari partono solo dal ramo principale.
+# The MI300X in windows: every half hour the time is compared with site/windows.json. Inside a window, 45
+# minutes ahead, the MI300X must be running; outside it is destroyed, because even powered off it is billed ($2.59 an hour).
+# It only touches the machines with the tag council-window (and the legacy sportello-finestra of the old code): those
+# started by hand to work on stay.
+# GitHub can delay or skip a schedule: running often and off the round hour, the next run puts things right.
+# Schedules only run from the main branch.
 #
-# Segreti: DIGITALOCEAN_ACCESS_TOKEN (token del team AMD Developer Cloud), MI300X_SSH (impronta della chiave SSH).
-# Variabili facoltative: DO_API (https://api.devcloud.amd.com se quella predefinita non accetta il token AMD),
-# MI300X_DNS_DOMINIO e MI300X_DNS_NOME (il record A da puntare al nuovo IP, se il dominio sta nel DNS di DigitalOcean).
-name: MI300X a finestre
+# Secrets: DIGITALOCEAN_ACCESS_TOKEN (token of the AMD Developer Cloud team), MI300X_SSH (fingerprint of the SSH key).
+# Optional variables: DO_API (https://api.devcloud.amd.com if the default one does not accept the AMD token),
+# MI300X_DNS_DOMAIN and MI300X_DNS_NAME (the A record to point at the new IP, if the domain is in DigitalOcean's DNS).
+name: MI300X in windows
 
 on:
   schedule:
     - cron: "13,43 * * * *"
   workflow_dispatch:
     inputs:
-      comando:
-        description: "finestre: come da finestre.json; distruggi-tutto: anche le macchine accese a mano"
+      command:
+        description: "windows: as in windows.json; destroy-all: also the machines started by hand"
         type: choice
-        default: stato
-        options: [stato, finestre, crea, distruggi, distruggi-tutto]
+        default: status
+        options: [status, windows, create, destroy, destroy-all]
 
 concurrency:
   group: mi300x
@@ -33,24 +34,24 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: La MI300X
+      - name: The MI300X
         env:
           DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
           MI300X_SSH: ${{ secrets.MI300X_SSH }}
           DO_API: ${{ vars.DO_API || 'https://api.digitalocean.com' }}
-          MI300X_DNS_DOMINIO: ${{ vars.MI300X_DNS_DOMINIO }}
-          MI300X_DNS_NOME: ${{ vars.MI300X_DNS_NOME }}
-          COMANDO: ${{ inputs.comando || 'finestre' }}
+          MI300X_DNS_DOMAIN: ${{ vars.MI300X_DNS_DOMAIN }}
+          MI300X_DNS_NAME: ${{ vars.MI300X_DNS_NAME }}
+          COMMAND: ${{ inputs.command || 'windows' }}
         run: |
           if [ -z "$DIGITALOCEAN_ACCESS_TOKEN" ]; then
-            echo "Manca il segreto DIGITALOCEAN_ACCESS_TOKEN: niente da fare."
+            echo "The secret DIGITALOCEAN_ACCESS_TOKEN is missing: nothing to do."
             exit 0
           fi
-          s=casa/mi300x/mi300x.sh
-          case "$COMANDO" in
-            finestre) $s finestre casa/finestre.json ;;
-            crea) MI300X_TAG=sportello-finestra $s crea ;;
-            distruggi) MI300X_TAG=sportello-finestra $s distruggi ;;
-            distruggi-tutto) MI300X_TAG=sportello-finestra $s distruggi && MI300X_TAG=sportello-mi300x $s distruggi ;;
-            *) MI300X_TAG=sportello-finestra $s stato && MI300X_TAG=sportello-mi300x $s stato ;;
+          s=site/mi300x/mi300x.sh
+          case "$COMMAND" in
+            windows) $s windows site/windows.json ;;
+            create) MI300X_TAG=council-window $s create ;;
+            destroy) MI300X_TAG=council-window $s destroy ;;
+            destroy-all) MI300X_TAG=council-window $s destroy && MI300X_TAG=council-mi300x $s destroy ;;
+            *) MI300X_TAG=council-window $s status && MI300X_TAG=council-mi300x $s status ;;
           esac

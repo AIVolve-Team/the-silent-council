@@ -1,0 +1,22 @@
+{
+  "device": "cuda",
+  "dtype": "bfloat16",
+  "tokens_read_first_agent": 4103,
+  "message_kv_gb": 0.67387392,
+  "fingerprint_seconds": 0.4455278499999622,
+  "fingerprint_ok": true,
+  "recompute_identical": true,
+  "relay_seconds": 13.680354348000037,
+  "stopped": null,
+  "engine_peak_gb": 37.945868288,
+  "engine_weights_gb": 29.5366144,
+  "rocm_vram": {
+    "card0": {
+      "VRAM Total Memory (B)": "205822885888",
+      "VRAM Total Used Memory (B)": "138016075776"
+    }
+  },
+  "ok": true,
+  "vllm_weights_gb": 70.36,
+  "two_models_weights_gb": 99.8966144
+}

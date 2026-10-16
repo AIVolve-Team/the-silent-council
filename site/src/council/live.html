@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review a contract live · Silent Council</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
+<style>
+/* The council's live review: the judge picks a contract from the server's list and has it reviewed now on
+   the MI300X. Same fonts and colours as the home page; the teal is reserved for memory. */
+:root {
+  --paper: #f6f7f9; --sheet: #ffffff; --ink: #151a30; --graphite: #565d70; --line: #dcdfe6;
+  --memory: #087a6d; --memory-full: #12a594; --memory-faint: #ddf3ef;
+  --legal: #2f62c8; --finance: #12a594; --risk: #7458d6;
+  --live: #1f7a4d; --live-faint: #e3f3ea; --waiting: #8a5208; --waiting-faint: #fbf0dc; --error: #b42318; --error-faint: #fde7e4;
+  --sign: #1f7a4d; --negotiate: #8a5208; --refuse: #b42318;
+  --headings: "Archivo", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1324; --sheet: #161c31; --ink: #e8ebf4; --graphite: #a4aabb; --line: #2b3350;
+    --memory: #4fd1bf; --memory-full: #35c2ae; --memory-faint: #123833; --legal: #7aa2f2; --finance: #35c2ae; --risk: #a893f2;
+    --live: #5bc48e; --live-faint: #16301f; --waiting: #e6b35e; --waiting-faint: #362a14; --error: #f08a7f; --error-faint: #3a1a17;
+    --sign: #5bc48e; --negotiate: #e6b35e; --refuse: #f08a7f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1324; --sheet: #161c31; --ink: #e8ebf4; --graphite: #a4aabb; --line: #2b3350;
+  --memory: #4fd1bf; --memory-full: #35c2ae; --memory-faint: #123833; --legal: #7aa2f2; --finance: #35c2ae; --risk: #a893f2;
+  --live: #5bc48e; --live-faint: #16301f; --waiting: #e6b35e; --waiting-faint: #362a14; --error: #f08a7f; --error-faint: #3a1a17;
+  --sign: #5bc48e; --negotiate: #e6b35e; --refuse: #f08a7f; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.0625rem/1.6 var(--headings); font-variation-settings: "wdth" 100; padding: 20px 16px 72px; }
+.sheet { max-width: 820px; margin-inline: auto; display: grid; gap: 36px; }
+p, h1, h2, h3, ol { margin: 0; }
+a { color: inherit; text-underline-offset: 0.18em; }
+button { font: inherit; color: inherit; cursor: pointer; }
+a:focus-visible, button:focus-visible, input:focus-visible + .choice-text { outline: 2px solid var(--memory); outline-offset: 3px; border-radius: 4px; }
+.muted { color: var(--graphite); }
+.bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+.bar > a { font-weight: 600; font-size: 0.9375rem; text-decoration: none; }
+.bar__right { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.status { display: inline-flex; gap: 8px; align-items: center; border-radius: 999px; padding: 5px 12px; font-weight: 600; font-size: 0.875rem; background: var(--waiting-faint); color: var(--waiting); }
+.status.live { background: var(--live-faint); color: var(--live); }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.languages { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--sheet); }
+.languages button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
+.languages button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.head { display: grid; gap: 14px; }
+.head h1 { font-weight: 820; font-size: clamp(2rem, 5vw, 3.1rem); line-height: 1.05; letter-spacing: -0.025em; font-variation-settings: "wdth" 110; }
+.head p { font-size: clamp(1.05rem, 1.8vw, 1.2rem); color: var(--graphite); max-width: 44rem; }
+
+.off { background: var(--sheet); border: 1px solid var(--line); border-left: 4px solid var(--waiting); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; }
+.off h2 { font-size: 1.15rem; font-weight: 720; }
+.off a { font-weight: 600; }
+
+.steps { list-style: none; padding: 0; display: grid; gap: 28px; counter-reset: step; }
+.step { display: grid; gap: 12px; }
+.step > h2 { font-size: 1.2rem; font-weight: 740; display: flex; gap: 10px; align-items: baseline; font-variation-settings: "wdth" 106; }
+.step > h2::before { counter-increment: step; content: counter(step); font-variant-numeric: tabular-nums; color: var(--memory); font-weight: 800; }
+.contracts { display: grid; gap: 8px; max-height: 26rem; overflow: auto; padding: 2px; }
+.option { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; }
+.option:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.option input { margin: 4px 0 0; accent-color: var(--ink); width: 16px; height: 16px; }
+.option .title { font-weight: 650; overflow-wrap: anywhere; }
+.option .origin { font-size: 0.875rem; color: var(--graphite); }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; }
+.modes .option { grid-template-columns: auto auto; padding: 10px 14px; }
+.modes .memory .choice-text { color: var(--memory); font-weight: 650; }
+.start { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+.button { border: 1.5px solid var(--ink); background: var(--ink); color: var(--sheet); border-radius: 10px; padding: 11px 20px; font-weight: 700; text-decoration: none; display: inline-block; }
+.button:disabled { opacity: 0.45; cursor: not-allowed; }
+.button.outline { background: transparent; color: var(--ink); }
+
+/* while the council works: the memory card passes from one agent to the next, until the server answers */
+.working { background: var(--sheet); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 16px; }
+.working h2 { font-size: 1.15rem; font-weight: 720; overflow-wrap: anywhere; }
+.clock { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.track { position: relative; height: 34px; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; }
+.track::before { content: ""; position: absolute; left: 10%; right: 10%; top: 50%; height: 2px; background: var(--line); }
+.track i { justify-self: center; width: 14px; height: 14px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--line); position: relative; z-index: 1; }
+.track i:nth-child(2) { background: var(--legal); border-color: var(--legal); }
+.track i:nth-child(3) { background: var(--finance); border-color: var(--finance); }
+.track i:nth-child(4) { background: var(--risk); border-color: var(--risk); }
+.track b { position: absolute; z-index: 2; top: 50%; left: 10%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 4px; background: var(--memory-full); box-shadow: 0 0 0 4px var(--memory-faint); animation: travel 3.2s ease-in-out infinite; }
+.working.text .track b { background: var(--graphite); box-shadow: 0 0 0 4px var(--line); border-radius: 4px 4px 4px 1px; }
+@keyframes travel { 0% { left: 10%; } 90%, 100% { left: 90%; } }
+@media (prefers-reduced-motion: reduce) { .track b { animation: none; left: 50%; } }
+
+.outcome { background: var(--sheet); border: 1px solid var(--line); border-top: 6px solid var(--colour, var(--ink)); border-radius: 14px; padding: 20px 22px; display: grid; gap: 10px; }
+.outcome.sign { --colour: var(--sign); } .outcome.negotiate { --colour: var(--negotiate); } .outcome.do-not-sign { --colour: var(--refuse); }
+.outcome .value { font-weight: 850; font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1; letter-spacing: -0.03em; font-variation-settings: "wdth" 116; color: var(--colour, var(--ink)); }
+.outcome .line b { font-variant-numeric: tabular-nums; }
+.error { background: var(--error-faint); border: 1px solid var(--error); border-radius: 12px; padding: 14px 18px; display: grid; gap: 8px; }
+.error p:first-child { font-weight: 650; color: var(--error); }
+
+.done-list h2 { font-size: 1.2rem; font-weight: 740; margin-bottom: 10px; }
+.done-list ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; border-top: 1px solid var(--line); }
+.done-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: center; }
+.done-list .title { font-weight: 650; overflow-wrap: anywhere; }
+.done-list .details { font-size: 0.875rem; color: var(--graphite); }
+.done-list a { font-weight: 650; font-size: 0.9375rem; }
+.done-list .links { display: flex; flex-wrap: wrap; gap: 4px 16px; justify-content: flex-end; }
+.outcome .buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+footer { font-size: 0.875rem; color: var(--graphite); }
+</style>
+</head>
+<body>
+<main class="sheet" id="page"></main>
+<script>
+"use strict";
+// The list of contracts and the live reviews go through /api/council, which holds the server's secret. The status
+// from /api/status, the windows from ../windows.json, the expected time from numbers.json. Reviews done stay in the browser.
+const T = {
+  en: {
+    home: "← Home", title: "Review a contract live",
+    sub: "Pick a contract from a public dataset. The council reviews it now on the AMD MI300X: the experts hand over their memory, a devil's advocate writes the verdict, and the dataset experts' answers appear next to it.",
+    live: "Live now: the AMD MI300X is on", next: "Next live window:", announced: "Live windows will be announced here", checking: "Checking the MI300X…",
+    offTitle: "The MI300X is off right now", offText: "Live reviews run while the machine is on.", offRecorded: "Meanwhile, the recorded verdicts show the same pages.", recorded: "See the recorded verdicts",
+    stepContract: "Choose a contract", stepMode: "Choose how the experts talk", stepStart: "Start the review",
+    from: (b, s) => `From ${b === "cuad" ? "CUAD" : b === "demo" ? "the demo set" : b}${{ dev: ", development set", test: ", test set" }[s] ?? ""}`,
+    memory: "Handing over memory", text: "Writing to each other",
+    start: "Start the review", about: (s) => `Usually about ${s} seconds on the recorded runs.`,
+    working: (t) => `The council is reviewing ${t}`, workingSub: "One review at a time on the GPU. Keep this page open.",
+    done: (s) => `Done in ${s} seconds.`, open: "Open the verdict", none: "No valid verdict",
+    rec: { "sign": "Sign", "negotiate": "Negotiate", "do not sign": "Do not sign" },
+    found: (a, b) => [`Found `, el("b", { text: String(a) }), ` of the `, el("b", { text: String(b) }), ` clauses the experts flagged.`],
+    busy: "Another judge is running a review right now.", busyText: "Try again in a minute.",
+    off: "The council is off or does not answer.", slow: "The review took too long.", slowText: "Try a shorter contract, or try again later.",
+    error: "The review did not start.", retry: "Try again",
+    doneList: "Your live reviews", doneListSub: "They stay in this browser.", when: (d) => new Date(d).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+    languages: "Language", footer: "Contracts from public datasets under CC BY 4.0. Nothing you do here is sent anywhere else.",
+  },
+  it: {
+    home: "← Home", title: "Prova dal vivo",
+    sub: "Scegli un contratto da un dataset pubblico. Il Consiglio lo esamina adesso sulla AMD MI300X: gli esperti si passano la memoria, un avvocato del diavolo scrive il verdetto, e accanto compaiono le risposte degli esperti del dataset.",
+    live: "Dal vivo adesso: la MI300X è accesa", next: "Prossima finestra dal vivo:", announced: "Le finestre dal vivo saranno annunciate qui", checking: "Controllo la MI300X…",
+    offTitle: "La MI300X adesso è spenta", offText: "Le prove dal vivo funzionano quando la macchina è accesa.", offRecorded: "Intanto i verdetti registrati mostrano le stesse pagine.", recorded: "Vedi i verdetti registrati",
+    stepContract: "Scegli un contratto", stepMode: "Scegli come si parlano gli esperti", stepStart: "Avvia la revisione",
+    from: (b, s) => `Da ${b === "cuad" ? "CUAD" : b === "demo" ? "il set dimostrativo" : b}${{ dev: ", insieme di sviluppo", test: ", insieme di test" }[s] ?? ""}`,
+    memory: "Si passano la memoria", text: "Si scrivono",
+    start: "Avvia la revisione", about: (s) => `Di solito circa ${s} secondi, nei giri registrati.`,
+    working: (t) => `Il Consiglio sta esaminando ${t}`, workingSub: "Una revisione alla volta sulla GPU. Tieni aperta questa pagina.",
+    done: (s) => `Fatto in ${s} secondi.`, open: "Apri il verdetto", none: "Nessun verdetto valido",
+    rec: { "sign": "Firmare", "negotiate": "Negoziare", "do not sign": "Non firmare" },
+    found: (a, b) => [`Trovate `, el("b", { text: String(a) }), ` delle `, el("b", { text: String(b) }), ` clausole segnate dagli esperti.`],
+    busy: "Un altro giudice sta facendo una prova proprio adesso.", busyText: "Riprova fra un minuto.",
+    off: "Il Consiglio è spento o non risponde.", slow: "La revisione è durata troppo.", slowText: "Prova un contratto più corto, oppure riprova più tardi.",
+    error: "La revisione non è partita.", retry: "Riprova",
+    doneList: "Le tue prove dal vivo", doneListSub: "Restano in questo browser.", when: (d) => new Date(d).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }),
+    languages: "Lingua", footer: "Contratti da dataset pubblici con licenza CC BY 4.0. Quello che fai qui non va da nessun'altra parte.",
+  },
+};
+const DONE_KEY = "council-live";
+const storage = {
+  read(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
+};
+const asked = new URLSearchParams(location.search).get("lang");
+let language = asked === "it" || asked === "en" ? asked : storage.read("council-language") === "it" ? "it" : "en";
+let liveStatus = null, windows = [], numbers = null, contracts = null, chosen = null, mode = "telepathy", running = null, outcome = null, failure = null;
+const el = (tag, attr = {}, ...children) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const f of children.flat()) if (f !== null && f !== undefined && f !== false) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const t = () => T[language];
+const when = (iso) => new Intl.DateTimeFormat(language === "it" ? "it-IT" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome", timeZoneName: "short" }).format(new Date(iso));
+const nextWindow = () => windows.map((w) => ({ ...w, s: new Date(w.start), e: new Date(w.end) })).filter((w) => w.e > new Date()).sort((a, b) => a.s - b.s)[0];
+const isOn = () => Boolean(liveStatus?.council?.live);
+const done = () => (Array.isArray(storage.read(DONE_KEY)) ? storage.read(DONE_KEY) : []);
+
+function pill() {
+  const w = nextWindow();
+  if (liveStatus === null) return el("span", { class: "status", role: "status" }, el("span", { class: "dot" }), t().checking);
+  if (isOn()) return el("span", { class: "status live", role: "status" }, el("span", { class: "dot" }), t().live);
+  return el("span", { class: "status", role: "status" }, el("span", { class: "dot" }), w ? `${t().next} ${when(w.start)} – ${when(w.end)}` : t().announced);
+}
+
+function save(response) {
+  // At most the last 10: a view weighs tens of kB and the browser's space is small.
+  const v = { ...response.view, index: "live.html" };
+  const item = { case_id: response.case_id, title: v.title, mode: response.mode, when: v.live || new Date().toISOString(),
+    recommendation: response.recommendation?.value ?? null, seconds: response.seconds, comparison: v.comparison, view: v };
+  const list = [item, ...done().filter((f) => f.case_id !== item.case_id)].slice(0, 10);
+  while (list.length && !storage.write(DONE_KEY, list)) list.pop();
+}
+
+async function start() {
+  if (!chosen || running) return;
+  failure = null; outcome = null;
+  const item = contracts.find((c) => c.key === chosen);
+  running = { title: item ? item.title : chosen, start: performance.now(), mode };
+  draw();
+  const clock = setInterval(() => { const o = document.querySelector(".clock"); if (o && running) o.textContent = elapsed((performance.now() - running.start) / 1000); }, 250);
+  try {
+    const r = await fetch("/api/council", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contract: chosen, mode }) });
+    const data = await r.json().catch(() => ({}));
+    if (r.ok && data.view) { outcome = data; save(data); }
+    else if (r.status === 409) failure = [t().busy, t().busyText];
+    else if (r.status === 503) failure = [t().off, ""];
+    else if (r.status === 504) failure = [t().slow, t().slowText];
+    else failure = [t().error, data.error || ""];
+  } catch {
+    failure = [t().slow, t().slowText];
+  } finally {
+    clearInterval(clock);
+    running = null;
+    draw();
+  }
+}
+const elapsed = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+
+function outcomeBlock(r) {
+  const v = r.view, value = r.recommendation?.value, c = v.comparison;
+  return el("section", { class: `outcome ${value ? value.replaceAll(" ", "-") : ""}`, "aria-live": "polite" },
+    el("p", { class: "muted", text: t().done(Math.round(r.seconds)) }),
+    el("h2", { text: v.title }),
+    el("p", { class: "value", text: value ? t().rec[value] : t().none }),
+    c && c.to_find ? el("p", { class: "line" }, t().found(c.found, c.to_find)) : null,
+    el("div", { class: "buttons" }, el("a", { class: "button", href: `verdict.html?live=${encodeURIComponent(r.case_id)}`, text: t().open })));
+}
+
+function draw() {
+  document.documentElement.lang = language;
+  const page = document.getElementById("page");
+  page.replaceChildren();
+  const languages = el("div", { class: "languages", role: "group", "aria-label": t().languages },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === language), onclick: () => { if (l !== language) { language = l; storage.write("council-language", l); draw(); } } }, l === "en" ? "English" : "Italiano")));
+  page.append(el("div", { class: "bar" }, el("a", { href: "../index.html", text: t().home }), el("div", { class: "bar__right" }, pill(), languages)));
+  page.append(el("header", { class: "head" }, el("h1", { text: t().title }), el("p", { text: t().sub })));
+
+  if (liveStatus !== null && !isOn()) {
+    const w = nextWindow();
+    page.append(el("section", { class: "off" }, el("h2", { text: t().offTitle }),
+      el("p", {}, t().offText, w ? ` ${t().next} ${when(w.start)} – ${when(w.end)}.` : ""),
+      el("p", {}, t().offRecorded, " ", el("a", { href: "index.html", text: t().recorded }))));
+  }
+
+  if (running) {
+    page.append(el("section", { class: `working ${running.mode === "text" ? "text" : ""}`, "aria-live": "polite" },
+      el("h2", { text: t().working(running.title) }),
+      el("div", { class: "track", "aria-hidden": "true" }, el("i"), el("i"), el("i"), el("i"), el("i"), el("b")),
+      el("p", { class: "clock", text: elapsed((performance.now() - running.start) / 1000) }),
+      el("p", { class: "muted", text: t().workingSub })));
+  } else if (outcome) page.append(outcomeBlock(outcome));
+  if (failure) page.append(el("section", { class: "error", role: "alert" }, el("p", { text: failure[0] }), failure[1] ? el("p", { text: failure[1] }) : null));
+
+  if (isOn() && contracts && !running) {
+    const list = el("div", { class: "contracts", role: "radiogroup", "aria-label": t().stepContract },
+      contracts.map((c) => el("label", { class: "option" },
+        el("input", { type: "radio", name: "contract", value: c.key, checked: c.key === chosen, onchange: () => { chosen = c.key; updateButton(); } }),
+        el("span", {}, el("span", { class: "title", text: c.title }), el("br"), el("span", { class: "origin", text: t().from(c.benchmark, c.subset) })))));
+    const modes = el("div", { class: "modes", role: "radiogroup", "aria-label": t().stepMode },
+      [["telepathy", t().memory, "memory"], ["text", t().text, ""]].map(([value, name, cls]) => el("label", { class: `option ${cls}` },
+        el("input", { type: "radio", name: "mode", value, checked: mode === value, onchange: () => { mode = value; updateButton(); } }),
+        el("span", { class: "choice-text", text: name }))));
+    const seconds = numbers?.[mode === "text" ? "text" : "telepathy"]?.seconds;
+    page.append(el("ol", { class: "steps" },
+      el("li", { class: "step" }, el("h2", { text: t().stepContract }), list),
+      el("li", { class: "step" }, el("h2", { text: t().stepMode }), modes),
+      el("li", { class: "step" }, el("h2", { text: t().stepStart }),
+        el("div", { class: "start" }, el("button", { type: "button", class: "button", id: "start", disabled: !chosen, onclick: start }, failure ? t().retry : t().start),
+          seconds ? el("span", { class: "muted", id: "about", text: t().about(Math.round(seconds)) }) : null))));
+  }
+
+  const mine = done();
+  if (mine.length) {
+    page.append(el("section", { class: "done-list" }, el("h2", { text: t().doneList }), el("p", { class: "muted", text: t().doneListSub }),
+      el("ul", {}, mine.map((f) => el("li", {},
+        el("div", {}, el("span", { class: "title", text: f.title }), el("br"),
+          el("span", { class: "details", text: [f.mode === "text" ? t().text : t().memory, f.recommendation ? t().rec[f.recommendation] : t().none, t().when(f.when)].join(", ") })),
+        el("span", { class: "links" }, el("a", { href: `verdict.html?live=${encodeURIComponent(f.case_id)}`, text: t().open })))))));
+  }
+  page.append(el("footer", { text: t().footer }));
+}
+function updateButton() {
+  const b = document.getElementById("start");
+  if (b) b.disabled = !chosen;
+  const c = document.getElementById("about"), s = numbers?.[mode === "text" ? "text" : "telepathy"]?.seconds;
+  if (c && s) c.textContent = t().about(Math.round(s));
+}
+
+async function load(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  draw();
+  [windows, numbers, liveStatus] = await Promise.all([load("../windows.json").then((w) => w || []), load("numbers.json"), load("/api/status").then((s) => s || { live: false })]);
+  if (isOn()) contracts = await load("/api/council");
+  if (isOn() && !Array.isArray(contracts)) { contracts = null; failure = [t().off, ""]; }
+  draw();
+})();
+</script>
+</body>
+</html>

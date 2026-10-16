@@ -1,0 +1,44 @@
+{
+  "token_cap": 24000,
+  "cuad": {
+    "train": {
+      "total": 408,
+      "under_cap": 357,
+      "median": 7284,
+      "p90": 26044,
+      "max": 82345
+    },
+    "test": {
+      "total": 102,
+      "under_cap": 92,
+      "median": 5440,
+      "p90": 22342,
+      "max": 64640
+    }
+  },
+  "contractnli": {
+    "train": {
+      "total": 423,
+      "under_cap": 423,
+      "median": 1920,
+      "p90": 3907,
+      "max": 11532
+    },
+    "test": {
+      "total": 123,
+      "under_cap": 123,
+      "median": 1853,
+      "p90": 3883,
+      "max": 7908
+    }
+  },
+  "claudette": {
+    "all": {
+      "total": 50,
+      "under_cap": 42,
+      "median": 12341,
+      "p90": 24151,
+      "max": 40522
+    }
+  }
+}

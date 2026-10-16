@@ -1,0 +1,7 @@
+# Environment and results of the one-command trial (trial.sh) and of the MI300X runs (mi300x.sh).
+.venv/
+results-trial/
+results-mi300x/
+# the same folders with their names before the English rename
+risultati-prova/
+risultati-mi300x/

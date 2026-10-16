@@ -1,0 +1,8 @@
+{
+  "name": "judges-site",
+  "private": true,
+  "description": "The judges' site: static pages on Vercel and the functions that hold the keys",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "test": "node --test \"test/*.test.mjs\"", "local": "node local.mjs" }
+}
