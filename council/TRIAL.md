@@ -1,154 +1,152 @@
-# Provare il Consiglio silenzioso
+# Trying the Silent Council
 
-Un comando prepara tutto, fa girare il Consiglio sui contratti e apre la pagina del verdetto.
+One command prepares everything, runs the council on the contracts and opens the verdict page.
 
 ```bash
 git clone https://github.com/AIVolve-Team/the-silent-council.git
 cd the-silent-council
-./consiglio/prova.sh
+./council/trial.sh
 ```
 
-Dal 12/10/2026 tutto il lavoro sta su `main`, il ramo su cui parte il clone. Chi aveva già clonato il repo passa a `main` con `git fetch origin && git checkout -B main origin/main`, anche se il suo `main` era rimasto indietro; se ci sono modifiche non salvate git si ferma, e prima serve `git stash`.
+Since 12/10/2026 all the work is on `main`, the branch the clone starts on. If you had already cloned the repo, switch to `main` with `git fetch origin && git checkout -B main origin/main`, even if your `main` had fallen behind; if there are unsaved changes git stops, and you need `git stash` first.
 
-Su Mac c'è anche `consiglio/prova.command`: con un doppio clic nel Finder la prova parte in una finestra del Terminale tutta sua, che alla fine resta aperta con il riepilogo. Per farla partire da Claude Code vedi [Con Claude Code](#con-claude-code).
+On a Mac there is also `council/trial.command`: with a double click in the Finder the trial starts in a Terminal window of its own, which stays open at the end with the summary. To start it from Claude Code see [With Claude Code](#with-claude-code).
 
-Mentre gira, il Mac non va in stop da solo: basta tenerlo collegato alla corrente e con il coperchio aperto.
+While it runs, the Mac does not go to sleep on its own: just keep it plugged in and with the lid open.
 
-Il repo è privato: serve l'accesso all'organizzazione AIVolve-Team, lo stesso con cui si vedono i ticket. Se `git clone` chiede una password, basta `gh auth login` una volta e poi `gh repo clone AIVolve-Team/the-silent-council` al posto della prima riga.
+## What you need
 
-## Cosa serve
+- **A Mac with an Apple chip and at least 64 GB of memory**, or Linux with an NVIDIA GPU of at least 48 GB, to use **Qwen3-14B**, the council's model. With less memory the script picks a smaller model by itself (8B, 4B), which only shows that everything works. On a PC what counts is the graphics card's memory, not the RAM: with a 24 GB GPU the script uses the 4B.
+- Below 80 GB the longest CUAD contract (22,863 tokens) is skipped: the council would keep up to three copies of it in memory, and with the 14B that is estimated at about 46 GB for that contract alone.
+- **About 40 GB free on disk**: 30 for the model, the rest for data and libraries.
+- **Internet** for the first run.
+- **Nothing else**: the script prepares Python and the libraries. If `uv`, the Python manager, is missing, it installs it in the user's folder, without `sudo`.
 
-- **Un Mac con chip Apple e almeno 64 GB di memoria**, oppure Linux con una GPU NVIDIA da almeno 48 GB, per usare **Qwen3-14B**, il modello del Consiglio. Con meno memoria lo script sceglie da solo un modello più piccolo (8B, 4B), che serve solo a vedere che tutto funziona. Su un PC conta la memoria della scheda video, non la RAM: con una GPU da 24 GB lo script usa il 4B.
-- Sotto gli 80 GB il contratto CUAD più lungo (22.863 token) si salta: il Consiglio ne terrebbe in memoria fino a tre copie, e con il 14B si stimano circa 46 GB solo per quel contratto.
-- **Circa 40 GB liberi su disco**: 30 per il modello, il resto per dati e librerie.
-- **Internet** per il primo giro.
-- **Nient'altro**: Python e librerie li prepara lo script. Se manca `uv`, il gestore di Python, lo installa nella cartella dell'utente, senza `sudo`.
+On Windows the script must be launched inside WSL2 (Ubuntu).
 
-Su Windows lo script va lanciato dentro WSL2 (Ubuntu).
+## What it does
 
-## Cosa fa
-
-| Passo | Cosa | Tempo, la prima volta |
+| Step | What | Time, the first time |
 |---|---|---|
-| 1 | Guarda memoria e GPU, sceglie il modello | subito |
-| 2 | Python 3.12 e librerie, alle versioni fissate, in `consiglio/.venv` | qualche minuto |
-| 3 | Test veloci di motore, dati e Consiglio, senza modello | un minuto |
-| 4 | Scarica CUAD, ContractNLI e CLAUDETTE e ne controlla le impronte | un minuto |
-| 5 | Cerca il set dimostrativo e ne controlla le impronte (vedi sotto) | subito |
-| 6 | Scarica il modello: Qwen3-14B pesa circa 30 GB | dipende dalla rete |
-| 7 | Fa girare il Consiglio, in telepatia e a testo | vedi sotto |
-| 8 | Scrive le pagine del verdetto e apre la prima | subito |
+| 1 | Looks at memory and GPU, picks the model | right away |
+| 2 | Python 3.12 and libraries, at pinned versions, in `council/.venv` | a few minutes |
+| 3 | Fast tests of engine, data and council, without a model | one minute |
+| 4 | Downloads CUAD, ContractNLI and CLAUDETTE and checks their fingerprints | one minute |
+| 5 | Looks for the demo set and checks its fingerprints (see below) | right away |
+| 6 | Downloads the model: Qwen3-14B weighs about 30 GB | depends on the network |
+| 7 | Runs the council, in telepathy and in text | see below |
+| 8 | Writes the verdict pages and opens the first one | right away |
 
-Con Qwen3-14B su un Mac da 64 GB, il passo 7 dovrebbe durare **circa 2-3 ore** per il giro completo (4 contratti dimostrativi e 4 CUAD, ognuno in telepatia e a testo), di più sui chip meno recenti. Con `--veloce` gira solo la telepatia sui contratti dimostrativi: **circa mezz'ora**.
+With Qwen3-14B on a 64 GB Mac, step 7 should take **about 2-3 hours** for the full run (4 demo contracts and 4 CUAD ones, each in telepathy and in text), longer on older chips. With `--quick` only telepathy runs, on the demo contracts: **about half an hour**.
 
-Rilanciarlo è sicuro: quello che è già scaricato non si riscarica, e i risultati del giro precedente vengono sovrascritti.
+Running it again is safe: what is already downloaded is not downloaded again, and the results of the previous run are overwritten.
 
-## Cosa guardare
+## What to look at
 
-Alla fine lo script stampa un riepilogo per ogni giro e apre la pagina del primo contratto.
+At the end the script prints a summary for each run and opens the page of the first contract.
 
-- **La pagina del verdetto** (`consiglio/risultati-prova/pagine/`): raccomandazione, clausole da segnalare, dissenso fra gli esperti, citazioni con il bollino "trovata nel contratto". Ce n'è una per contratto e per modalità.
-- **Il riepilogo** di ogni giro:
-  - verdetti e note validi;
-  - F1, cioè il voto da 0 a 100 sulle clausole trovate, con accanto la base "sempre sì";
-  - token scritti e letti e secondi per contratto.
+- **The verdict page** (`council/results-trial/pages/`): recommendation, clauses to flag, dissent among the experts, quotes with the "found in the contract" badge. There is one per contract and per mode.
+- **The summary** of each run:
+  - valid verdicts and notes;
+  - F1, the 0 to 100 score on the clauses found, with the "always yes" baseline next to it;
+  - tokens written and read and seconds per contract.
 
-  Il confronto che conta è **telepatia contro testo**: stessa qualità (al massimo 3 punti di F1 in meno) con meno token e meno tempo.
-- **Le revisioni complete** (`consiglio/risultati-prova/*.jsonl`): tutto quello che hanno scritto esperti e relatore, con confidenze, dissensi, token e tempi.
+  The comparison that counts is **telepathy against text**: the same quality (at most 3 F1 points less) with fewer tokens and less time.
+- **The complete reviews** (`council/results-trial/*.jsonl`): everything the experts and the rapporteur wrote, with confidences, dissents, tokens and times.
 
-Sono numeri del **set di sviluppo**, per capire come va. I numeri per la giuria vengono dall'eval pre-registrato, sul set di test e sulla MI300X.
+These are numbers from the **dev set**, to see how it goes. The numbers for the jury come from the pre-registered eval, on the test set and on the MI300X.
 
-Il riepilogo ha anche due numeri che dicono **dove si perde una segnalazione**, se negli esperti o nel relatore:
+The summary also has two numbers that say **where a flag gets lost**, in the experts or in the rapporteur:
 
-- **note come verdetto**: l'F1 che avrebbe il Consiglio se il verdetto si facesse mettendo insieme le note degli esperti;
-- **note e verdetto d'accordo**: su quante categorie il relatore dice lo stesso dell'esperto che le guarda.
+- **notes as verdict**: the F1 the council would have if the verdict were made by putting the experts' notes together;
+- **notes and verdict agree**: on how many categories the rapporteur says the same as the expert who looks at them.
 
-Se le note vanno bene e il verdetto no, il problema è nel relatore.
+If the notes are good and the verdict is not, the problem is in the rapporteur.
 
-## La prova di diagnosi
+## The diagnosis trial
 
-Con Qwen3-14B, nella prova dell'8/10, in telepatia le note degli esperti erano buone mentre il verdetto del relatore no. La diagnosi serve a capire perché:
-
-```bash
-./consiglio/prova.sh --diagnosi
-```
-
-Su Mac c'è anche `consiglio/diagnosi.command`, che fa la stessa cosa in una finestra del Terminale tutta sua (doppio clic nel Finder, oppure `open consiglio/diagnosi.command`).
-
-- Gira **solo la telepatia** e **solo sui 4 contratti del set dimostrativo**, che quindi deve esserci (vedi [Il set dimostrativo](#il-set-dimostrativo)).
-- **Spegne il riallineamento** dei passi latenti: è una correzione dei "pensieri" degli esperti prima di passarli avanti (la matrice W_a di LatentMAS). Nel Consiglio è accesa, in LatentMAS è spenta di default.
-- Fa **tre giri**, con 0, 10 e 40 passi latenti, cioè i passi in cui ogni esperto "pensa" senza scrivere. Il modello si carica una volta sola.
-- Con Qwen3-14B su un Mac M1 Max da 64 GB dura **circa un'ora**. Con modelli più piccoli dell'8B il riallineamento non cambia quasi niente: la prova serve solo a vedere che tutto funziona.
-- I risultati vanno in `consiglio/risultati-prova/diagnosi/`, così quelli della prova normale restano. Alla fine lo script prepara lo zip `consiglio/risultati-prova/diagnosi.zip`.
-- **Lo zip contiene frasi del set dimostrativo:** va mandato in privato a chi l'ha chiesto, mai su GitHub.
-
-Come si leggono i numeri, confrontandoli con la prova dell'8/10 (10 passi con riallineamento):
-
-- **con 0 passi** il relatore riceve solo la memoria di quello che gli esperti hanno letto, senza "pensieri": se il verdetto resta rotto, il relatore non riesce a ritrovare le informazioni nella memoria degli altri senza avere il contratto davanti;
-- se invece **con 0 e 10 passi senza riallineamento** il verdetto torna vicino a quello a testo, il colpevole è il riallineamento;
-- se va bene con 0 passi ma non con 10, anche senza riallineamento, a confondere il relatore sono i "pensieri" stessi.
-
-## La verifica su CUAD
-
-La diagnosi del 12/10 ha dato la colpa al riallineamento: senza, la telepatia sul set dimostrativo arriva a F1 98,2, con 0, 10 e 40 passi. Prima di congelare la pre-registrazione va confermato sui contratti CUAD di sviluppo, dove si misura G4:
+With Qwen3-14B, in the trial of 8/10, in telepathy the experts' notes were good while the rapporteur's verdict was not. The diagnosis is there to understand why:
 
 ```bash
-./consiglio/prova.sh --diagnosi-cuad
+./council/trial.sh --diagnosis
 ```
 
-Su Mac c'è anche `consiglio/diagnosi-cuad.command` (doppio clic nel Finder, oppure `open consiglio/diagnosi-cuad.command`).
+On a Mac there is also `council/diagnosis.command`, which does the same thing in a Terminal window of its own (double click in the Finder, or `open council/diagnosis.command`).
 
-- Gira **solo sui CUAD di sviluppo**. Su un Mac sotto gli 80 GB sono i 4 contratti fino a 14.000 token, gli stessi della prova dell'8/10. Il set dimostrativo non serve.
-- **Telepatia senza riallineamento con 0 e 10 passi:** 0 è il valore da confermare, 10 serve al controllo dei pensieri azzerati.
-- **Testo rifatto con il codice di oggi**, così il confronto con la telepatia è pulito. Il testo dell'8/10 veniva da un codice più vecchio.
-- Con Qwen3-14B su un Mac M1 Max da 64 GB dura **circa un'ora e un quarto**.
-- I risultati vanno in `consiglio/risultati-prova/diagnosi-cuad/`, e alla fine lo script prepara lo zip `consiglio/risultati-prova/diagnosi-cuad.zip`.
-- **Lo zip contiene solo contratti CUAD, che sono pubblici:** niente del set dimostrativo.
+- It runs **telepathy only** and **only on the 4 contracts of the demo set**, which must therefore be there (see [The demo set](#the-demo-set)).
+- It **turns off the realignment** of the latent steps: a correction of the experts' "thoughts" before passing them on (LatentMAS's W_a matrix). In the council it is on; in LatentMAS it is off by default.
+- It does **three runs**, with 0, 10 and 40 latent steps, the steps in which each expert "thinks" without writing. The model is loaded only once.
+- With Qwen3-14B on a 64 GB M1 Max Mac it takes **about an hour**. With models smaller than the 8B the realignment changes almost nothing: the trial only shows that everything works.
+- The results go to `council/results-trial/diagnosis/`, so those of the normal trial stay. At the end the script prepares the zip `council/results-trial/diagnosis.zip`.
+- **The zip contains sentences of the demo set:** send it privately to whoever asked for it, never on GitHub.
 
-## Con Claude Code
+How to read the numbers, comparing them with the trial of 8/10 (10 steps with realignment):
 
-Se la prova la chiedi a Claude Code, queste sono le regole per lui:
+- **with 0 steps** the rapporteur receives only the memory of what the experts read, without "thoughts": if the verdict stays broken, the rapporteur cannot find the information in the others' memory without having the contract in front of it;
+- if instead **with 0 and 10 steps without realignment** the verdict comes back close to the text one, the culprit is the realignment;
+- if it goes well with 0 steps but not with 10, even without realignment, what confuses the rapporteur is the "thoughts" themselves.
 
-- **Sempre in un clone nuovo**, fatto apposta per la prova, anche se il repo è già sul computer: mai in una cartella dove lavorano altre sessioni di Claude Code o altre persone. Se qualcuno cambia ramo in quella cartella mentre la prova gira, la prova si ferma a metà, per esempio con `No module named revisione.esegui`.
+## The check on CUAD
+
+The diagnosis of 12/10 blamed the realignment: without it, telepathy on the demo set reaches F1 98.2, with 0, 10 and 40 steps. Before freezing the pre-registration this must be confirmed on the CUAD dev contracts, where G4 is measured:
+
+```bash
+./council/trial.sh --diagnosis-cuad
+```
+
+On a Mac there is also `council/diagnosis-cuad.command` (double click in the Finder, or `open council/diagnosis-cuad.command`).
+
+- It runs **only on the CUAD dev contracts**. On a Mac below 80 GB these are the 4 contracts up to 14,000 tokens, the same as in the trial of 8/10. The demo set is not needed.
+- **Telepathy without realignment with 0 and 10 steps:** 0 is the value to confirm, 10 is for the pre-registered zeroed-thoughts check.
+- **Text redone with today's code**, so the comparison with telepathy is clean. The text run of 8/10 came from older code.
+- With Qwen3-14B on a 64 GB M1 Max Mac it takes **about an hour and a quarter**.
+- The results go to `council/results-trial/diagnosis-cuad/`, and at the end the script prepares the zip `council/results-trial/diagnosis-cuad.zip`.
+- **The zip contains only CUAD contracts, which are public:** nothing from the demo set.
+
+## With Claude Code
+
+If you ask Claude Code for the trial, these are the rules for it:
+
+- **Always in a fresh clone**, made just for the trial, even if the repo is already on the computer: never in a folder where other Claude Code sessions or other people work. If someone switches branch in that folder while the trial runs, the trial stops halfway, for example with `No module named review.run`.
 
   ```bash
-  CARTELLA=~/consiglio-prova-$(date +%Y%m%d-%H%M)
-  git clone https://github.com/AIVolve-Team/the-silent-council.git "$CARTELLA"
+  FOLDER=~/council-trial-$(date +%Y%m%d-%H%M)
+  git clone https://github.com/AIVolve-Team/the-silent-council.git "$FOLDER"
   ```
 
-  Il modello non si riscarica, perché sta nella cache di Hugging Face fuori dal clone, e il set dimostrativo lo riprende da solo lo script dal repo privato. Se invece il set te l'avevano passato a mano, va copiato in `consiglio/dati/set-dimostrativo/` del clone nuovo.
-- **Non si modifica niente.** Niente file cambiati, niente pacchetti installati a mano, niente modello diverso: fa tutto `prova.sh`.
-- **Il modello lo scarica lo script:** Qwen3-14B da Hugging Face, a una revisione fissata. Un Qwen già installato con Ollama o LM Studio non si può usare: il Consiglio passa da un agente all'altro la memoria interna del modello (la cache KV), e quei programmi non la danno.
-- **La prova parte fuori da Claude Code**, in una finestra del Terminale tutta sua:
+  The model is not downloaded again, because it sits in the Hugging Face cache outside the clone, and the script takes the demo set again by itself from the private repo. If instead the set was handed to you, copy it into `council/data/demo-set/` of the fresh clone.
+- **Nothing is changed.** No modified files, no packages installed by hand, no different model: `trial.sh` does everything.
+- **The script downloads the model:** Qwen3-14B from Hugging Face, at a pinned revision. A Qwen already installed with Ollama or LM Studio cannot be used: the council passes the model's internal memory (the KV cache) from one agent to the next, and those programs do not expose it.
+- **The trial starts outside Claude Code**, in a Terminal window of its own:
 
   ```bash
-  open consiglio/prova.command
+  open council/trial.command
   ```
 
-  Per la [prova di diagnosi](#la-prova-di-diagnosi) il comando è `open consiglio/diagnosi.command`, per la [verifica su CUAD](#la-verifica-su-cuad) `open consiglio/diagnosi-cuad.command`.
+  For the [diagnosis trial](#the-diagnosis-trial) the command is `open council/diagnosis.command`, for the [check on CUAD](#the-check-on-cuad) `open council/diagnosis-cuad.command`.
 
-  Il giro dura ore e usa molta memoria: un comando lanciato dentro Claude Code può essere fermato quando la memoria si riempie. La prima volta macOS può chiedere il permesso di far aprire la cartella al Terminale: va accettato.
-- **Per seguirla** basta leggere `consiglio/risultati-prova/prova.log` (per la diagnosi `consiglio/risultati-prova/diagnosi/prova.log`, per la verifica su CUAD `consiglio/risultati-prova/diagnosi-cuad/prova.log`), che cresce mentre la prova va avanti.
-  - È finita quando in fondo al log compare la riga che comincia con `Fatto.`.
-  - Si è fermata se `pgrep -f consiglio/prova.sh` non trova più niente e quella riga non c'è.
-- **Alla fine** il log ha il riepilogo di ogni giro: va spiegato in parole semplici, mettendo a confronto telepatia e testo (F1, token, secondi). Le pagine del verdetto sono in `consiglio/risultati-prova/pagine/`.
-  Nella diagnosi invece si confrontano i tre giri (0, 10 e 40 passi) e si ricorda di mandare lo zip in privato.
-  Nella verifica su CUAD si confronta la telepatia con 0 passi con il testo, e la telepatia con 0 passi con quella con 10.
-- **Se si ferma, niente correzioni:** si riportano il messaggio d'errore e le ultime righe di `prova.log`.
+  The run takes hours and uses a lot of memory: a command launched inside Claude Code can be stopped when memory fills up. The first time macOS may ask permission for the Terminal to open the folder: accept it.
+- **To follow it**, just read `council/results-trial/trial.log` (for the diagnosis `council/results-trial/diagnosis/trial.log`, for the check on CUAD `council/results-trial/diagnosis-cuad/trial.log`), which grows as the trial goes on.
+  - It has finished when the line starting with `Done.` appears at the bottom of the log.
+  - It has stopped if `pgrep -f council/trial.sh` finds nothing any more and that line is not there.
+- **At the end** the log has the summary of each run: explain it in plain words, comparing telepathy and text (F1, tokens, seconds). The verdict pages are in `council/results-trial/pages/`.
+  In the diagnosis, instead, compare the three runs (0, 10 and 40 steps) and remind them to send the zip privately.
+  In the check on CUAD, compare telepathy with 0 steps against text, and telepathy with 0 steps against telepathy with 10.
+- **If it stops, no fixes:** report the error message and the last lines of `trial.log`.
 
-## Il set dimostrativo
+## The demo set
 
-I 4 contratti italiani scritti dal team **non stanno nel repo** fino alla consegna. Lo script li cerca in due posti:
+The 4 Italian contracts written by the team **are not in the repo** until the delivery. The script looks for them in two places:
 
-1. nella cartella `consiglio/dati/set-dimostrativo/`, se qualcuno del team te li ha passati;
-2. nel repo privato `AIVolve-Team/consiglio-set-dimostrativo`, che lo script scarica da solo con lo stesso accesso usato per il clone, senza chiedere password.
+1. in the folder `council/data/demo-set/`, if someone on the team handed them to you;
+2. in the private repo `AIVolve-Team/consiglio-set-dimostrativo`, which the script downloads by itself with the same access used for the clone, without asking for a password.
 
-In entrambi i casi controlla che le impronte coincidano con `consiglio/dati/set-dimostrativo.sha256`. Senza il set dimostrativo il giro usa solo i contratti CUAD, e le pagine sono di quelli.
+In both cases it checks that the fingerprints match `council/data/demo-set.sha256`. Without the demo set the run uses only the CUAD contracts, and the pages are of those.
 
-Per regola, chi ha scritto o rivisto le risposte attese del set dimostrativo non fa il controllo a mano dell'eval.
+By the pre-registered rules, whoever wrote or reviewed the expected answers of the demo set does not do the eval's manual check.
 
-## Se qualcosa non va
+## If something goes wrong
 
-- **Il Mac rallenta molto o va in swap:** chiudi le applicazioni pesanti (macchine virtuali, browser con molte schede) e rilancia. Oppure prova prima `./consiglio/prova.sh --veloce`.
-- **Vuoi un altro modello:** `MODELLO=Qwen/Qwen3-8B./consiglio/prova.sh`.
-- **Tutto quello che è successo** è in `consiglio/risultati-prova/prova.log`: in caso di problemi basta mandare quel file.
+- **The Mac slows down a lot or swaps:** close heavy applications (virtual machines, browsers with many tabs) and run it again. Or try `./council/trial.sh --quick` first.
+- **You want another model:** `MODEL=Qwen/Qwen3-8B./council/trial.sh`.
+- **Everything that happened** is in `council/results-trial/trial.log`: if there are problems, just send that file.

@@ -1,126 +1,127 @@
-# Taratura del Consiglio sulla MI300X (12/10/2026)
+# Calibration of the council on the MI300X (12/10/2026)
 
-**In breve: vincono 0 passi latenti.**
-Sul set di sviluppo la telepatia batte il testo in qualità (F1 71,4 contro 52,6 su CUAD) e costa meno: meno della metà dei token generati e circa un terzo di tempo in meno.
-L'accordo con i giri del Mac è fra il 96 e il 100%, quindi il test pre-registrato può partire dopo il congelamento.
+**In short: 0 latent steps win.**
+On the dev set telepathy beats text in quality (F1 71.4 against 52.6 on CUAD) and costs less: less than half the tokens generated and about a third less time.
+The agreement with the Mac runs is between 96 and 100%, so the pre-registered test can start after the freezing.
 
-Qui ci sono solo numeri aggregati. I `.jsonl` del set dimostrativo contengono frasi dei contratti e restano privati.
+Rules: [PREREGISTRATION.md](PREREGISTRATION.md). Procedure: [MI300X.md](MI300X.md).
+Here there are only aggregate numbers. The `.jsonl` files of the demo set contain sentences of the contracts and stay private.
 
-## Cosa abbiamo tarato
+## What we calibrated
 
-La taratura mette a punto **due cose** prima del test, sul set di **sviluppo**. Si sceglie su un set e si misura su un altro, una volta sola: così il risultato del test non si può "aggiustare".
+The calibration tunes **two things** before the test, on the **dev** set. You choose on one set and measure on another, only once: that way the result of the test cannot be "adjusted".
 
-1. **I passi latenti**, la manopola della telepatia. Ogni agente legge la sua sezione del contratto e passa al collega la sua memoria di lavoro (la cache KV). Prima di passarla può "pensare in silenzio" per qualche passo: ogni passo è una parola che il modello aggiunge alla memoria senza scriverla. Si provano 0, 10, 20 e 40 passi.
-   - **Regola** (pre-registrazione): sul set di sviluppo di CUAD vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi.
-2. **Le soglie di confidenza.** Per ogni clausola il Consiglio dice anche quanto è sicuro, una probabilità da 0 a 1. La pagina del verdetto mostra un'etichetta, alta, media o bassa. La taratura controlla se le etichette dicono il vero: quando dice "alta" dovrebbe avere ragione almeno 9 volte su 10.
+1. **The latent steps**, the knob of telepathy. Each agent reads its section of the contract and passes its working memory (the KV cache) to its colleague. Before passing it, it can "think in silence" for a few steps: each step is a word the model adds to the memory without writing it. 0, 10, 20 and 40 steps are tried.
+   - **Rule** (pre-registration): on the CUAD dev set the highest F1 wins and, within 1 point of difference, the value with fewer steps.
+2. **The confidence thresholds.** For each clause the council also says how sure it is, a probability from 0 to 1. The verdict page shows a label, high, medium or low. The calibration checks whether the labels tell the truth: when it says "high" it should be right at least 9 times out of 10.
 
-## Le metriche
+## The metrics
 
-Per ogni contratto c'è la lista delle clausole da segnalare, con la risposta giusta (CUAD: annotazioni di esperti; set dimostrativo: le nostre). Per ogni clausola il Consiglio dice sì o no.
+For each contract there is the list of clauses to flag, with the correct answer (CUAD: expert annotations; demo set: ours). For each clause the council says yes or no.
 
-| Metrica | Cosa misura |
+| Metric | What it measures |
 |---|---|
-| **Precisione (P)** | Delle clausole segnalate, quante erano davvero da segnalare: i falsi allarmi |
-| **Richiamo (R)** | Delle clausole da segnalare, quante ne ha trovate: quelle sfuggite |
-| **F1** | La media fra precisione e richiamo, da 0 a 100: il voto di qualità |
-| **MCC** | Correlazione fra risposte e verità, da −1 a 1; tiene conto anche dei "no" giusti |
-| **Note come verdetto** | L'F1 se si usassero le note dei singoli agenti invece del verdetto finale |
+| **Precision (P)** | Of the clauses flagged, how many really had to be flagged: the false alarms |
+| **Recall (R)** | Of the clauses to flag, how many it found: the ones that slipped through |
+| **F1** | The mean of precision and recall, from 0 to 100: the quality score |
+| **MCC** | Correlation between answers and truth, from −1 to 1; it also counts the correct "no"s |
+| **Notes as verdict** | The F1 if the notes of the single agents were used instead of the final verdict |
 
-## I risultati
+## The results
 
-Qwen3-14B in bf16 con riallineamento W_a spento, come deciso dalla diagnosi.
+Qwen3-14B in bf16 with the W_a realignment off, as decided by the diagnosis of 12/10/2026.
 
-### CUAD (pubblico, 5 contratti di sviluppo)
+### CUAD (public, 5 dev contracts)
 
-| Modo | Passi | F1 | P | R | MCC | Token generati per contratto | Secondi per contratto |
+| Mode | Steps | F1 | P | R | MCC | Tokens generated per contract | Seconds per contract |
 |---|---|---|---|---|---|---|---|
-| telepatia | **0** | **71,4** | 71,4 | 71,4 | 0,63 | 1.217 | 70 |
-| telepatia | 10 | 65,1 | 63,6 | 66,7 | 0,55 | | |
-| telepatia | 20 | 58,5 | 60,0 | 57,1 | 0,47 | | |
-| telepatia | 40 | 61,5 | 66,7 | 57,1 | 0,52 | | |
-| testo | | 52,6 | 58,8 | 47,6 | 0,41 | 2.776 | 103 |
+| telepathy | **0** | **71.4** | 71.4 | 71.4 | 0.63 | 1,217 | 70 |
+| telepathy | 10 | 65.1 | 63.6 | 66.7 | 0.55 | | |
+| telepathy | 20 | 58.5 | 60.0 | 57.1 | 0.47 | | |
+| telepathy | 40 | 61.5 | 66.7 | 57.1 | 0.52 | | |
+| text | | 52.6 | 58.8 | 47.6 | 0.41 | 2,776 | 103 |
 
-Con 40 passi un verdetto su 5 non è valido.
+With 40 steps one verdict in 5 is not valid.
 
-### Set dimostrativo (italiano, privato, 4 contratti)
+### Demo set (Italian, private, 4 contracts)
 
-| Modo | Passi | F1 | P | R | MCC | Token generati per contratto | Secondi per contratto |
+| Mode | Steps | F1 | P | R | MCC | Tokens generated per contract | Seconds per contract |
 |---|---|---|---|---|---|---|---|
-| telepatia | 0, 10, 20, 40 | **98,2** | 96,6 | 100 | 0,97 | 1.438 (0 passi) | 67 (0 passi) |
-| testo | | 76,6 | 94,7 | 64,3 | 0,69 | 2.894 | 101 |
+| telepathy | 0, 10, 20, 40 | **98.2** | 96.6 | 100 | 0.97 | 1,438 (0 steps) | 67 (0 steps) |
+| text | | 76.6 | 94.7 | 64.3 | 0.69 | 2,894 | 101 |
 
-### Passi scelti: **0**
+### Steps chosen: **0**
 
-Con la regola della pre-registrazione vince 0 passi (F1 71,4 su CUAD). Sul set dimostrativo i passi non cambiano niente.
-Per, con 0 passi le prove sui pensieri non si fanno e per la giuria vale la frase di riserva.
+With the pre-registration's rule 0 steps win (F1 71.4 on CUAD). On the demo set the steps change nothing.
+By the pre-registered rules, with 0 steps the tests on the thoughts are not run and the fallback sentence applies for the jury.
 
-È lo stesso schema visto altrove:
-- sul Mac, CUAD: 68,8 con 0 passi contro 56,2 con 10;
-- G1 su GSM8K: 98 su 100 con 0 passi contro 96 con 10 ([g1/RESULTS-MI300X.md](../g1/RESULTS-MI300X.md)).
+It is the same pattern seen elsewhere:
+- on the Mac, CUAD: 68.8 with 0 steps against 56.2 with 10;
+- G1 on GSM8K: 98 out of 100 with 0 steps against 96 with 10 ([g1/RESULTS-MI300X.md](../g1/RESULTS-MI300X.md)).
 
-**Il valore della telepatia sta nel passarsi la memoria della lettura, non nel pensiero in più.** Vale per il modello così com'è, senza addestramento: addestrarlo a usare i passi è la proposta, per dopo l'hackathon.
+**The value of telepathy lies in handing over the memory of the reading, not in the extra thinking.** This holds for the model as it is, without training: training it to use the steps is a proposal for after the hackathon.
 
-### Qualità, non solo costo
+### Quality, not only cost
 
-Con 0 passi la telepatia **trova molte più clausole rischiose** del testo:
-- **richiamo:** 71 contro 48 su CUAD, 100 contro 64 sul dimostrativo;
-- **precisione:** non scende, anzi sale un po'.
+With 0 steps telepathy **finds many more risky clauses** than text:
+- **recall:** 71 against 48 on CUAD, 100 against 64 on the demo set;
+- **precision:** it does not drop; it even rises a little.
 
-Una spiegazione possibile: a testo ogni agente riassume e perde dettagli, in telepatia il collega riceve tutta la memoria della lettura.
+A possible explanation: in text each agent summarises and loses details, in telepathy the colleague receives the whole memory of the reading.
 
-### Confidenza: il modello è troppo sicuro di sé
+### Confidence: the model is overconfident
 
-Decisioni (verdetti e note) di telepatia e testo, con 0 passi:
+Decisions (verdicts and notes) of telepathy and text, with 0 steps:
 
-| Confidenza | CUAD: decisioni | CUAD: giuste | Dimostrativo: decisioni | Dimostrativo: giuste |
+| Confidence | CUAD: decisions | CUAD: correct | Demo: decisions | Demo: correct |
 |---|---|---|---|---|
-| 0,50–0,60 | 2 | 100% | | |
-| 0,60–0,70 | 4 | 75% | | |
-| 0,70–0,80 | 9 | 67% | 1 | 100% |
-| 0,80–0,85 | 1 | 100% | | |
-| 0,85–0,90 | 4 | 75% | | |
-| 0,90–0,95 | 7 | 86% | 1 | 100% |
-| 0,95–0,99 | 14 | 64% | 2 | 100% |
-| 0,99–1,00 | 149 | 89% | 148 | 97% |
+| 0.50–0.60 | 2 | 100% | | |
+| 0.60–0.70 | 4 | 75% | | |
+| 0.70–0.80 | 9 | 67% | 1 | 100% |
+| 0.80–0.85 | 1 | 100% | | |
+| 0.85–0.90 | 4 | 75% | | |
+| 0.90–0.95 | 7 | 86% | 1 | 100% |
+| 0.95–0.99 | 14 | 64% | 2 | 100% |
+| 0.99–1.00 | 149 | 89% | 148 | 97% |
 
-- **Su CUAD nessuna soglia arriva a 9 decisioni giuste su 10:** anche sopra 0,99 sono giuste l'89%. Quasi tutte le decisioni stanno sopra 0,99, quindi l'etichetta "alta" non distingue le decisioni sicure da quelle dubbie.
-- **Sul dimostrativo** lo script propone 0,60 per tutte e due le soglie, ma con 4 casi sotto 0,99 il dato non regge.
-- **Soglie confermate** prima della taratura: 0,9 per "alta" e 0,7 per "media". Nella pre-registrazione la taratura della confidenza è una **misura senza soglia**: si riporta, non decide il verdetto. Va scritto chiaro che oggi "alta" non vuol dire "fidati senza controllare".
+- **On CUAD no threshold reaches 9 correct decisions out of 10:** even above 0.99 89% are correct. Almost all decisions are above 0.99, so the "high" label does not tell the sure decisions from the doubtful ones.
+- **On the demo set** the script proposes 0.60 for both thresholds, but with 4 cases below 0.99 the figure does not hold up.
+- **Thresholds confirmed** from before the calibration: 0.9 for "high" and 0.7 for "medium". In the pre-registration the confidence calibration is a **metric without a threshold**: it is reported, it does not decide the verdict. It must be written clearly that today "high" does not mean "trust it without checking".
 
-## Accordo con il Mac
+## Agreement with the Mac
 
-Stesso codice, stessi contratti, sì/no del verdetto confrontati clausola per clausola fra i giri del Mac (diagnosi del 12/10) e quelli della MI300X:
+Same code, same contracts, the verdict's yes/no compared clause by clause between the Mac runs (diagnosis of 12/10) and those of the MI300X:
 
-| Giro | Contratti in comune | Coppie | Accordo |
+| Run | Contracts in common | Pairs | Agreement |
 |---|---|---|---|
-| CUAD, telepatia 0 passi | 4 | 76 | 98,7% |
-| CUAD, telepatia 10 passi | 4 | 76 | 96,1% |
-| CUAD, testo | 4 | 76 | 98,7% |
-| Dimostrativo, telepatia 0 passi | 4 | 76 | 100% |
-| Dimostrativo, telepatia 10 passi | 4 | 76 | 100% |
-| Dimostrativo, telepatia 40 passi | 4 | 76 | 100% |
+| CUAD, telepathy 0 steps | 4 | 76 | 98.7% |
+| CUAD, telepathy 10 steps | 4 | 76 | 96.1% |
+| CUAD, text | 4 | 76 | 98.7% |
+| Demo, telepathy 0 steps | 4 | 76 | 100% |
+| Demo, telepathy 10 steps | 4 | 76 | 100% |
+| Demo, telepathy 40 steps | 4 | 76 | 100% |
 
-Le divergenze sono poche e coerenti con hardware diverso (MPS in fp32 sul Mac, ROCm in bf16 sulla MI300X). Nessun motivo di fermarsi prima del test.
+The divergences are few and consistent with different hardware (MPS in fp32 on the Mac, ROCm in bf16 on the MI300X). No reason to stop before the test.
 
-## Cautele
+## Caveats
 
-- **Pochi contratti:** è il set di sviluppo, che serve a tarare, non a dimostrare. Il numero ufficiale esce dal **test**: CUAD, ContractNLI e CLAUDETTE, con le regole congelate prima.
-- **Il set dimostrativo l'abbiamo scritto noi**, quindi è indicativo. Il dato solido è CUAD.
+- **Few contracts:** it is the dev set, which is for calibrating, not for proving. The official number comes from the **test**: CUAD, ContractNLI and CLAUDETTE, with the rules frozen beforehand.
+- **We wrote the demo set ourselves**, so it is indicative. The solid figure is CUAD.
 
-## Prossimi passi
+## Next steps
 
-1. **Congelamento** su questo ramo:
-   - i passi a 0;
-   - le soglie;
-   - la sezione "Taratura sulla MI300X" della pre-registrazione, da questo documento;
-   - qualcuno del team rilegge le definizioni operative;
-   - `Stato: congelata`, commit e push.
-2. **Test**, una volta sola: `PASSI=0./consiglio/mi300x.sh test` (vedi MI300X.md, passo 5).
+1. **Freezing** on this branch:
+   - the steps at 0;
+   - the thresholds;
+   - the "Calibration on the MI300X" section of the pre-registration, from this document;
+   - someone on the team rereads the operational definitions;
+   - `Status: frozen`, commit and push.
+2. **Test**, only once: `STEPS=0 ./council/mi300x.sh test` (then `PASSI=0 ./consiglio/mi300x.sh test`; see MI300X.md, step 5).
 
-## Macchina e tempi
+## Machine and times
 
-- **Macchina:** AMD Developer Cloud, 1× MI300X da 192 GB, ROCm 7.2.
-- **Software:** immagine `vllm/vllm-openai-rocm:v0.30.0`, torch `2.12.0+git6bbd260`, transformers 4.57.6.
-- **Codice:** ramo `feat/eval` al commit `1ad3b02`.
-- **Prova veloce:** `Fatto.`, `GPU: cuda`, pesi in bfloat16; telepatia con 10 passi sul dimostrativo F1 98,2, come sul Mac.
-- **Taratura:** dalle 17:59 alle 18:59 (ora italiana), circa un'ora per 45 revisioni.
+- **Machine:** AMD Developer Cloud, 1× MI300X with 192 GB, ROCm 7.2.
+- **Software:** image `vllm/vllm-openai-rocm:v0.30.0`, torch `2.12.0+git6bbd260`, transformers 4.57.6.
+- **Code:** branch `feat/eval` at commit `1ad3b02`.
+- **Quick trial:** `Done.` (then `Fatto.`), `GPU: cuda`, weights in bfloat16; telepathy with 10 steps on the demo set F1 98.2, as on the Mac.
+- **Calibration:** from 17:59 to 18:59 (Italian time), about an hour for 45 reviews.
