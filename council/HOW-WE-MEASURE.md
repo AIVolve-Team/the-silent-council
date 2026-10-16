@@ -1,118 +1,118 @@
-# Come misuriamo il Consiglio
+# How we measure the council
 
-Una spiegazione per tutto il team, senza codice: cosa misura l'eval del Consiglio, come dà i punteggi e come si confrontano i sistemi.
-Le regole ufficiali, fissate prima di misurare, sono nella pre-registrazione: [`consiglio/PREREGISTRATION.md`](PREREGISTRATION.md).
+An explanation for the whole team, without code: what the council's eval measures, how it scores and how the systems are compared.
+The official rules, fixed before measuring, are in the pre-registration: [`council/PREREGISTRATION.md`](PREREGISTRATION.md).
 
-## 1. La domanda
+## 1. The question
 
-Dato un contratto, **quali tipi di clausola contiene?**
-Su CUAD, il benchmark principale, i tipi sono 19: per esempio "limitazione di responsabilità", "esclusiva", "rinnovo automatico", "divieto di concorrenza".
-Per ogni contratto e ogni tipo la risposta è **sì o no**.
+Given a contract, **which types of clause does it contain?**
+On CUAD, the main benchmark, there are 19 types: for example "cap on liability", "exclusivity", "automatic renewal", "non-compete".
+For each contract and each type the answer is **yes or no**.
 
-## 2. Il materiale: contratti con le risposte giuste
+## 2. The material: contracts with the correct answers
 
-- **CUAD** è un dataset pubblico di contratti commerciali reali in cui **avvocati** hanno annotato, clausola per clausola, dove si trova ogni tipo.
-- Da quelle annotazioni viene la **risposta giusta**: "sì" se gli avvocati hanno trovato almeno un pezzo di quel tipo nel contratto, "no" altrimenti.
-- Il test usa **20 contratti** che nessuno ha guardato durante lo sviluppo. Con 19 tipi fanno **380 domande** con risposta nota.
+- **CUAD** is a public dataset of real commercial contracts in which **lawyers** annotated, clause by clause, where each type is.
+- Those annotations give the **correct answer**: "yes" if the lawyers found at least one span of that type in the contract, "no" otherwise.
+- The test uses **20 contracts** that nobody looked at during development. With 19 types they make **380 questions** with a known answer.
 
-L'unità di misura è la **coppia (contratto, tipo di clausola)**.
+The unit of measure is the **pair (contract, clause type)**.
 
-## 3. Il flusso: cosa succede a ogni contratto
+## 3. The flow: what happens to each contract
 
-1. Il contratto va al sistema da valutare.
-2. Il sistema restituisce un **verdetto** in un formato fisso, uguale per tutti:
-   - per ognuno dei 19 tipi, **sì o no**;
-   - per i "sì", una **citazione** dal contratto come prova;
-   - una **raccomandazione**: firmare, negoziare o non firmare.
-3. Si registrano i **costi**: token letti, token generati, secondi.
-4. Si registra la **confidenza**: per ogni sì/no, la probabilità che il modello gli dava, letta dalle sue probabilità interne.
-5. Si confronta il verdetto con le risposte giuste.
+1. The contract goes to the system under evaluation.
+2. The system returns a **verdict** in a fixed format, the same for everyone:
+   - for each of the 19 types, **yes or no**;
+   - for each "yes", a **quote** from the contract as evidence;
+   - a **recommendation**: sign, negotiate or do not sign.
+3. The **costs** are recorded: tokens read, tokens generated, seconds.
+4. The **confidence** is recorded: for each yes/no, the probability the model gave it, read from its internal probabilities.
+5. The verdict is compared with the correct answers.
 
-## 4. I sistemi a confronto
+## 4. The systems compared
 
-Lo stesso modello, **Qwen3-14B**, con le stesse regole di decodifica, sulla stessa MI300X. Cambia solo come è organizzato il lavoro.
+The same model, **Qwen3-14B**, with the same decoding rules, on the same MI300X. Only the way the work is organized changes.
 
-| Configurazione | Come lavora | A cosa serve |
+| Configuration | How it works | What it is for |
 |---|---|---|
-| **Agente solo** | Un modello legge tutto il contratto e decide | Serve davvero un gruppo? |
-| **Voto fra 4** | Quattro esperti leggono tutto, ognuno per conto suo; vince la maggioranza | Basta un gruppo che non comunica? |
-| **Consiglio a testo** | Tre esperti leggono una sezione ciascuno e si scrivono le analisi; un relatore decide | Il gruppo che comunica scrivendo |
-| **Consiglio in telepatia** | Come sopra, ma gli esperti si passano la **memoria di lettura** invece di scriverla | Il nostro sistema |
-| **Contratto scambiato** | Il sistema legge un contratto e lo si valuta con le risposte di un altro | Controllo: il punteggio deve crollare |
+| **Solo agent** | One model reads the whole contract and decides | Is a group really needed? |
+| **Vote among 4** | Four experts read everything, each on their own; the majority wins | Is a group that does not communicate enough? |
+| **Council in text mode** | Three experts read one section each and write each other their analyses; a rapporteur decides | The group that communicates in writing |
+| **Council in telepathy** | As above, but the experts pass each other the **memory of their reading** instead of writing it | Our system |
+| **Swapped contract** | The system reads one contract and is scored with the answers of another | Check: the score must collapse |
 
-## 5. Come si dà il punteggio
+## 5. How the score is given
 
-Ogni coppia (contratto, tipo) finisce in una di quattro caselle:
+Each pair (contract, type) ends up in one of four boxes:
 
-| | Risposta giusta **sì** | Risposta giusta **no** |
+| | Correct answer **yes** | Correct answer **no** |
 |---|---|---|
-| Il sistema dice **sì** | ✅ trovata (vero positivo) | ❌ falso allarme |
-| Il sistema dice **no** | ❌ mancata | ✅ giusto silenzio |
+| The system says **yes** | ✅ found (true positive) | ❌ false alarm |
+| The system says **no** | ❌ missed | ✅ correct silence |
 
-Da queste caselle, sommate su tutti i contratti:
+From these boxes, summed over all the contracts:
 
-- **Precisione:** delle clausole che il sistema ha segnalato, quante erano vere? Misura i **falsi allarmi**.
-- **Richiamo:** delle clausole vere, quante ne ha trovate? Misura quelle **sfuggite**.
-- **F1:** la media armonica fra precisione e richiamo, da 0 a 100. È **il voto principale**. È alta solo se il sistema trova le clausole **senza inventarne**: chi segnala tutto ha richiamo alto e precisione bassa, chi segnala poco il contrario, e in entrambi i casi l'F1 resta bassa.
-- **MCC:** da −1 a 1. Tiene conto anche dei "no" giusti ed è utile quando i "sì" sono pochi.
-- **"Sempre sì":** l'F1 di un sistema finto che dice sempre sì. È il **pavimento**: su CUAD di test vale 32,6, e un sistema serio deve stare ben sopra.
+- **Precision:** of the clauses the system flagged, how many were real? It measures the **false alarms**.
+- **Recall:** of the real clauses, how many did it find? It measures the ones that **slipped through**.
+- **F1:** the harmonic mean of precision and recall, from 0 to 100. It is **the main score**. It is high only if the system finds the clauses **without inventing any**: a system that flags everything has high recall and low precision, one that flags little the opposite, and in both cases the F1 stays low.
+- **MCC:** from −1 to 1. It also takes the correct "no" answers into account and is useful when the "yes" answers are few.
+- **"Always yes":** the F1 of a fake system that always says yes. It is the **floor**: on the CUAD test set it is 32.6, and a serious system must be well above it.
 
-### Un esempio
+### An example
 
-Un contratto ha 4 clausole vere fra i 19 tipi. Il sistema ne segnala 5: 3 giuste e 2 sbagliate.
-- Precisione = 3 / 5 = 60%
-- Richiamo = 3 / 4 = 75%
+A contract has 4 real clauses among the 19 types. The system flags 5: 3 right and 2 wrong.
+- Precision = 3 / 5 = 60%
+- Recall = 3 / 4 = 75%
 - F1 = 2 × 60 × 75 / (60 + 75) ≈ 67
 
-L'F1 ufficiale **non** è la media delle F1 dei singoli contratti: si sommano trovate, falsi allarmi e mancate di **tutti** i contratti e si calcola l'F1 una volta sola.
+The official F1 is **not** the mean of the F1 of the single contracts: the found, false alarms and missed of **all** the contracts are summed and the F1 is computed only once.
 
-### Due regole di severità
+### Two strictness rules
 
-- **Verdetto non valido o mancante:** conta come "no" su tutti i suoi tipi, e si riporta a parte. Chi sbaglia il formato non viene premiato.
-- **F1 severa:** un "sì" giusto vale solo se la **citazione** coincide con il pezzo annotato dagli avvocati, con almeno 5 parole di fila in comune. Controlla che il sistema abbia trovato **la** clausola, non che abbia indovinato.
+- **Invalid or missing verdict:** it counts as "no" on all its types, and is reported separately. A system that gets the format wrong is not rewarded.
+- **Strict F1:** a correct "yes" counts only if the **quote** matches the span annotated by the lawyers, with at least 5 words in a row in common. It checks that the system found **the** clause, not that it guessed.
 
-## 6. Il costo
+## 6. The cost
 
-- **Token generati:** quanto scrive il sistema, cioè note, analisi e verdetto. Sulla GPU ogni token generato è tempo di calcolo.
-- **Token letti:** quanto testo il modello elabora in ingresso.
-- **Secondi per contratto:** tempo reale sulla MI300X, un contratto alla volta (batch 1), così i tempi sono confrontabili.
+- **Generated tokens:** how much the system writes, that is notes, analyses and verdict. On the GPU every generated token is compute time.
+- **Read tokens:** how much text the model processes as input.
+- **Seconds per contract:** real time on the MI300X, one contract at a time (batch 1), so the times are comparable.
 
-## 7. Come si confrontano due sistemi
+## 7. How two systems are compared
 
-Con 20 contratti una differenza di 2-3 punti di F1 può essere fortuna. Per capirlo si usa il **bootstrap appaiato**:
+With 20 contracts a difference of 2-3 F1 points can be luck. To find out, the **paired bootstrap** is used:
 
-1. si estraggono a caso 20 contratti fra i 20, con ripetizioni, **gli stessi per i due sistemi**;
-2. si ricalcola la differenza di F1;
-3. si ripete **10.000 volte**, con un seme fisso.
+1. 20 contracts are drawn at random from the 20, with repetitions, **the same ones for the two systems**;
+2. the F1 difference is recomputed;
+3. this is repeated **10,000 times**, with a fixed seed.
 
-Ne esce un **intervallo al 95%**, per esempio "telepatia meno testo: da −4 a +7 punti". Se l'intervallo contiene lo zero, la differenza non è sicura.
+The result is a **95% interval**, for example "telepathy minus text: from −4 to +7 points". If the interval contains zero, the difference is not certain.
 
-## 8. Il criterio di successo (G4, su CUAD)
+## 8. The success criterion (G4, on CUAD)
 
-Il Consiglio in telepatia è **consegnabile** se:
+The council in telepathy **can be delivered** if:
 
-1. **qualità:** F1 della telepatia ≥ F1 del testo − 3 punti. Per dire *"non perde, dimostrato"* anche il **limite inferiore** dell'intervallo deve stare entro −3;
-2. **costo:** almeno il **50% di token generati in meno** del testo;
-3. **velocità:** la telepatia non è più lenta del testo.
+1. **quality:** F1 of telepathy ≥ F1 of text − 3 points. To say *"does not lose, shown"* the **lower bound** of the interval must also be within −3;
+2. **cost:** at least **50% fewer generated tokens** than text;
+3. **speed:** telepathy is not slower than text.
 
-Accanto, **senza soglia**, si riporta la telepatia contro l'agente solo: è il confronto che isola l'effetto del canale.
+Next to it, **without a threshold**, telepathy against the solo agent is reported: it is the comparison that isolates the effect of the channel.
 
-## 9. Perché ci si può fidare
+## 9. Why it can be trusted
 
-- **Pre-registrazione:** tutte le regole qui sopra sono state scritte e committate **prima** di far girare il test, con data e commit. Ogni cambiamento è scritto fra le deviazioni, con il motivo.
-- **Una volta sola:** il test gira una volta. Rifarlo è una deviazione da dichiarare.
-- **Sviluppo e test separati:** il numero di passi della telepatia si è scelto su altri contratti (la taratura,), mai su quelli del test.
-- **Risposte giuste ricontrollate:** prima del test sono state rigenerate da zero dalle fonti originali, ed erano identiche.
-- **Controllo del contratto scambiato:** se il sistema non leggesse davvero il contratto, il punteggio non crollerebbe.
-- **Controllo a mano alla cieca** sui contratti italiani della demo: una persona del team giudica i verdetti senza sapere da quale sistema vengono.
+- **Pre-registration:** all the rules above were written and committed **before** running the test, with date and commit. Every change is written among the deviations, with its reason.
+- **Only once:** the test runs once. Running it again is a deviation to be declared.
+- **Dev and test kept apart:** the number of telepathy steps was chosen on other contracts (the calibration), never on the test ones.
+- **Correct answers checked again:** before the test they were regenerated from scratch from the original sources, and they were identical.
+- **Swapped contract check:** if the system did not really read the contract, the score would not collapse.
+- **Blind manual check** on the Italian demo contracts: a team member judges the verdicts without knowing which system they come from.
 
-## 10. Cosa questa misura non dice
+## 10. What this measure does not say
 
-- Dice se un sistema **trova i tipi di clausola giusti**, non se un contratto è buono o cattivo per il cliente.
-- I contratti sono sotto i 24.000 token: sui documenti molto lunghi non dice niente.
-- Venti contratti bastano a vedere differenze grandi; per differenze di 2-3 punti serve la replica su 50 contratti nuovi.
-- Non misura il valore che non è F1: note per ruolo, dissensi visibili, catena firmata dei messaggi.
+- It says whether a system **finds the right clause types**, not whether a contract is good or bad for the client.
+- The contracts are under 24,000 tokens: on very long documents it says nothing.
+- Twenty contracts are enough to see large differences; for differences of 2-3 points the replication on 72 new contracts is needed.
+- It does not measure the value that is not F1: notes per role, visible dissents, signed chain of messages.
 
-## In 30 secondi
+## In 30 seconds
 
-> "Prendiamo contratti reali in cui avvocati hanno già segnato le clausole. Per ogni contratto il sistema dice quali di 19 tipi di clausola contiene, con una citazione come prova. Confrontiamo le sue risposte con quelle degli avvocati e calcoliamo l'F1: quante clausole trova senza inventarne. Confrontiamo quattro modi di organizzare lo stesso modello, con le regole scritte prima di misurare e un intervallo di confidenza su ogni differenza."
+> "We take real contracts in which lawyers have already marked the clauses. For each contract the system says which of 19 clause types it contains, with a quote as evidence. We compare its answers with the lawyers' ones and compute the F1: how many clauses it finds without inventing any. We compare four ways of organizing the same model, with the rules written before measuring and a confidence interval on every difference."

@@ -15,7 +15,7 @@ def valid_answer():
         if row["category"] == "Termination For Convenience":
             row.update(should_flag=True, quote="può recedere in qualsiasi momento", rationale="Recesso libero.")
     return {
-        "status": "bozza",
+        "status": "draft",
         "recommendation": "negotiate",
         "rationale": "Recesso solo per il Fornitore.",
         "rows": rows,

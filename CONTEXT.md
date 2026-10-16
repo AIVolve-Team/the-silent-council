@@ -1,98 +1,98 @@
 # Hackathon AMD ACT III
 
-Il linguaggio comune dei progetti del team per l'AMD Developer Hackathon ACT III.
-Contiene i termini del Consiglio silenzioso, la revisione di contratti in telepatia, quelli del motore telepatico e della macchina della verità, condivisi con lo sportello, e quelli dello sportello telepatico, che esamina le fatture.
+The shared language of the team's projects for the AMD Developer Hackathon ACT III.
+It holds the terms of the Silent Council, the contract review in telepathy, those of the telepathic engine and of the truth machine, shared with the Help Desk, and those of the telepathic Help Desk, which examines invoices.
 
 ## Language
 
-### Consiglio silenzioso: contratti di prova
+### Silent Council: trial contracts
 
-**Set di misura**:
-I contratti presi da benchmark pubblici con cui si misura il Consiglio. È l'unica fonte dei numeri da portare alla giuria.
-_Avoid_: dataset di test, benchmark (quando si intende il sottoinsieme scelto)
+**Measurement set**:
+The contracts taken from public benchmarks with which the council is measured. It is the only source of the numbers to bring to the jury.
+_Avoid_: test dataset, benchmark (when the chosen subset is meant)
 
-**Set dimostrativo**:
-I pochi contratti B2B in italiano scritti dal team per la demo, con verdetto e dissenso attesi. Non entra mai nei numeri.
-_Avoid_: contratti di prova, contratti sintetici, i 20 contratti
+**Demo set**:
+The few Italian B2B contracts written by the team for the demo, with expected verdict and dissent. It never enters the numbers.
+_Avoid_: trial contracts, synthetic contracts, the 20 contracts
 
-**Clausola da segnalare**:
-Una clausola che un revisore porta all'attenzione della persona, qualunque parte del contratto sia. Conta che ci sia, non per chi è un problema.
-_Avoid_: clausola rischiosa, clausola abusiva, red flag
+**Clause to flag**:
+A clause that a reviewer brings to the person's attention, whichever party of the contract they are. What counts is that it is there, not who it is a problem for.
+_Avoid_: risky clause, unfair clause, red flag
 
-**Risposta giusta**:
-Per ogni coppia (contratto, categoria), se va segnalata sì o no, con i pezzi di testo che lo provano. È scritta prima di misurare.
-_Avoid_: ground truth, gold, etichetta
+**Correct answer**:
+For each pair (contract, category), whether it should be flagged yes or no, with the text spans that prove it. It is written before measuring.
+_Avoid_: ground truth, gold, label
 
-### Motore telepatico e macchina della verità
+### Telepathic engine and truth machine
 
-**Messaggio latente**:
-Quello che un agente passa al successivo al posto del testo: la memoria di ciò che ha letto e dei suoi passi latenti, con un'etichetta. Ce n'è uno per agente, e in fila ridanno la memoria dell'intera staffetta.
-_Avoid_: busta (solo in conversazione), KV cache (quando si intende il messaggio intero), embedding
+**Latent message**:
+What an agent passes to the next one instead of text: the memory of what it read and of its latent steps, with a label. There is one per agent, and in a row they give back the memory of the whole relay.
+_Avoid_: envelope (only in conversation), KV cache (when the whole message is meant), embedding
 
-**Staffetta**:
-La sequenza di agenti in cui ognuno riceve i messaggi latenti dei precedenti e aggiunge il suo. Esiste in modalità telepatia e in modalità testo, con gli stessi agenti e gli stessi prompt.
-_Avoid_: pipeline, catena (quando si intende la sequenza di agenti)
+**Relay**:
+The sequence of agents in which each one receives the latent messages of the previous ones and adds its own. It exists in telepathy mode and in text mode, with the same agents and the same prompts.
+_Avoid_: pipeline, chain (when the sequence of agents is meant)
 
-**Sigillo**:
-La firma digitale di un agente sul suo messaggio latente, che copre tutto il messaggio più il numero progressivo e l'hash del messaggio precedente. Dice che nessuno ha toccato il messaggio dopo la firma, non che il contenuto sia vero.
-_Avoid_: HMAC, hash (quando si intende il sigillo), crittografato
+**Seal**:
+An agent's digital signature on its latent message, covering the whole message plus the sequence number and the hash of the previous message. It says that nobody touched the message after the signature, not that the content is true.
+_Avoid_: HMAC, hash (when the seal is meant), encrypted
 
-**Impegno**:
-Nello sportello, i dati della fattura che l'estrattore dichiara in chiaro accanto al suo messaggio latente, in JSON con schema fisso. Sta nell'etichetta, quindi è coperto dal sigillo.
-_Avoid_: estrazione, output dell'estrattore, commitment
+**Commitment**:
+In the Help Desk, the invoice data that the extractor declares in clear next to its latent message, in JSON with a fixed schema. It is in the label, so it is covered by the seal.
+_Avoid_: extraction, extractor output
 
-**Lettura**:
-I dati critici della fattura che il verificatore ricava dal messaggio latente, senza vedere la fattura. Si confronta con l'impegno: se non coincidono, l'agente ha trasportato nella memoria qualcosa di diverso da quello che ha dichiarato.
-_Avoid_: verifica (quando si intende la lettura), seconda estrazione
+**Reading**:
+The critical invoice data that the verifier derives from the latent message, without seeing the invoice. It is compared with the commitment: if they do not match, the agent carried in its memory something different from what it declared.
+_Avoid_: verification (when the reading is meant), second extraction
 
-**Traduttore**:
-Il terzo livello della macchina della verità: mostra a una persona che cosa contiene un messaggio latente. È una finestra, non una difesa: la difesa restano sigillo e coerenza.
-_Avoid_: decodificatore, interprete, logit lens (è solo uno degli strumenti)
+**Translator**:
+The third level of the truth machine: it shows a person what a latent message contains. It is a window, not a defense: the defense remains seal and consistency.
+_Avoid_: decoder, interpreter, logit lens (it is only one of the tools)
 
-**Trascrizione della memoria**:
-Il testo che un lettore senza strumenti, con lo stesso modello, ricopia parola per parola dalla memoria che l'estrattore passa al verificatore. Le righe che nel PDF sono testo nascosto si segnano in rosso. Mostra soprattutto ciò che l'agente ha letto, non i suoi pensieri: i pensieri da soli, letti con il logit lens, non mostrano i dati.
-_Avoid_: traduzione dei pensieri, lettura dei pensieri, riassunto
+**Memory transcript**:
+The text that a reader without tools, with the same model, copies word for word from the memory that the extractor passes to the verifier. The lines that are hidden text in the PDF are marked in red. It mostly shows what the agent read, not its thoughts: the thoughts alone, read with the logit lens, do not show the data.
+_Avoid_: translation of the thoughts, reading of the thoughts, summary
 
-### Sportello: anomalie e attacchi
+### Help Desk: anomalies and attacks
 
-> ⚠️ Superato: lo Sportello è escluso dall'hackathon e il suo codice è stato tolto dal repo il 13/10/2026 (tag `archivio/sportello`). I termini restano come storico.
+> ⚠️ Superseded: the Help Desk is excluded from the hackathon and its code was removed from the repo on 13/10/2026 (tag `archivio/sportello`). The terms remain as history.
 
-**Azione dannosa**:
-Ciò che lo sportello non deve mai fare, scritto come regola pubblicabile: pagare due volte, pagare un beneficiario diverso da quello registrato, pagare un fornitore sconosciuto o disattivato, pagare più del dovuto, pagare senza ordine.
-_Avoid_: errore, rischio (quando si intende l'azione da impedire)
+**Harmful action**:
+What the Help Desk must never do, written as a publishable rule: paying twice, paying a beneficiary different from the registered one, paying an unknown or deactivated supplier, paying more than due, paying without an order.
+_Avoid_: error, risk (when the action to prevent is meant)
 
-**Anomalia**:
-Un difetto della fattura rispetto a ordine e anagrafica, che il generatore inserisce nelle fatture di prova. Ognuna ha un esito atteso: pagare, passare a una persona o bloccare.
-_Avoid_: attacco, frode (quando si intende il difetto inserito)
+**Anomaly**:
+A defect of the invoice with respect to order and master data, which the generator inserts in the test invoices. Each one has an expected outcome: pay, pass to a person or block.
+_Avoid_: attack, fraud (when the inserted defect is meant)
 
-**Attacco**:
-Una manipolazione del sistema, non della fattura: per esempio un messaggio latente manomesso o un testo nascosto nel PDF. Lo fermano il sigillo e la coerenza.
-_Avoid_: anomalia
+**Attack**:
+A manipulation of the system, not of the invoice: for example a tampered latent message or hidden text in the PDF. The seal and the consistency stop it.
+_Avoid_: anomaly
 
-**Fattura al limite**:
-Una fattura pulita costruita vicino a una regola senza violarla, per esempio con il prezzo sopra l'ordine entro la tolleranza. Serve a misurare i falsi allarmi.
-_Avoid_: caso limite, edge case
+**Borderline invoice**:
+A clean invoice built close to a rule without breaking it, for example with the price above the order within the tolerance. It serves to measure the false alarms.
+_Avoid_: limit case, edge case
 
-### Sportello: esito e caso passato a una persona
+### Help Desk: outcome and case passed to a person
 
-> ⚠️ Superato: lo Sportello è escluso dall'hackathon e il suo codice è stato tolto dal repo il 13/10/2026 (tag `archivio/sportello`). I termini restano come storico.
+> ⚠️ Superseded: the Help Desk is excluded from the hackathon and its code was removed from the repo on 13/10/2026 (tag `archivio/sportello`). The terms remain as history.
 
-**Esito**:
-La decisione dello sportello su una fattura: **pagare** (nasce una proposta di pagamento), **passare a una persona** (c'è un dubbio e decide lei) o **bloccare** (una regola o una discordanza fra i tre testimoni nega il pagamento). Se ne scattano più di uno, vince il più grave.
-_Avoid_: verdetto (è del Consiglio), escalation, rifiuto
+**Outcome**:
+The Help Desk's decision on an invoice: **pay** (a payment proposal is created), **pass to a person** (there is a doubt and the person decides) or **block** (a rule or a mismatch among the three witnesses denies the payment). If more than one fires, the most severe wins.
+_Avoid_: verdict (it belongs to the council), escalation, rejection
 
-**Tre testimoni**:
-Impegno, lettura e proposta di pagamento, che sui dati del pagamento devono coincidere. Se non coincidono, l'esito è bloccare.
-_Avoid_: doppio controllo, triangolazione
+**Three witnesses**:
+Commitment, reading and payment proposal, which must match on the payment data. If they do not match, the outcome is block.
+_Avoid_: double check, triangulation
 
-**Caso passato a una persona**:
-Una fattura con esito passare a una persona o bloccare. La persona riceve un'email di avviso con il link alla pagina del caso, vede cosa non torna e decide: approvare, rifiutare o segnalare una frode. Un caso bloccato si approva solo con una nota di verifica fatta con i contatti in anagrafica.
-_Avoid_: escalation, ticket, pratica
+**Case passed to a person**:
+An invoice with outcome pass to a person or block. The person receives a notice email with the link to the case page, sees what does not add up and decides: approve, reject or report a fraud. A blocked case is approved only with a verification note made with the contacts in the master data.
+_Avoid_: escalation, ticket, file
 
-**Proposta di pagamento**:
-Il pagamento che lo sportello prepara quando l'esito è pagare, sempre verso l'IBAN in anagrafica, in attesa che una persona lo approvi. Lo sportello non paga mai da solo.
-_Avoid_: pagamento (finché non è approvato), bonifico
+**Payment proposal**:
+The payment that the Help Desk prepares when the outcome is pay, always to the IBAN in the master data, waiting for a person to approve it. The Help Desk never pays on its own.
+_Avoid_: payment (until it is approved), bank transfer
 
-**Registro del caso**:
-Il file che si scarica dalla pagina del caso: esito, controlli, firme dei messaggi e chiavi pubbliche, con il comando per verificarlo da sé.
-_Avoid_: registro dell'incidente (lo scrive il controllore quando un sigillo fallisce), log, report
+**Case record**:
+The file downloaded from the case page: outcome, checks, signatures of the messages and public keys, with the command to verify it yourself.
+_Avoid_: incident record (the checker writes it when a seal fails), log, report

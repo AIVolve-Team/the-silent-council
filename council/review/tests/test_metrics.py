@@ -105,7 +105,7 @@ def test_vote_among_four_with_a_tie():
 
 def test_the_test_does_not_start_with_the_draft(tmp_path, monkeypatch):
     draft = tmp_path / "PREREGISTRATION.md"
-    draft.write_text(f"# Pre-registrazione\n\n{evaluation.DRAFT}\n")
+    draft.write_text(f"# Pre-registration\n\n{evaluation.DRAFT}\n")
     monkeypatch.setattr(evaluation, "PREREGISTRATION", draft)
     with pytest.raises(SystemExit, match="draft"):
         evaluation.check_preregistration()
@@ -187,9 +187,9 @@ def test_the_shown_judgement_only_on_cuad(tmp_path):
 
 def test_the_replication_does_not_start_without_its_section(tmp_path, monkeypatch):
     frozen = tmp_path / "PREREGISTRATION.md"
-    frozen.write_text("# Pre-registrazione\n\nStato: congelata il 13/10/2026\n")
+    frozen.write_text("# Pre-registration\n\nStatus: frozen on 13/10/2026\n")
     monkeypatch.setattr(evaluation, "PREREGISTRATION", frozen)
-    with pytest.raises(SystemExit, match="Replica su CUAD"):
+    with pytest.raises(SystemExit, match="Replication on CUAD"):
         evaluation.check_preregistration(REPLICATION)
 
 

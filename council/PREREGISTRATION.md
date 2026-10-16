@@ -1,189 +1,201 @@
-# Pre-registrazione dell'eval del Consiglio
+# Pre-registration of the council's eval
 
-Stato: congelata il 13/10/2026
+> This is the English translation of the frozen pre-registration. The Italian original, as it was frozen, is
+> `consiglio/PREREGISTRAZIONE.md` at commit `1bcb50c`. The rules, numbers and hashes are the same.
+> After the freeze the files in the [Data](#data) tables were renamed:
+> `consiglio/dati/set-di-misura/campione.json` → `council/data/measurement-set/sample.json`,
+> `risposte-giuste.jsonl` → `correct-answers.jsonl`, `campione-replica.json` → `sample-replication.json`,
+> `risposte-giuste-replica.jsonl` → `correct-answers-replication.jsonl` (same folder), and
+> `consiglio/dati/set-dimostrativo.sha256` → `council/data/demo-set.sha256`.
+> The tables keep the old paths because they name what was hashed. The hashes refer to the original files: for the
+> measurement set, `council/data/test_prepare.py` rebuilds those files byte for byte from the renamed ones and checks
+> each hash. The demo-set fingerprints file only changed its folder prefix (`set-dimostrativo/` → `demo-set/`); its
+> hash refers to the file at commit `1bcb50c`.
 
-Finché c'è la riga qui sopra, `revisione.esame` non fa girare il set di test.
-Per congelare le regole: si compilano i punti segnati **da fissare**, si cambia la riga in `Stato: congelata il GG/MM/AAAA` e si fa il commit **prima** del giro di test.
-Dopo, il test gira una volta sola, e ogni cambiamento si scrive fra le [deviazioni](#deviazioni) con il motivo.
+Status: frozen on 13/10/2026
 
-Le regole vengono da Eval pre-registrato del Consiglio, da Metriche e soglie G1-G4 e dalle note.
-Le **definizioni operative** sono nuove, scritte con il codice: andavano riviste dal team prima del congelamento. Non è stato fatto: vedi le [deviazioni](#deviazioni).
+While the line above is still the draft line, `review.eval` does not run the test set.
+To freeze the rules: fill in the points marked **to be fixed**, change the line to `Status: frozen on DD/MM/YYYY` and commit **before** the test run.
+After that, the test runs only once, and every change is written among the [deviations](#deviations) with its reason.
 
-## Dati
+The rules come from the team's decisions "Pre-registered eval of the council" and "Metrics and thresholds G1-G4", and from the notes on the data.
+The **operational definitions** are new, written with the code of the eval: the team was to review them before the freeze. This was not done: see the [deviations](#deviations).
+
+## Data
 
 | File | SHA-256 |
 |---|---|
 | `consiglio/dati/set-di-misura/campione.json` | `3edaa8a7ae97019716d1c9b8ad3205c2836bb7b4b5b737327908e162b81751aa` |
 | `consiglio/dati/set-di-misura/risposte-giuste.jsonl` | `c2b783c2a3c452683823b7c0d9113484c7193a451b7c4f025223a91824ee6675` |
-| `consiglio/dati/set-dimostrativo.sha256` (impronte del set dimostrativo,) | `608bd5e51dc260a92aaafc151c041d80208de3204990702e58bf9dd910f280c6` |
+| `consiglio/dati/set-dimostrativo.sha256` (fingerprints of the demo set) | `608bd5e51dc260a92aaafc151c041d80208de3204990702e58bf9dd910f280c6` |
 
-- **Set di test:** 20 contratti CUAD, 20 ContractNLI e 20 CLAUDETTE, quelli di `campione.json` (seme fisso, sotto i 24.000 token).
-- **Set dimostrativo:** i 4 contratti italiani, fuori dal repo fino alla consegna. Alla consegna si pubblicano e devono corrispondere alle impronte.
-- **Taglio per ruolo:** il contratto si divide fra gli esperti per titoli (`revisione/taglio.py`), senza buchi: ogni pezzo annotato del test sta intero in una sezione. Su CUAD di test però 34 delle 74 coppie da segnalare (46%) stanno nella sezione di un esperto che non ha quella categoria, quasi sempre il legale, che fa da ruolo di riserva. A testo l'esperto scrive solo delle sue categorie, quindi quelle clausole rischiano di perdersi; in telepatia il relatore lavora anche sulla memoria della loro lettura (vedi Configurazioni).
-- **Etichette:** coppia (contratto, categoria) → da segnalare sì/no,.
-  CUAD ha 19 categorie, ContractNLI 17 ipotesi e CLAUDETTE 9 categorie.
+- **Test set:** 20 CUAD contracts, 20 ContractNLI and 20 CLAUDETTE, the ones in `sample.json` (fixed seed, under 24,000 tokens).
+- **Demo set:** the 4 Italian contracts, outside the repo until delivery. At delivery they are published and must match the fingerprints.
+- **Split by role:** the contract is divided among the experts by headings (`review/split.py`), with no gaps: every annotated span of the test lies whole in one section. On the CUAD test set, though, 34 of the 74 pairs to flag (46%) lie in the section of an expert who does not have that category, almost always the legal expert, who acts as the fallback role. In text mode an expert writes only about their own categories, so those clauses risk being lost; in telepathy the rapporteur also works on the memory of their reading (see Configurations).
+- **Labels:** pair (contract, category) → flag yes/no.
+  CUAD has 19 categories, ContractNLI 17 hypotheses and CLAUDETTE 9 categories.
 
-## Modello e decodifica
+## Model and decoding
 
-- **Qwen3-14B**, revisione `40c069824f4251a91eefaf281ebe4c544efd3e18`, in bf16, su una MI300X, batch 1.
-- **Ambiente:** il container del motore di G1 (`vllm/vllm-openai-rocm:v0.30.0`, con il torch ROCm dell'immagine), dopo il confronto fp32 contro bf16 di G1 (`g1/README.md`, passo 4): su ROCm le maschere dell'attenzione hanno avuto bug. La guida è `consiglio/MI300X.md`.
-- **Decodifica greedy** in tutte le configurazioni, cioè temperatura 0: un solo giro per configurazione.
-- **Passi latenti: 0**, fissati con la taratura sulla MI300X del 12/10/2026 (`mi300x.sh taratura`, sezione [Taratura sulla MI300X](#taratura-sulla-mi300x)), sul set di sviluppo di CUAD: si provano 0, 10, 20 e 40, vince l'F1 più alto e, sotto 1 punto di differenza, il valore con meno passi. Ha vinto 0 con F1 71,4, contro 65,1 con 10 passi.
-  - 10, 20 e 40 sono i valori. Lo 0 è la sua *verifica anticipata* dei pensieri: se vince, sul set di sviluppo i pensieri non aiutano, e permette di correggere il sistema prima del congelamento.
-  - Sul Mac (M1 Max, 12/10/2026, senza riallineamento) CUAD di sviluppo dava F1 68,8 con 0 passi e 56,2 con 10; il testo 51,6.
-- **Riallineamento W_a** dei passi latenti: **spento**, con la diagnosi (12/10/2026, Qwen3-14B su M1 Max). Acceso, la telepatia faceva 28,6 sul set dimostrativo e 19,0 su CUAD di sviluppo; spento, 98,2 e 68,8, contro 78,3 e 51,6 del testo. Su Qwen3-14B, che ha gli embedding d'ingresso e d'uscita separati, il riallineamento rompe la memoria passata al relatore.
+- **Qwen3-14B**, revision `40c069824f4251a91eefaf281ebe4c544efd3e18`, in bf16, on one MI300X, batch 1.
+- **Environment:** the G1 engine container (`vllm/vllm-openai-rocm:v0.30.0`, with the image's ROCm torch), after the G1 fp32 versus bf16 comparison (`g1/README.md`, step 4): on ROCm the attention masks have had bugs. The guide is `council/MI300X.md`.
+- **Greedy decoding** in every configuration, that is temperature 0: one run per configuration.
+- **Latent steps: 0**, fixed with the calibration on the MI300X of 12/10/2026 (`mi300x.sh calibration`, section [Calibration on the MI300X](#calibration-on-the-mi300x)), on the CUAD dev set: 0, 10, 20 and 40 are tried, the highest F1 wins and, under 1 point of difference, the value with fewer steps. 0 won with F1 71.4, against 65.1 with 10 steps.
+  - 10, 20 and 40 are the pre-registered values. The 0 is the *early check* of the thoughts: if it wins, the thoughts do not help on the dev set, and the rules allow the system to be corrected before the freeze.
+  - On the Mac (M1 Max, 12/10/2026, without realignment) CUAD dev gave F1 68.8 with 0 steps and 56.2 with 10; text 51.6.
+- **W_a realignment** of the latent steps: **off**, with the diagnosis of 12/10/2026 (Qwen3-14B on M1 Max). With it on, telepathy scored 28.6 on the demo set and 19.0 on CUAD dev; with it off, 98.2 and 68.8, against 78.3 and 51.6 for text. On Qwen3-14B, which has separate input and output embeddings, the realignment breaks the memory passed to the rapporteur.
 
-## Configurazioni
+## Configurations
 
-Tutte con lo stesso modello e lo stesso schema delle 19 righe (`revisione/schemi.py`).
+All with the same model and the same schema of 19 rows (`review/schemas.py`).
 
-1. **Agente solo:** legge tutto il contratto e scrive il verdetto senza obiezioni.
-2. **4 agenti indipendenti e voto:** legale, finanza, rischio e avvocato del diavolo leggono ognuno tutto il contratto, dal proprio punto di vista, e scrivono un verdetto senza obiezioni (`istruzioni_indipendente`).
-   - Per ogni categoria vince la maggioranza dei verdetti validi.
-   - Sul 2-2 vince il gruppo con la confidenza media più alta, cioè la probabilità media della posizione scelta. A confidenza pari vince "sì".
-   - La raccomandazione è la più frequente; sul pari, la più prudente (non firmare, poi negoziare, poi firmare).
-   - Token e tempi sono la somma dei 4.
-3. **Consiglio a testo.** Ogni esperto scrive un'analisi della sua sezione, al massimo **2.048 token** (`MAX_TOKEN_ANALISI`), e il relatore legge le analisi. Con i 512 token di default del motore la taratura le troncava tutte (9 su 9); con 2.048 la più lunga dello sviluppo arriva a 1.414. Il rapporto conta le analisi che toccano il tetto.
-4. **Consiglio in telepatia.** Il relatore lavora sulla memoria della lettura di tutte le sezioni, cioè di tutto il contratto, invece che su analisi scritte. È il meccanismo, e il rapporto lo descrive così. Il prompt del relatore dice "Non hai letto il contratto" in tutte e due le modalità: in telepatia non è vero alla lettera, ma resta com'era nella taratura.
+1. **Solo agent:** reads the whole contract and writes the verdict without objections.
+2. **4 independent agents and a vote:** legal, finance, risk and devil's advocate each read the whole contract, from their own point of view, and write a verdict without objections (`independent_instructions`).
+   - For each category the majority of the valid verdicts wins.
+   - On a 2-2 tie the group with the highest mean confidence wins, that is the mean probability of the chosen position. With equal confidence "yes" wins.
+   - The recommendation is the most frequent one; on a tie, the most cautious (do not sign, then negotiate, then sign).
+   - Tokens and times are the sum of the 4.
+3. **Council in text mode.** Each expert writes an analysis of their section, at most **2,048 tokens** (`MAX_ANALYSIS_TOKENS`), and the rapporteur reads the analyses. With the engine's default of 512 tokens the calibration truncated all of them (9 out of 9); with 2,048 the longest in dev reaches 1,414. The report counts the analyses that hit the cap.
+4. **Council in telepathy.** The rapporteur works on the memory of the reading of all the sections, that is of the whole contract, instead of on written analyses. This is the mechanism, and the report describes it that way. The rapporteur's prompt says "You have not read the contract" in both modes: in telepathy this is not literally true, but it stays as it was in the calibration.
 
-Su ContractNLI e CLAUDETTE il Consiglio è a tre, cioè legale, rischio e relatore, anche a testo. Il voto resta fra 4.
-JEV non si fa girare: il 77,38% pubblicato su ContractNLI usa un'altra metrica, quindi è solo contesto, non un confronto.
+On ContractNLI and CLAUDETTE the council has three members, that is legal, risk and rapporteur, in text mode too. The vote stays among 4.
+JEV is not run: the 77.38% published on ContractNLI uses another metric, so it is only context, not a comparison.
 
-## Voto
+## Scoring
 
-- **F1 sulle coppie (contratto, categoria)**, un numero per benchmark, mai sommati. CUAD è il numero principale. ContractEval (Qwen3-14B da solo a 47,3) ha compito, categorie e campione diversi: è contesto, non un riferimento alla pari. Il riferimento alla pari è la nostra configurazione 1, l'agente solo.
-- Accanto a ogni F1: **clausole mancate** e **falsi allarmi**, **MCC** e la base **"sempre sì"**. Per CLAUDETTE anche la vista sul **solo grado 3**.
-- Un verdetto non valido o mancante conta come "no" su tutte le sue coppie, e si conta a parte.
-- **Versione severa.** Un "sì" giusto conta solo se una citazione del verdetto per quella categoria **si sovrappone** a un pezzo annotato; altrimenti vale come clausola mancata. I falsi allarmi restano falsi allarmi.
-  - *Si sovrappone* vuol dire avere in comune almeno **5 parole di fila** con il pezzo annotato, oppure la citazione intera se è più corta. Il confronto si fa dopo la normalizzazione di `citazioni.normalizza`: niente maiuscole, spazi doppi, virgolette e apostrofi tipografici.
-  - Le citazioni di meno di 3 parole non contano.
-  - Nel set dimostrativo i pezzi annotati sono le citazioni delle risposte attese.
+- **F1 on the pairs (contract, category)**, one number per benchmark, never added up. CUAD is the main number. ContractEval (Qwen3-14B alone at 47.3) has a different task, categories and sample: it is context, not a like-for-like reference. The like-for-like reference is our configuration 1, the solo agent.
+- Next to every F1: **missed clauses** and **false alarms**, **MCC** and the **"always yes"** baseline. For CLAUDETTE also the **grade 3 only** view.
+- An invalid or missing verdict counts as "no" on all its pairs, and is counted separately.
+- **Strict version.** A correct "yes" counts only if a quote of the verdict for that category **overlaps** an annotated span; otherwise it counts as a missed clause. False alarms stay false alarms.
+  - *Overlaps* means having at least **5 words in a row** in common with the annotated span, or the whole quote if it is shorter. The comparison is made after the normalization of `quotes.normalize`: no capitals, double spaces, typographic quotes and apostrophes.
+  - Quotes of fewer than 3 words do not count.
+  - In the demo set the annotated spans are the quotes of the expected answers.
 
-## Criterio di successo e G4
+## Success criterion and G4
 
-- **Qualità.** Si calcola F1 della telepatia meno F1 del testo su CUAD, con un **intervallo al 95% con bootstrap appaiato**:
-  - si ricampionano i **contratti** con reinserimento, gli stessi per le due configurazioni, **10.000** volte, con seme **62**;
-  - l'intervallo va dal 2,5° al 97,5° percentile;
-  - se anche il limite inferiore sta entro i −3 punti si dice *"non perde, dimostrato"*, altrimenti *"risultati compatibili"*;
-  - ContractNLI e CLAUDETTE si riportano senza soglia e senza giudizio.
-- **Telepatia contro agente solo** su CUAD, con lo stesso bootstrap appaiato, **senza soglia** e fuori da G4. È il confronto che isola il canale: in telepatia il relatore lavora sulla memoria della lettura di tutto il contratto, l'agente solo legge tutto il contratto. Sullo sviluppo l'agente solo era davanti (vedi Taratura sulla MI300X).
-- **Token.** Si contano tutti, letti e generati, separati e sommati, note per la persona comprese. Si confrontano le **medie per contratto**.
-- **Tempo.** Secondi per contratto sulla MI300X, batch 1, media sui contratti.
-- **G4: il Consiglio è consegnabile se**, su CUAD:
-  - F1 telepatia ≥ F1 testo − 3 punti;
-  - token generati almeno il −50%;
-  - la telepatia non è più lenta del testo.
+- **Quality.** F1 of telepathy minus F1 of text on CUAD is computed, with a **95% interval with a paired bootstrap**:
+  - the **contracts** are resampled with replacement, the same ones for the two configurations, **10,000** times, with seed **62**;
+  - the interval goes from the 2.5th to the 97.5th percentile;
+  - if the lower bound too is within −3 points we say *"does not lose, shown"*, otherwise *"compatible results"*;
+  - ContractNLI and CLAUDETTE are reported without a threshold and without a judgement.
+- **Telepathy against the solo agent** on CUAD, with the same paired bootstrap, **without a threshold** and outside G4. It is the comparison that isolates the channel: in telepathy the rapporteur works on the memory of the reading of the whole contract, the solo agent reads the whole contract. On dev the solo agent was ahead (see Calibration on the MI300X).
+- **Tokens.** All of them are counted, read and generated, separately and summed, notes for the person included. The **means per contract** are compared.
+- **Time.** Seconds per contract on the MI300X, batch 1, mean over the contracts.
+- **G4: the council can be delivered if**, on CUAD:
+  - F1 telepathy ≥ F1 text − 3 points;
+  - generated tokens at least −50%;
+  - telepathy is not slower than text.
 
-## Prove di sabotaggio
+## Sabotage tests
 
-Tutte in telepatia, con i passi latenti scelti.
+All in telepathy, with the chosen latent steps.
 
-- **Pensieri azzerati:** passi latenti 0; restano le sezioni lette.
-- **Pensieri di un altro contratto:** il contratto *i* riceve, per ogni esperto, i pensieri dello stesso esperto sul contratto *i+1* nell'ordine del campione (l'ultimo li riceve dal primo). Le sezioni lette restano giuste. Il motore ricalcola la memoria dei pensieri da quegli stati nascosti (`pensieri_da`).
-- **Contratto scambiato:** il Consiglio legge il contratto *i+1* e si vota con le risposte del contratto *i*. È il controllo di base: deve crollare, altrimenti c'è un errore nel codice.
-- **Cosa diciamo:**
-  - *"Gli agenti si passano i pensieri"* si dice sempre;
-  - *"I pensieri migliorano il risultato"* solo se i pensieri azzerati fanno calare l'F1 di **almeno 2 punti** e quelli di un altro contratto lo fanno calare;
-  - altrimenti: *"Gli agenti si passano la memoria di ciò che hanno letto invece di riscriverlo: stessa qualità, meno token."*
+- **Zeroed thoughts:** latent steps 0; the read sections remain.
+- **Thoughts from another contract:** contract *i* receives, for each expert, the thoughts of the same expert on contract *i+1* in the order of the sample (the last one receives them from the first). The read sections stay correct. The engine recomputes the memory of the thoughts from those hidden states (`thoughts_from`).
+- **Swapped contract:** the council reads contract *i+1* and is scored with the answers of contract *i*. It is the baseline check: it must collapse, otherwise there is a bug in the code.
+- **What we say:**
+  - *"The agents pass each other their thoughts"* is always said;
+  - *"The thoughts improve the result"* only if the zeroed thoughts lower the F1 by **at least 2 points** and the thoughts from another contract lower it;
+  - otherwise: *"The agents pass each other the memory of what they read instead of rewriting it: same quality, fewer tokens."*
 
-**Con 0 passi latenti** non ci sono pensieri: le prove *pensieri azzerati* e *pensieri di un altro contratto* non si fanno (la prima sarebbe lo stesso giro della telepatia, la seconda non ha pensieri da scambiare) e vale la frase di riserva. Anche la frase che si dice sempre descrive il meccanismo per quello che è: *"Gli agenti si passano la memoria di ciò che hanno letto."* Il *contratto scambiato* resta.
+**With 0 latent steps** there are no thoughts: the *zeroed thoughts* and *thoughts from another contract* tests are not run (the first would be the same run as telepathy, the second has no thoughts to swap) and the fallback sentence applies. The sentence that is always said also describes the mechanism for what it is: *"The agents pass each other the memory of what they read."* The *swapped contract* stays.
 
-Le prove di sabotaggio non bloccano la consegna: decidono la frase.
+The sabotage tests do not block delivery: they decide the sentence.
 
-## Misure senza soglia
+## Metrics without a threshold
 
-- **Chi aveva ragione nei dissensi** fra la nota dell'esperto e il verdetto:
-  - nel dissenso grave (esperto "sì", verdetto "no"), quante volte aveva ragione l'esperto;
-  - nel lieve (esperto "no", verdetto "sì"), quante volte aveva ragione il relatore.
-- **Taratura della confidenza del verdetto:** quota di decisioni giuste per livello alto, medio e basso, con le soglie fissate: **alta da 0,9, media da 0,7**. La taratura su CUAD dice che nessuna soglia arriva a 9 decisioni giuste su 10 (sopra 0,99 sono giuste l'89%): le soglie restano queste, e il rapporto lo dice.
-- **Accordo fra note e verdetto**, e F1 delle note prese come verdetto.
-- **Importi e date nel verdetto**, solo sul set dimostrativo: quanti sono, e quanti non compaiono nel contratto. Un importo che non è nel contratto si segnala sempre, anche se capita una volta sola.
-- **Per lunghezza (esplorativa):** F1 di agente solo, telepatia e testo sui contratti CUAD di test sopra e sotto la mediana di lunghezza, in token di Qwen3-14B. Si calcola dai `.jsonl` dopo il test e si riporta come indizio, senza soglia: i contratti sopra i 24.000 token sono esclusi dal campione, quindi sui testi davvero lunghi il test non dice niente.
-- **CLAUDETTE** è sbilanciato: il 79% delle coppie è da segnalare e "sempre sì" fa F1 88,5. Lì contano MCC e la base "sempre sì".
-- **Grafico qualità contro costo:** F1 contro token generati per contratto, per le 4 configurazioni.
+- **Who was right in the dissents** between the expert's note and the verdict:
+  - in a major dissent (expert "yes", verdict "no"), how often the expert was right;
+  - in a minor one (expert "no", verdict "yes"), how often the rapporteur was right.
+- **Calibration of the verdict's confidence:** share of correct decisions per level high, medium and low, with the thresholds fixed in the calibration: **high from 0.9, medium from 0.7**. The calibration on CUAD says that no threshold reaches 9 correct decisions out of 10 (above 0.99, 89% are correct): the thresholds stay these, and the report says so.
+- **Agreement between notes and verdict**, and F1 of the notes taken as a verdict.
+- **Amounts and dates in the verdict**, only on the demo set: how many there are, and how many do not appear in the contract. An amount that is not in the contract is always reported, even if it happens only once.
+- **By length (exploratory):** F1 of solo agent, telepathy and text on the CUAD test contracts above and below the median length, in Qwen3-14B tokens. It is computed from the `.jsonl` files after the test and reported as a hint, without a threshold: contracts above 24,000 tokens are excluded from the sample, so on really long texts the test says nothing.
+- **CLAUDETTE** is unbalanced: 79% of the pairs are to be flagged and "always yes" scores F1 88.5. There MCC and the "always yes" baseline are what count.
+- **Quality versus cost chart:** F1 against generated tokens per contract, for the 4 configurations.
 
-## Controllo a mano (set dimostrativo)
+## Manual check (demo set)
 
-- Lo fa una persona del team **che non ha scritto né rivisto le risposte attese**, alla cieca: non sa quale verdetto viene dal testo e quale dalla telepatia.
-- Giudica: raccomandazione giusta sì/no, dissenso atteso trovato sì/no, importi giusti.
-- **Procedura** (proposta, da rivedere): chi organizza lancia `python -m revisione.cieca prepara <cartella dell'eval>`.
-  - Ne escono un foglio per verdetto, con nomi neutri (`verdetto-01` …) e ordine mescolato con seme 31. Ogni foglio ha raccomandazione, clausole segnalate con citazione, obiezioni e dissensi, senza modalità, token, tempi o pensieri.
-  - Ne esce anche una scheda da compilare.
-  - Chi controlla riceve fogli, scheda e contratti, ma non i `.json` delle risposte attese.
-  - La chiave (`chiave.json`) resta a chi organizza, che alla fine conta con `python -m revisione.cieca conta`.
+- It is done by a team member **who has neither written nor reviewed the expected answers**, blind: they do not know which verdict comes from text and which from telepathy.
+- They judge: recommendation correct yes/no, expected dissent found yes/no, amounts correct.
+- **Procedure** (proposed, to be reviewed): the organizer runs `python -m review.blind prepare <eval folder>`.
+  - It produces one sheet per verdict, with neutral names (`verdict-01` …) and order shuffled with seed 31. Each sheet has recommendation, flagged clauses with quote, objections and dissents, with no mode, tokens, times or thoughts.
+  - It also produces a form to fill in.
+  - The checker receives sheets, form and contracts, but not the `.json` files of the expected answers.
+  - The key (`key.json`) stays with the organizer, who counts at the end with `python -m review.blind count`.
 
-## Taratura sulla MI300X
+## Calibration on the MI300X
 
-12/10/2026, 1× MI300X (AMD Developer Cloud, ROCm 7.2), container `vllm/vllm-openai-rocm:v0.30.0` con torch `2.12.0+git6bbd260` e transformers 4.57.6, codice al commit `1ad3b02`, riallineamento spento. Spiegazione completa in [CALIBRATION-MI300X.md](CALIBRATION-MI300X.md) e.
+12/10/2026, 1× MI300X (AMD Developer Cloud, ROCm 7.2), container `vllm/vllm-openai-rocm:v0.30.0` with torch `2.12.0+git6bbd260` and transformers 4.57.6, code at commit `1ad3b02`, realignment off. Full explanation in [CALIBRATION-MI300X.md](CALIBRATION-MI300X.md).
 
-| F1 | 0 passi | 10 passi | 20 passi | 40 passi | testo |
+| F1 | 0 steps | 10 steps | 20 steps | 40 steps | text |
 |---|---|---|---|---|---|
-| CUAD, sviluppo (5 contratti) | **71,4** | 65,1 | 58,5 | 61,5 (1 verdetto non valido) | 52,6 |
-| Set dimostrativo (4 contratti) | **98,2** | 98,2 | 98,2 | 98,2 | 76,6 |
+| CUAD, dev (5 contracts) | **71.4** | 65.1 | 58.5 | 61.5 (1 invalid verdict) | 52.6 |
+| Demo set (4 contracts) | **98.2** | 98.2 | 98.2 | 98.2 | 76.6 |
 
-- **Passi scelti: 0**, con la regola qui sopra. Valgono le regole per 0 passi delle [prove di sabotaggio](#prove-di-sabotaggio): niente prove sui pensieri, frase di riserva, il contratto scambiato resta.
-- **Soglie di confidenza: 0,9 e 0,7**, come sopra.
-- **Accordo coppia per coppia** dei sì/no del verdetto con i giri del Mac sullo stesso codice (12/10/2026): CUAD 98,7% con 0 passi, 96,1% con 10, 98,7% a testo (4 contratti in comune, 76 coppie ciascuno); set dimostrativo 100% con 0, 10 e 40 passi. Nessuna divergenza da cercare prima del test.
+- **Chosen steps: 0**, with the rule above. The rules for 0 steps of the [sabotage tests](#sabotage-tests) apply: no tests on the thoughts, fallback sentence, the swapped contract stays.
+- **Confidence thresholds: 0.9 and 0.7**, as above.
+- **Pair-by-pair agreement** of the verdict's yes/no with the Mac runs on the same code (12/10/2026): CUAD 98.7% with 0 steps, 96.1% with 10, 98.7% in text mode (4 contracts in common, 76 pairs each); demo set 100% with 0, 10 and 40 steps. No divergence to look into before the test.
 
-**Prova del 13/10/2026 sullo sviluppo di CUAD, dopo la revisione delle metriche**, con il tetto nuovo delle analisi a testo (stessa macchina, stesso modello):
+**Trial of 13/10/2026 on CUAD dev, after the review of the metrics**, with the new cap on the text analyses (same machine, same model):
 
-| Configurazione | F1 | Token generati per contratto | Secondi per contratto |
+| Configuration | F1 | Generated tokens per contract | Seconds per contract |
 |---|---|---|---|
-| Agente solo | **76,2** | 586 | 31 |
-| Consiglio in telepatia, 0 passi (12/10) | 71,4 | 1.217 | 70 |
-| Consiglio a testo, analisi fino a 2.048 token | 58,5 | 4.767 | 169 |
-| Consiglio a testo, analisi a 512 token (12/10) | 52,6 | 2.776 | 103 |
+| Solo agent | **76.2** | 586 | 31 |
+| Council in telepathy, 0 steps (12/10) | 71.4 | 1,217 | 70 |
+| Council in text mode, analyses up to 2,048 tokens | 58.5 | 4,767 | 169 |
+| Council in text mode, analyses at 512 tokens (12/10) | 52.6 | 2,776 | 103 |
 
-Nessuna analisi tocca il nuovo tetto (la più lunga 1.414 token). I passi scelti non cambiano: la regola guarda solo la telepatia.
+No analysis hits the new cap (the longest is 1,414 tokens). The chosen steps do not change: the rule looks only at telepathy.
 
-## Replica su CUAD
+## Replication on CUAD
 
-Decisa il 13/10/2026 verso le 13:25, mentre il test girava ancora su ContractNLI e prima che esistesse il suo rapporto: si fa **qualunque sia il risultato del test**. Su CUAD si conoscevano già le F1 per configurazione (agente solo 75,9, voto fra 4 74,8, telepatia 72,5, testo 70,7), non gli intervalli. La prima versione prevedeva 50 contratti estratti a caso. La sera del 13/10/2026 si è passati a tutti i 72, per il tempo di GPU chiesto dal team (commento).
+Decided on 13/10/2026 around 13:25, while the test was still running on ContractNLI and before its report existed: it is done **whatever the result of the test**. On CUAD the F1 per configuration was already known (solo agent 75.9, vote among 4 74.8, telepathy 72.5, text 70.7), not the intervals. The first version planned 50 contracts drawn at random. On the evening of 13/10/2026 it moved to all 72, for the GPU time requested by the team.
 
-- **Perché:** con 20 contratti l'intervallo al 95% delle differenze di F1 è largo, e differenze di 2-3 punti non si distinguono dal caso. Con 92 contratti si stringe a circa 0,47 volte.
-- **Contratti:** tutti i contratti di test di CUAD sotto i 24.000 token (tokenizer di Qwen3-14B, come il test), **esclusi i 20 del test**: sono 72, senza estrazione. 1.368 coppie, 244 da segnalare. I file sono a parte, così quelli del test restano quelli della tabella in [Dati](#dati):
+- **Why:** with 20 contracts the 95% interval of the F1 differences is wide, and differences of 2-3 points cannot be told apart from chance. With 92 contracts it narrows to about 0.47 times.
+- **Contracts:** all the CUAD test contracts under 24,000 tokens (Qwen3-14B tokenizer, as in the test), **excluding the 20 of the test**: they are 72, with no drawing. 1,368 pairs, 244 to flag. The files are separate, so the test ones stay those of the table in [Data](#data):
 
   | File | SHA-256 |
   |---|---|
   | `consiglio/dati/set-di-misura/campione-replica.json` | `6efc690d4432877859bb534eca96d850c677bd62c0d4db1a8c8c5d46818bf6b1` |
   | `consiglio/dati/set-di-misura/risposte-giuste-replica.jsonl` | `61eeab9edcfe3e88bb7f184fbd095d1e02bd78e043747666467d075d8d5cb7d4` |
 
-- **Configurazioni:** telepatia (0 passi), testo (analisi fino a 2.048 token) e agente solo. Voto fra 4 e prove di sabotaggio non si ripetono: il test li ha già misurati.
-- **Stesso codice e stesse regole del test:** modello, revisione, decodifica, ambiente, W_a spento, metriche e bootstrap appaiato (10.000 ripetizioni, seme 62). **Gira una volta sola**: un secondo giro è una deviazione, come per il test.
-- **Cosa si riporta:** test (20), replica (72) e totale (92), ognuno con F1, token e tempo, e con l'intervallo al 95% di telepatia contro testo e di telepatia contro agente solo. Il totale ricampiona insieme i contratti di test e replica.
-- **G4 resta deciso sul test da 20.** Su replica e totale non si dà il giudizio *"non perde, dimostrato"*. La replica **conferma** G4 se le tre condizioni di G4, calcolate sulla sola replica, danno lo stesso esito del test (superato in tutti e due, o non superato in tutti e due); se no lo **smentisce**. Si usa la sola replica, non il totale, perché il totale contiene il test.
-- **Come si fa girare:** `PASSI=0./consiglio/mi300x.sh replica`, dopo la fine del test. Lo script collega i giri di CUAD del test e scrive il rapporto con le tre sezioni.
+- **Configurations:** telepathy (0 steps), text (analyses up to 2,048 tokens) and solo agent. The vote among 4 and the sabotage tests are not repeated: the test has already measured them.
+- **Same code and same rules as the test:** model, revision, decoding, environment, W_a off, metrics and paired bootstrap (10,000 repetitions, seed 62). **It runs only once**: a second run is a deviation, as for the test.
+- **What is reported:** test (20), replication (72) and total (92), each with F1, tokens and time, and with the 95% interval of telepathy against text and of telepathy against the solo agent. The total resamples the test and replication contracts together.
+- **G4 stays decided on the test of 20.** On replication and total the *"does not lose, shown"* judgement is not given. The replication **confirms** G4 if the three conditions of G4, computed on the replication alone, give the same outcome as the test (passed in both, or failed in both); if not, it **contradicts** it. The replication alone is used, not the total, because the total contains the test.
+- **How to run it:** `STEPS=0 ./council/mi300x.sh replication`, after the end of the test. The script links the CUAD runs of the test and writes the report with the three sections.
 
-## Come si fa girare
+## How to run it
 
-Nel container del motore di G1, dalla radice del repo (la guida è `consiglio/MI300X.md`):
-
-```bash
-PASSI=<passi fissati>./consiglio/mi300x.sh test
-```
-
-`mi300x.sh` fa girare i quattro benchmark con il riallineamento spento e scrive il rapporto. A mano sono questi comandi:
+In the G1 engine container, from the root of the repo (the guide is `council/MI300X.md`):
 
 ```bash
-cd consiglio/revisione
-.venv/bin/python -m revisione.esame esegui --benchmark cuad --insieme test --passi <passi fissati> --senza-riallineamento --uscita esame-test
-.venv/bin/python -m revisione.esame esegui --benchmark contractnli --insieme test --passi <passi fissati> --senza-riallineamento --uscita esame-test
-.venv/bin/python -m revisione.esame esegui --benchmark claudette --insieme test --passi <passi fissati> --senza-riallineamento --uscita esame-test
-.venv/bin/python -m revisione.esame esegui --benchmark dimostrativo --passi <passi fissati> --senza-riallineamento --uscita esame-test
-.venv/bin/python -m revisione.esame rapporto esame-test
+STEPS=<fixed steps> ./council/mi300x.sh test
 ```
 
-Sul test il comando controlla che questo file sia congelato e committato, e che il codice di `consiglio/` e `motore/` non abbia modifiche locali. In `esame-<benchmark>-test.json` scrive il commit del codice e quello di questo file.
+`mi300x.sh` runs the four benchmarks with the realignment off and writes the report. By hand these are the commands:
 
-## Deviazioni
+```bash
+cd council/review
+.venv/bin/python -m review.eval run --benchmark cuad --subset test --steps <fixed steps> --no-realign --output eval-test
+.venv/bin/python -m review.eval run --benchmark contractnli --subset test --steps <fixed steps> --no-realign --output eval-test
+.venv/bin/python -m review.eval run --benchmark claudette --subset test --steps <fixed steps> --no-realign --output eval-test
+.venv/bin/python -m review.eval run --benchmark demo --steps <fixed steps> --no-realign --output eval-test
+.venv/bin/python -m review.eval report eval-test
+```
 
-1. **Congelata senza la rilettura del team delle definizioni operative** (riga in cima). Il 12/10/2026 si è scelto di congelare e lanciare il test subito dopo la taratura, per avere i numeri prima del G4 del 16/10. La rilettura resta da fare dopo: se trova un errore, lo si scrive qui e il rapporto lo dice, senza rifare il test in silenzio.
-2. **Il confronto fp32 contro bf16 di G1** (sezione Modello e decodifica) è girato con il riferimento fp32 sul backend math di SDPA invece dei soli kernel veloci, che in fp32 si fermavano con `No available kernel` (commit `903d2ee` su `feat/g1`, spiegato in g1/RISULTATI-MI300X.md). Risposte uguali 5 su 5. Il giro del Consiglio non cambia.
-3. **Riaperta e ricongelata il 13/10/2026, prima del test.** Una revisione delle metriche, delle risposte giuste e dell'equità del confronto ha trovato che il testo partiva svantaggiato: analisi troncate a 512 token, tutte. Le risposte giuste sono state rigenerate dalle fonti e sono identiche; le formule sono corrette. Cambiamenti, nel codice e qui:
-   - tetto delle analisi a testo da 512 a 2.048 token, con il conteggio delle troncate;
-   - confronto telepatia contro agente solo nel rapporto, senza soglia;
-   - "dimostrato" solo su CUAD, come già scritto in Criterio di successo;
-   - analisi esplorativa per lunghezza;
-   - le note su taglio per ruolo, prompt del relatore, riferimenti esterni e CLAUDETTE.
+On the test the command checks that this file is frozen and committed, and that the code in `council/` and `engine/` has no local changes. In `eval-<benchmark>-test.json` it writes the commit of the code and the one of this file.
 
-   Il test non era ancora girato: sono regole fissate prima di vedere i suoi risultati. Erano invece già noti i numeri di sviluppo dell'agente solo: hanno motivato il confronto in più, senza cambiare G4.
+## Deviations
+
+1. **Frozen without the team's review of the operational definitions** (line at the top). On 12/10/2026 we chose to freeze and launch the test right after the calibration, to have the numbers before the G4 of 16/10. The review is still to be done afterwards: if it finds a mistake, it is written here and the report says so, without silently rerunning the test.
+2. **The G1 fp32 versus bf16 comparison** (section Model and decoding) ran with the fp32 reference on the SDPA math backend instead of the fast kernels only, which in fp32 stopped with `No available kernel` (commit `903d2ee`, explained in [g1/RESULTS-MI300X.md](../g1/RESULTS-MI300X.md)). Identical answers 5 out of 5. The council run does not change.
+3. **Reopened and frozen again on 13/10/2026, before the test.** A review of the metrics, of the correct answers and of the fairness of the comparison found that text started at a disadvantage: analyses truncated at 512 tokens, all of them. The correct answers were regenerated from the sources and are identical; the formulas are correct. Changes, in the code and here:
+   - cap of the text analyses from 512 to 2,048 tokens, with the count of the truncated ones;
+   - telepathy against solo agent comparison in the report, without a threshold;
+   - "shown" only on CUAD, as already written in Success criterion;
+   - exploratory analysis by length;
+   - the notes on the split by role, the rapporteur's prompt, the external references and CLAUDETTE.
+
+   The test had not run yet: these are rules fixed before seeing its results. The dev numbers of the solo agent were, however, already known: they motivated the extra comparison, without changing G4.

@@ -34,16 +34,15 @@ from .run import MODELS, _contracts_and_answers, free_memory, synopsis
 
 ROOT = Path(__file__).resolve().parents[3]
 PREREGISTRATION = ROOT / "council" / "PREREGISTRATION.md"
-# The status line of the pre-registration until it is frozen: with this line the test does not start. The
-# pre-registration is a frozen Italian document, so these markers are its own words.
-DRAFT = "Stato: bozza"
+# The status line of the pre-registration until it is frozen: with this line the test does not start.
+DRAFT = "Status: draft"
 # Run order: telepathy comes first because its thoughts are needed by the swapped-thoughts test.
 ORDER = ("telepathy", "text", "solo", "vote", "m0", "swapped-thoughts", "swapped-contract")
 # The subsets that run only once, with the committed rules and all the contracts.
 PREREGISTERED = ("test", REPLICATION)
 # The replication starts only if the pre-registration has this section, and reruns only these three
 # configurations.
-REPLICATION_SECTION = "## Replica su CUAD"
+REPLICATION_SECTION = "## Replication on CUAD"
 REPLICATION_CONFIGURATIONS = ("telepathy", "text", "solo")
 # Test and replication together, in the report: G4 stays decided on the test.
 TOTAL = "total"
