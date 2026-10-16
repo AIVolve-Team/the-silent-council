@@ -1,7 +1,7 @@
 [project]
-name = "motore"
+name = "engine"
 version = "0.1.0"
-description = "Motore telepatico: agenti Qwen3 che si passano messaggi latenti"
+description = "Telepathic engine: Qwen3 agents that pass each other latent messages"
 requires-python = ">=3.12"
 dependencies = [
     "torch",
@@ -16,8 +16,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["motore"]
+packages = ["engine"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["modello: carica un Qwen3 piccolo (lento, scarica il modello la prima volta)"]
+markers = ["model: loads a small Qwen3 (slow, downloads the model the first time)"]

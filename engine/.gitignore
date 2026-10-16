@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+# Saved messages, incident logs and private keys stay out of the repo.
+evidence/
+log/
+private-keys/
+# Legacy names, so folders created before the rename stay out too.
+prove/
+registro/
+chiavi-private/
+*.safetensors
+# Created by "uv pip install -e".
+*.egg-info/
