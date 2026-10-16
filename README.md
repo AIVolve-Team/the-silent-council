@@ -38,11 +38,6 @@ Domain terms are defined in [`CONTEXT.md`](CONTEXT.md). The end-to-end flow is i
 
 Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js 20 or later.
 
-```bash
-cp.env.example.env # fill in only what you need;.env is ignored by git
-set -a; source.env; set +a
-```
-
 Each Python package has its own virtual environment. For example, the engine:
 
 ```bash
@@ -65,8 +60,8 @@ To run the council on a real contract benchmark, follow [`council/TRIAL.md`](cou
 
 ## Configuration and secrets
 
-No secret is stored in the repository. Every key is read from an environment variable, listed with its purpose in
-[`.env.example`](.env.example). On Vercel and in GitHub Actions the same names are set in the service settings.
+No secret is stored in the repository. The four secrets the project needs are read from environment variables, listed
+in [`.env.example`](.env.example): on Vercel and in GitHub Actions they are set in the service settings.
 
 ## Data and licenses
 
