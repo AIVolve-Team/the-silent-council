@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIVolve at the AMD Developer Hackathon</title>
+<meta name="description" content="Agents that hand over their memory instead of writing to each other, on an AMD Instinct MI300X: a council that reviews contracts.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* The judges' site. The centrepiece is the demonstration at the top: the same agents writing to each other
+   and handing over their memory, with the counters of the recorded runs. The rest of the page stays quiet. */
+:root {
+  --paper: #f6f7f9; --sheet: #ffffff; --ink: #151a30; --graphite: #565d70; --line: #dcdfe6;
+  /* the teal is reserved for memory: it is not used for anything else */
+  --memory: #087a6d; --memory-full: #12a594; --memory-faint: #ddf3ef;
+  /* one colour per place in the relay, the same as on the verdict pages */
+  --legal: #2f62c8; --finance: #12a594; --risk: #7458d6; --last: #151a30;
+  --live: #1f7a4d; --live-faint: #e3f3ea; --waiting: #8a5208; --waiting-faint: #fbf0dc;
+  --headings: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --wide: 1120px; --measure: 42rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1324; --sheet: #161c31; --ink: #e8ebf4; --graphite: #a4aabb; --line: #2b3350;
+    --memory: #4fd1bf; --memory-full: #35c2ae; --memory-faint: #123833;
+    --legal: #7aa2f2; --finance: #35c2ae; --risk: #a893f2; --last: #e8ebf4;
+    --live: #5bc48e; --live-faint: #16301f; --waiting: #e6b35e; --waiting-faint: #362a14; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1324; --sheet: #161c31; --ink: #e8ebf4; --graphite: #a4aabb; --line: #2b3350;
+  --memory: #4fd1bf; --memory-full: #35c2ae; --memory-faint: #123833;
+  --legal: #7aa2f2; --finance: #35c2ae; --risk: #a893f2; --last: #e8ebf4;
+  --live: #5bc48e; --live-faint: #16301f; --waiting: #e6b35e; --waiting-faint: #362a14; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1.0625rem/1.6 var(--headings); font-variation-settings: "wdth" 100; }
+p, h1, h2, h3, dl, dd { margin: 0; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--memory); outline-offset: 3px; border-radius: 4px; }
+button { font: inherit; color: inherit; cursor: pointer; }
+.page { max-width: var(--wide); margin-inline: auto; padding: 20px 16px 72px; display: grid; gap: clamp(56px, 8vw, 104px); }
+
+/* top bar */
+.bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.brand { font-weight: 800; font-size: 1.05rem; letter-spacing: -0.01em; font-variation-settings: "wdth" 118; text-decoration: none; }
+.brand span { font-weight: 500; color: var(--graphite); font-variation-settings: "wdth" 100; margin-left: 10px; font-size: 0.9rem; letter-spacing: 0; }
+.bar__right { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.status { display: inline-flex; gap: 8px; align-items: center; border-radius: 999px; padding: 5px 12px; font-weight: 600; font-size: 0.875rem; background: var(--waiting-faint); color: var(--waiting); }
+.status.live { background: var(--live-faint); color: var(--live); }
+.status .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.status.live .dot { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+.languages { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--sheet); }
+.languages button { border: 0; background: transparent; border-radius: 999px; padding: 3px 11px; font-size: 0.875rem; }
+.languages button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+
+/* opening */
+.opening { display: grid; gap: 24px; margin-top: calc(-1 * clamp(20px, 4vw, 52px)); }
+.opening h1 { font-weight: 820; font-size: clamp(2.2rem, 4.6vw, 3.4rem); line-height: 1.05; letter-spacing: -0.025em; font-variation-settings: "wdth" 104; }
+/* one sentence per line: the title already states the contrast */
+.opening h1 span { display: block; text-wrap: balance; }
+.opening .sub { font-size: clamp(1.1rem, 1.9vw, 1.3rem); line-height: 1.5; color: var(--graphite); max-width: 40rem; }
+
+/* the demonstration */
+.demo { background: var(--sheet); border: 1px solid var(--line); border-radius: 20px; padding: clamp(16px, 3.2vw, 36px); display: grid; gap: clamp(24px, 3.5vw, 36px); }
+.demo__controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; min-height: 38px; }
+.scene { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+.scene button { border: 0; background: transparent; border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 0.9375rem; }
+.scene button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); }
+.replay { border: 1px solid var(--line); background: var(--sheet); border-radius: 999px; padding: 6px 14px; font-weight: 600; font-size: 0.9375rem; }
+.replay[hidden] { display: none; }
+.lanes { display: grid; gap: clamp(28px, 4vw, 44px); }
+.lane { display: grid; gap: 14px; align-content: start; }
+/* On wide screens the two lanes sit side by side, with aligned rows: the comparison is seen all at once. */
+@media (min-width: 980px) {
+  .lanes { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: 48px; row-gap: 14px; }
+  .lane { grid-row: span 3; grid-template-rows: subgrid; gap: 14px; }
+  .lane + .lane { position: relative; }
+  .lane + .lane::before { content: ""; position: absolute; left: -24px; top: 0; bottom: 0; width: 1px; background: var(--line); }
+}
+.lane__head { display: grid; gap: 2px; }
+.lane__head h2 { font-size: clamp(1.15rem, 2.2vw, 1.4rem); font-weight: 760; letter-spacing: -0.01em; font-variation-settings: "wdth" 108; }
+.lane[data-mode="memory"] .lane__head h2 { color: var(--memory); }
+.lane__head p { font-size: 0.9375rem; color: var(--graphite); }
+
+.chain { position: relative; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); align-items: start; padding-bottom: 76px; }
+.chain::before { content: ""; position: absolute; top: 15px; height: 2px; left: calc(50% / var(--n)); right: calc(50% / var(--n)); background: var(--line); }
+.node { position: relative; z-index: 1; display: grid; justify-items: center; gap: 8px; text-align: center; min-width: 0; padding-inline: 2px; }
+.node__dot { width: 32px; height: 32px; border-radius: 50%; background: var(--sheet); border: 2px solid var(--line); display: grid; place-items: center; transition: border-color 0.2s, box-shadow 0.25s; }
+.node__dot svg { width: 16px; height: 16px; stroke: var(--graphite); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.node[data-role] .node__dot::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+.node.active .node__dot { border-color: var(--c, var(--ink)); box-shadow: 0 0 0 6px color-mix(in srgb, var(--c, var(--ink)) 16%, transparent); }
+.node__name { font-size: clamp(0.72rem, 1.6vw, 0.875rem); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; hyphens: auto; }
+.node--end.done .node__dot { border-color: var(--live); }
+.node--end.done .node__dot svg { stroke: var(--live); }
+.seal { font-size: 0.75rem; font-weight: 600; color: var(--live); opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+.node--end.done .seal { opacity: 1; }
+
+.packet { position: absolute; left: 0; top: 80px; will-change: transform; pointer-events: none; transition: opacity 0.2s; }
+.bubble { width: clamp(44px, 10vw, 120px); display: grid; gap: 3px; padding: 7px; border-radius: 8px 8px 8px 2px; background: var(--paper); border: 1px solid var(--line); }
+.bubble i { display: block; height: 4px; border-radius: 2px; background: var(--graphite); opacity: 0.5; }
+.bubble i:nth-child(3n) { width: 70%; }
+.bubble i:nth-child(3n + 2) { width: 88%; }
+.card { display: grid; gap: 2px; padding: 5px; border-radius: 6px; background: var(--sheet); border: 1px solid var(--memory-full); box-shadow: 0 0 0 4px var(--memory-faint); }
+.card div { display: grid; grid-template-columns: repeat(4, clamp(6px, 1.1vw, 9px)); gap: 2px; }
+.card i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--c); }
+
+.metrics { display: grid; gap: 9px; }
+.metric { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 10px; align-items: baseline; font-size: 0.9375rem; }
+.metric .track { grid-column: 1 / -1; grid-row: 2; }
+.metric dt { color: var(--graphite); }
+.metric dd { display: contents; }
+.track { height: 10px; border-radius: 5px; background: var(--paper); overflow: hidden; }
+.track span { display: block; height: 100%; width: 0; border-radius: 5px; background: var(--graphite); }
+.lane[data-mode="memory"] .track span { background: var(--memory-full); }
+.value { font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.delta { font-weight: 600; font-size: 0.8125rem; color: var(--memory); white-space: nowrap; }
+.provenance { font-size: 0.875rem; color: var(--graphite); max-width: 62rem; }
+
+/* the sections */
+.section { display: grid; gap: 28px; }
+.section > h2 { font-size: clamp(1.6rem, 3.4vw, 2.25rem); font-weight: 780; letter-spacing: -0.02em; line-height: 1.1; font-variation-settings: "wdth" 110; max-width: 22ch; }
+.projects { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 44px 56px; }
+.project { display: grid; gap: 14px; align-content: start; padding-top: 20px; border-top: 3px solid var(--ink); }
+.project h3 { font-size: 1.5rem; font-weight: 760; letter-spacing: -0.01em; font-variation-settings: "wdth" 108; }
+.project .for { font-weight: 600; }
+.project p { max-width: var(--measure); }
+.project .look { font-size: 0.9375rem; color: var(--graphite); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 4px; }
+.button { display: inline-block; text-decoration: none; font-weight: 650; border-radius: 10px; padding: 10px 16px; border: 1.5px solid var(--ink); }
+.button.filled { background: var(--ink); color: var(--sheet); }
+.button[aria-disabled="true"] { opacity: 0.45; pointer-events: none; }
+.actions .note { font-size: 0.875rem; color: var(--graphite); }
+
+.proofs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 32px 56px; }
+.proof { display: grid; gap: 8px; align-content: start; }
+.proof dt { font-weight: 700; font-size: 1.125rem; }
+.proof dd { color: var(--graphite); max-width: var(--measure); }
+.proof a { color: var(--ink); }
+.proof code { display: block; margin-top: 10px; font: 0.8125rem/1.5 var(--code); color: var(--ink); background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-wrap: anywhere; }
+
+footer { display: grid; gap: 6px; font-size: 0.875rem; color: var(--graphite); border-top: 1px solid var(--line); padding-top: 20px; }
+footer a { color: var(--ink); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .status.live .dot { animation: none; }
+  .node__dot, .seal, .packet { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="page" id="page"></div>
+<script>
+"use strict";
+// Projects and windows come from files next to this page (projects.json, windows.json, written by build.py), a
+// project's numbers from its numbers.json, the MI300X status from /api/status. All text goes in with textContent.
+const T = {
+  en: {
+    title: ["Our agents don't write to each other.", "They hand over their memory."],
+    sub: "A council of AI agents that reviews contracts for Italian businesses, running on an AMD Instinct MI300X.",
+    live: "Live now: the AMD MI300X is on", next: "Next live window:", announced: "Live windows will be announced here", checking: "Checking the MI300X…",
+    sceneGroup: "Show the engine on", replay: "Play again",
+    text: "Writing to each other", textSub: "Each agent writes what it understood, for the next one to read.",
+    memory: "Handing over memory", memorySub: "Each agent passes on its memory of what it read. Only the last one writes.",
+    written: "Tokens written", read: "Tokens read", seconds: "Seconds", found: "Clauses found",
+    fewer: (p) => `${p}% fewer`, more: (p) => `${p}% more`, lessTime: (p) => `${p}% less time`, moreTime: (p) => `${p}% more time`,
+    of: (a, b) => `${a} of ${b}`,
+    provenance: (n) => `Averages per contract over ${n.contracts} ${n.source} ${n.contracts === 1 ? "contract" : "contracts"}, with ${n.model}, recorded ${n.recorded}.${n.telepathy.to_find ? ` Clauses found counts the ones the ${n.source} experts flagged.` : ""}`,
+    noNumbers: "The measurements from the AMD MI300X runs will appear here, next to the animation.",
+    summary: (s) => `Writing to each other: ${s.ts} tokens written, ${s.tl} read, ${s.tsec} seconds per document. Handing over memory: ${s.ms} written, ${s.ml} read, ${s.msec} seconds.`,
+    projectsTitle: "The silent council", projectsOne: "What you can try", proofsTitle: "Check that it is real",
+    cases: "Recorded cases", verdicts: "Recorded verdicts", tryLive: "Try it live", liveOff: "Live tests run when the MI300X is on.",
+    code: "Source code",
+    footer: "AIVolve, for the AMD Developer Hackathon ACT III. Contracts from public datasets under CC BY 4.0. Your choices stay in your browser.",
+  },
+  it: {
+    title: ["I nostri agenti non si scrivono.", "Si passano la memoria."],
+    sub: "Un consiglio di agenti che rivede i contratti per le imprese italiane, e gira su una AMD Instinct MI300X.",
+    live: "Dal vivo adesso: la MI300X è accesa", next: "Prossima finestra dal vivo:", announced: "Le finestre dal vivo saranno annunciate qui", checking: "Controllo la MI300X…",
+    sceneGroup: "Mostra il motore su", replay: "Riguarda",
+    text: "Si scrivono", textSub: "Ogni agente scrive quello che ha capito, e il successivo lo legge.",
+    memory: "Si passano la memoria", memorySub: "Ogni agente passa la memoria di quello che ha letto. Scrive solo l'ultimo.",
+    written: "Token scritti", read: "Token letti", seconds: "Secondi", found: "Clausole trovate",
+    fewer: (p) => `${p}% in meno`, more: (p) => `${p}% in più`, lessTime: (p) => `${p}% in meno`, moreTime: (p) => `${p}% in più`,
+    of: (a, b) => `${a} su ${b}`,
+    provenance: (n) => `Medie per contratto su ${n.contracts} ${n.contracts === 1 ? "contratto" : "contratti"} ${n.source}, con ${n.model}, registrati: ${n.recorded}.${n.telepathy.to_find ? ` Le clausole trovate contano quelle segnate dagli esperti di ${n.source}.` : ""}`,
+    noNumbers: "Le misure dei giri sulla AMD MI300X compariranno qui, accanto all'animazione.",
+    summary: (s) => `Si scrivono: ${s.ts} token scritti, ${s.tl} letti, ${s.tsec} secondi per documento. Si passano la memoria: ${s.ms} scritti, ${s.ml} letti, ${s.msec} secondi.`,
+    projectsTitle: "Il consiglio silenzioso", projectsOne: "Cosa puoi provare", proofsTitle: "Controlla che è vero",
+    cases: "Casi registrati", verdicts: "Verdetti registrati", tryLive: "Prova dal vivo", liveOff: "Le prove dal vivo funzionano quando la MI300X è accesa.",
+    code: "Codice sorgente",
+    footer: "AIVolve, per l'AMD Developer Hackathon ACT III. Contratti da dataset pubblici con licenza CC BY 4.0. Le tue scelte restano nel tuo browser.",
+  },
+};
+
+// Who is in each project's relay: who hands over memory (readers) and who writes at the end.
+const SCENES = {
+  council: {
+    colours: ["legal", "finance", "risk"],
+    en: { scene: "Contract review", doc: "Contract", readers: ["Legal", "Finance", "Risk"], last: "Devil's advocate", end: "Verdict", seal: "signed" },
+    it: { scene: "Contratti", doc: "Contratto", readers: ["Legale", "Finanza", "Rischio"], last: "Avvocato del diavolo", end: "Verdetto", seal: "firmato" },
+  },
+};
+
+const PROJECTS = {
+  council: {
+    en: {
+      for: "For a small business about to sign a contract.",
+      text: "Supplier, software and service contracts get signed without a lawyer reading every clause. The council reads the contract as a legal, a finance and a risk expert, then a devil's advocate writes the verdict: sign, negotiate or walk away, with the clauses that matter and the dissent between experts left in view.",
+      look: "Every recorded verdict puts the CUAD experts' answers next to the council's, mistakes included.",
+      one: "The silent council reviews a contract for a small business: legal, finance and risk experts hand over their memory instead of writing to each other, and a devil's advocate writes the verdict, dissent included. It runs on an AMD Instinct MI300X.",
+    },
+    it: {
+      for: "Per una piccola impresa che sta per firmare un contratto.",
+      text: "Contratti di fornitura, software e servizi si firmano senza che un avvocato legga ogni clausola. Il consiglio legge il contratto come un esperto legale, uno di finanza e uno di rischio, poi un avvocato del diavolo scrive il verdetto: firmare, negoziare o lasciar perdere, con le clausole che contano e il dissenso fra gli esperti in vista.",
+      look: "Ogni verdetto registrato mette accanto a quelle del Consiglio le risposte degli esperti di CUAD, errori compresi.",
+      one: "Il consiglio silenzioso rivede un contratto per una piccola impresa: gli esperti legale, di finanza e di rischio si passano la memoria invece di scriversi, e un avvocato del diavolo scrive il verdetto, dissenso compreso. Gira su una AMD Instinct MI300X.",
+    },
+  },
+};
+
+// The proofs that it is not staged. "for": only if that project is there; "repo": only with the public repo.
+const PROOFS = [
+  {
+    for: "council",
+    en: ["Answers we did not write", "The contracts and their right answers come from CUAD, a public dataset of real contracts annotated by law students under lawyers' supervision. Every verdict shows where the council agrees with them and where it does not."],
+    it: ["Risposte che non abbiamo scritto noi", "I contratti e le loro risposte giuste vengono da CUAD, un dataset pubblico di contratti veri annotati da studenti di legge controllati da avvocati. Ogni verdetto mostra dove il Consiglio è d'accordo con loro e dove no."],
+    link: ["CUAD", "https://github.com/TheAtticusProject/cuad"],
+  },
+  {
+    en: ["Signed messages", "Every memory handed between agents carries a cryptographic seal. A tampered message stops the run before a verdict."],
+    it: ["Messaggi firmati", "Ogni memoria passata fra gli agenti porta un sigillo crittografico. Un messaggio manomesso ferma tutto prima del verdetto."],
+  },
+  {
+    repo: true,
+    en: ["Rules fixed before the test", "The evaluation rules and a fingerprint of the test data are committed to the repository before the test runs, so the results cannot be tuned after the fact."],
+    it: ["Regole fissate prima della prova", "Le regole della misura e l'impronta dei dati di prova si salvano nel repository prima della prova, quindi i risultati non si possono aggiustare dopo."],
+  },
+  {
+    en: ["Recorded on AMD", "Every recorded case says when and on which machine it ran. The engine runs Qwen3-14B on an AMD Instinct MI300X with 192 GB of memory, through ROCm."],
+    it: ["Registrato su AMD", "Ogni caso registrato dice quando e su quale macchina è stato fatto. Il motore fa girare Qwen3-14B su una AMD Instinct MI300X da 192 GB di memoria, con ROCm."],
+  },
+];
+
+const storage = {
+  read(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  write(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* valid for this visit */ } },
+};
+const asked = new URLSearchParams(location.search).get("lang");
+let language = asked === "it" || asked === "en" ? asked : storage.read("council-language") === "it" ? "it" : "en";
+let projects = [], repo = null, windows = [], liveStatus = null, scene = null, demo = null;
+const numbers = {};
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+const fonts = document.fonts ? Promise.race([document.fonts.ready, new Promise((ok) => setTimeout(ok, 1200))]) : Promise.resolve();
+
+const el = (tag, attr = {}, ...children) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attr)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") n.className = v; else if (k === "text") n.textContent = v; else if (k === "style") n.style.cssText = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const f of children.flat()) if (f !== null && f !== undefined && f !== false) n.append(f instanceof Node ? f : document.createTextNode(String(f)));
+  return n;
+};
+const icon = (d) => { const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 16 16"); s.setAttribute("aria-hidden", "true"); s.innerHTML = d; return s; };
+const SHEET = '<path d="M4 1.5h5.5L12.5 4.5V14.5H4z"/><path d="M6 7h4.5M6 9.5h4.5M6 12h3"/>';
+const OUTCOME = '<path d="M4 1.5h8.5V14.5H4z"/><path d="M6.2 8.4l1.6 1.6 3.2-3.4"/>';
+const LAST = '<circle cx="8" cy="8" r="3.2"/>';
+const fmt = (n) => Math.round(n).toLocaleString(language === "it" ? "it-IT" : "en-GB");
+const when = (iso) => new Intl.DateTimeFormat(language === "it" ? "it-IT" : "en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Rome", timeZoneName: "short" }).format(new Date(iso));
+const nextWindow = () => windows.map((w) => ({ ...w, s: new Date(w.start), e: new Date(w.end) })).filter((w) => w.e > new Date()).sort((a, b) => a.s - b.s)[0];
+const smooth = (x) => x * x * (3 - 2 * x);
+
+/* ---------- the demonstration ---------- */
+
+// A lane: document, readers, last agent, outcome. The packet passes from one agent to the next: lines of text that pile
+// up, or a memory card with one row per reader. Times are in milliseconds; demonstration() scales them so that the two
+// lanes last in the ratio of the recorded runs.
+function lane(mode, s, texts, metrics, maxima, comparison) {
+  const t = T[language];
+  const L = texts.readers.length;
+  const nodes = [
+    el("div", { class: "node" }, el("span", { class: "node__dot" }, icon(SHEET)), el("span", { class: "node__name", text: texts.doc })),
+    ...texts.readers.map((name, i) => el("div", { class: "node", "data-role": s.colours[i], style: `--c: var(--${s.colours[i]})` },
+      el("span", { class: "node__dot" }), el("span", { class: "node__name", text: name }))),
+    el("div", { class: "node", style: "--c: var(--last)" }, el("span", { class: "node__dot" }, icon(LAST)), el("span", { class: "node__name", text: texts.last })),
+    el("div", { class: "node node--end" }, el("span", { class: "node__dot" }, icon(OUTCOME)), el("span", { class: "node__name", text: texts.end }),
+      el("span", { class: "seal", text: `✓ ${texts.seal}` })),
+  ];
+  const packet = el("div", { class: "packet", "aria-hidden": "true" });
+  const chain = el("div", { class: "chain", style: `--n: ${nodes.length}` }, nodes, packet);
+  const lines = [], rows = [];
+  if (mode === "text") {
+    const bubble = el("div", { class: "bubble" });
+    for (let i = 0; i < 2 * L; i++) { const r = el("i"); lines.push(r); bubble.append(r); }
+    packet.append(bubble);
+  } else {
+    const card = el("div", { class: "card" });
+    for (let i = 0; i < L; i++) { const f = el("div", { style: `--c: var(--${s.colours[i]})` }, [0, 1, 2, 3].map(() => el("i"))); rows.push(f); card.append(f); }
+    packet.append(card);
+  }
+
+  // Read, write (or hand over the memory), move to the next node; at the end the last agent reads and writes the outcome.
+  const steps = [];
+  for (let i = 0; i < L; i++) {
+    steps.push({ kind: "read", node: 1 + i, duration: mode === "text" ? 650 + 280 * i : 650 });
+    steps.push({ kind: "write", node: 1 + i, reader: i, duration: mode === "text" ? 1250 : 260 });
+    steps.push({ kind: "move", from: 1 + i, to: 2 + i, duration: 520 });
+  }
+  steps.push({ kind: "read", node: L + 1, duration: mode === "text" ? 280 * L + 400 : 400 });
+  steps.push({ kind: "outcome", node: L + 1, duration: 900 });
+  let total = steps.reduce((sum, p) => sum + p.duration, 0);
+
+  const items = [];
+  const dl = el("dl", { class: "metrics" });
+  const metric = (key, label, value, maximum) => {
+    const track = el("span"), number = el("span", { class: "value" }), delta = el("span", { class: "delta" });
+    items.push({ key, value, maximum, track, number, delta });
+    dl.append(el("div", { class: "metric" }, el("dt", { text: label }), el("dd", {}, el("span", { class: "track" }, track), number, delta)));
+  };
+  if (metrics) {
+    metric("tokens_generated", t.written, metrics.tokens_generated, maxima.tokens_generated);
+    metric("tokens_read", t.read, metrics.tokens_read, maxima.tokens_read);
+    metric("seconds", t.seconds, metrics.seconds, maxima.seconds);
+    if (metrics.to_find) metric("found", t.found, metrics.found, metrics.to_find);
+  }
+  const node = el("section", { class: "lane", "data-mode": mode, "aria-hidden": "true" },
+    el("div", { class: "lane__head" }, el("h2", { text: mode === "text" ? t.text : t.memory }), el("p", { text: mode === "text" ? t.textSub : t.memorySub })),
+    chain, metrics ? dl : null);
+
+  const centre = (i) => { const a = chain.getBoundingClientRect(), b = nodes[i].firstChild.getBoundingClientRect(); return b.left + b.width / 2 - a.left; };
+
+  // The lane's state at ms from the start.
+  function draw(ms) {
+    let start = 0, current = null, written = 0, layers = 0;
+    for (const p of steps) {
+      if (ms < start) break;
+      const q = Math.min(1, (ms - start) / p.duration);
+      if (p.kind === "write") { if (mode === "text") written = 2 * p.reader + Math.ceil(2 * q); else layers = p.reader + 1; }
+      current = { p, q };
+      start += p.duration;
+    }
+    const finished = ms >= total;
+    let active = -1, x = centre(1), readsTheDocument = false;
+    if (current) {
+      const { p, q } = current;
+      if (p.kind === "move") { active = q < 1 ? -1 : p.to; x = centre(p.from) + (centre(p.to) - centre(p.from)) * smooth(q); }
+      else { active = p.node; x = centre(p.node); readsTheDocument = p.kind === "read" && p.node <= L && q < 1; }
+    }
+    nodes.forEach((n, i) => n.classList.toggle("active", !finished && (i === active || (i === 0 && readsTheDocument))));
+    nodes[nodes.length - 1].classList.toggle("done", finished);
+    lines.forEach((r, i) => { r.style.visibility = i < written ? "visible" : "hidden"; });
+    rows.forEach((f, i) => { f.style.display = i < layers ? "" : "none"; });
+    // Below the agents' names, even when they wrap.
+    const below = Math.max(...nodes.map((n) => n.getBoundingClientRect().bottom)) - chain.getBoundingClientRect().top;
+    packet.style.top = `${Math.round(below + 12)}px`;
+    packet.style.transform = `translateX(${x - packet.firstChild.getBoundingClientRect().width / 2}px)`;
+    // At the end the packet stays under the last agent: when still, the lines can still be compared with the card.
+    packet.style.opacity = written === 0 && layers === 0 ? "0" : "1";
+    const progress = finished ? 1 : smooth(Math.min(1, ms / total));
+    for (const v of items) {
+      v.track.style.width = `${v.maximum ? (100 * v.value * progress) / v.maximum : 0}%`;
+      if (v.key === "found") { v.number.textContent = t.of(finished ? v.value : Math.round(v.value * progress), v.maximum); continue; }
+      v.number.textContent = fmt(v.value * progress);
+      const other = comparison && comparison[v.key];
+      if (finished && other) {
+        const p = Math.round(100 * (1 - v.value / other));
+        v.delta.textContent = v.key === "seconds" ? (p >= 0 ? t.lessTime(p) : t.moreTime(-p)) : p >= 0 ? t.fewer(p) : t.more(-p);
+      } else v.delta.textContent = "";
+    }
+  }
+  return { node, draw, get total() { return total; }, scale(f) { for (const p of steps) p.duration *= f; total *= f; } };
+}
+
+function demonstration(id, n) {
+  const s = SCENES[id], texts = s[language], t = T[language];
+  const text = n ? n.text : null, mem = n ? n.telepathy : null;
+  const maxima = n ? Object.fromEntries(["tokens_generated", "tokens_read", "seconds"].map((k) => [k, Math.max(text[k], mem[k])])) : null;
+  const a = lane("text", s, texts, text, maxima, null), b = lane("memory", s, texts, mem, maxima, text);
+  // The two lanes last as in the recorded runs: the faster one finishes first, in front of the judge.
+  const ratio = n ? Math.min(3, Math.max(0.4, text.seconds / mem.seconds)) : 1.6;
+  a.scale((b.total * ratio) / a.total);
+  const duration = Math.max(a.total, b.total);
+  let begin = 0, frame = 0, ended = false;
+  const all = () => { a.draw(Infinity); b.draw(Infinity); };
+  const replay = el("button", { type: "button", class: "replay", text: t.replay, hidden: true, onclick: () => play() });
+  function tick(now) {
+    const ms = Math.max(0, now - begin);
+    a.draw(ms); b.draw(ms);
+    if (ms < duration) frame = requestAnimationFrame(tick);
+    else { ended = true; replay.hidden = false; }
+  }
+  function play() {
+    cancelAnimationFrame(frame);
+    replay.hidden = true;
+    ended = false;
+    if (still.matches) { ended = true; all(); return; }
+    a.draw(0); b.draw(0);
+    begin = performance.now() + 400;
+    frame = requestAnimationFrame(tick);
+  }
+  const summary = n ? t.summary({ ts: fmt(text.tokens_generated), tl: fmt(text.tokens_read), tsec: fmt(text.seconds), ms: fmt(mem.tokens_generated), ml: fmt(mem.tokens_read), msec: fmt(mem.seconds) }) : "";
+  a.draw(0); b.draw(0);
+  return {
+    node: el("div", { class: "lanes" }, a.node, b.node, summary ? el("p", { class: "visually-hidden", text: summary }) : null),
+    provenance: el("p", { class: "provenance", text: n ? t.provenance(n) : t.noNumbers }),
+    replay, play,
+    redraw() { if (ended) all(); },
+    stop() { cancelAnimationFrame(frame); },
+  };
+}
+
+/* ---------- the page ---------- */
+
+// The council has its server on the MI300X: live reviews turn on when it answers.
+const liveFor = (id) => Boolean(id === "council" ? liveStatus?.council?.live : liveStatus?.live);
+
+function pill() {
+  const t = T[language], w = nextWindow();
+  if (liveStatus === null) return el("span", { class: "status", role: "status" }, el("span", { class: "dot" }), t.checking);
+  if (liveStatus.live || liveStatus.council?.live) return el("span", { class: "status live", role: "status" }, el("span", { class: "dot" }), t.live);
+  return el("span", { class: "status", role: "status" }, el("span", { class: "dot" }), w ? `${t.next} ${when(w.start)} – ${when(w.end)}` : t.announced);
+}
+
+function draw() {
+  const t = T[language];
+  document.documentElement.lang = language;
+  if (demo) demo.stop();
+  demo = null;
+  const page = document.getElementById("page");
+  page.replaceChildren();
+  const one = projects.length === 1 ? projects[0] : null;
+
+  const languages = el("div", { class: "languages", role: "group", "aria-label": "Language" },
+    ["en", "it"].map((l) => el("button", { type: "button", "aria-pressed": String(l === language), "data-language": l, text: l === "en" ? "English" : "Italiano" })));
+  languages.addEventListener("click", (e) => { const l = e.target.dataset.language; if (l && l !== language) { language = l; storage.write("council-language", l); draw(); } });
+  page.append(el("header", { class: "bar" },
+    el("a", { class: "brand", href: "./" }, "AIVolve", el("span", { text: "AMD Developer Hackathon ACT III" })),
+    el("div", { class: "bar__right" }, el("span", { id: "pill" }, pill()), languages)));
+
+  // Opening and demonstration: start from the project that already has the numbers.
+  const withScene = projects.filter((p) => SCENES[p.id]);
+  if (!withScene.some((p) => p.id === scene)) scene = (withScene.find((p) => numbers[p.id]) || withScene[0] || {}).id || null;
+  const opening = el("section", { class: "opening", "aria-labelledby": "title" },
+    el("h1", { id: "title" }, t.title.map((sentence) => el("span", { text: sentence }))),
+    el("p", { class: "sub", text: one ? PROJECTS[one.id]?.[language]?.one || one[language] || one.en : t.sub }));
+  if (scene) {
+    demo = demonstration(scene, numbers[scene]);
+    const controls = el("div", { class: "demo__controls" });
+    controls.append(withScene.length > 1
+      ? el("div", { class: "scene", role: "group", "aria-label": t.sceneGroup }, withScene.map((p) => el("button", {
+          type: "button", "aria-pressed": String(p.id === scene), text: SCENES[p.id][language].scene,
+          onclick: () => { if (p.id !== scene) { scene = p.id; draw(); } } })))
+      : el("span"));
+    controls.append(demo.replay);
+    opening.append(el("div", { class: "demo" }, controls, demo.node, demo.provenance));
+  }
+  page.append(opening);
+
+  // The projects.
+  page.append(el("section", { class: "section", "aria-labelledby": "projects" },
+    el("h2", { id: "projects", text: one ? t.projectsOne : t.projectsTitle }),
+    el("div", { class: "projects" }, projects.map((p) => {
+      const c = PROJECTS[p.id]?.[language] || { text: p[language] || p.en };
+      const live = liveFor(p.id);
+      return el("article", { class: "project" },
+        el("h3", { text: p.name }), c.for ? el("p", { class: "for", text: c.for }) : null, el("p", { text: c.text }),
+        c.look ? el("p", { class: "look", text: c.look }) : null,
+        el("div", { class: "actions" },
+          el("a", { class: "button filled", href: p.cases, text: p.id === "council" ? t.verdicts : t.cases }),
+          p.live ? el("a", { class: "button live", "data-project": p.id, href: p.live, "aria-disabled": String(!live), tabindex: live ? null : "-1", text: t.tryLive }) : null,
+          p.live ? el("span", { class: "note", "data-project": p.id, hidden: live, text: t.liveOff }) : null));
+    }))));
+
+  // The proofs that it is not staged.
+  const ids = new Set(projects.map((p) => p.id));
+  page.append(el("section", { class: "section", "aria-labelledby": "proofs" },
+    el("h2", { id: "proofs", text: t.proofsTitle }),
+    el("dl", { class: "proofs" }, PROOFS.filter((p) => (!p.for || ids.has(p.for)) && (!p.repo || repo)).map((p) => el("div", { class: "proof" },
+      el("dt", { text: p[language][0] }),
+      el("dd", {}, p[language][1],
+        p.link ? [" ", el("a", { href: p.link[1], target: "_blank", rel: "noopener", text: p.link[0] })] : null,
+        p.repo && repo ? [" ", el("a", { href: repo, target: "_blank", rel: "noopener", text: t.code })] : null))))));
+
+  page.append(el("footer", {}, el("p", { text: t.footer }), repo ? el("p", {}, el("a", { href: repo, text: t.code })) : null));
+  const current = demo;
+  if (current) fonts.then(() => { if (current === demo) current.play(); });
+}
+
+function updateStatus() {
+  // Only the pill and the live buttons change: the demonstration does not restart.
+  const spot = document.getElementById("pill");
+  if (spot) spot.replaceChildren(pill());
+  document.querySelectorAll(".button.live").forEach((a) => {
+    const live = liveFor(a.dataset.project);
+    a.setAttribute("aria-disabled", String(!live));
+    if (live) a.removeAttribute("tabindex"); else a.setAttribute("tabindex", "-1");
+  });
+  document.querySelectorAll(".actions .note").forEach((n) => { n.hidden = liveFor(n.dataset.project); });
+}
+
+async function load(file) { try { const r = await fetch(file, { cache: "no-store" }); return r.ok ? await r.json() : null; } catch { return null; } }
+(async () => {
+  const [site, w] = await Promise.all([load("projects.json"), load("windows.json")]);
+  ({ projects = [], repo = null } = site || {});
+  windows = w || [];
+  const read = await Promise.all(projects.map((p) => (p.numbers ? load(p.numbers) : null)));
+  projects.forEach((p, i) => { if (read[i]?.telepathy && read[i]?.text) numbers[p.id] = read[i]; });
+  draw();
+  liveStatus = (await load("/api/status")) || { live: false };
+  updateStatus();
+})();
+addEventListener("resize", () => { if (demo) demo.redraw(); });
+still.addEventListener("change", () => { if (demo) demo.play(); });
+</script>
+</body>
+</html>

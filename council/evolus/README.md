@@ -1,155 +1,157 @@
-# consiglio/evolus: il workflow 1 in Evolus
+# council/evolus: workflow 1 in Evolus
 
-Codice e guida, il lato Evolus.
-È la prima fetta: dall'email con il contratto all'avviso per la persona, **senza agente e senza GPU**.
-Il flusso intero è in `consiglio/FLUSSO.md`; il server è in `consiglio/servizio`.
+Code and guide for the Evolus side of the council service (`council/service`).
+It is the first slice: from the email with the contract to the notice for the person, **without an agent and without a GPU**.
+The whole flow is in `council/FLUSSO.md`; the server is in `council/service`.
 
 ```mermaid
 sequenceDiagram
-    participant M as Email con il contratto in PDF
+    participant M as Email with the contract as PDF
     participant E as Evolus (workflow 1)
-    participant C as Consiglio (Mac con Qwen3-0.6B, dietro un tunnel)
-    participant P as Persona
+    participant C as Council (Mac with Qwen3-0.6B, behind a tunnel)
+    participant P as Person
     M->>E: «Quando arriva un'email» (IMAP)
-    E->>C: «Chiama un endpoint (API)» · POST /revisiona_contratto, PDF in multipart
-    C-->>E: id_caso, raccomandazione, …, link, avviso {oggetto, testo}
-    E->>P: «Invia un'email» con avviso.oggetto e avviso.testo, così come sono
-    P->>C: apre il link: la pagina del verdetto
+    E->>C: «Chiama un endpoint (API)» · POST /review_contract, PDF in multipart
+    C-->>E: case_id, recommendation, …, link, notice {subject, text}
+    E->>P: «Invia un'email» with notice.subject and notice.text, as they are
+    P->>C: opens the link: the verdict page
 ```
 
-I nomi fra «» sono quelli dell'interfaccia di Evolus in italiano, visti nella workspace dell'evento il 14/10.
+The names between «» are the labels of Evolus's Italian interface, as seen in the event workspace on 14/10. They are
+kept in Italian so they can be found on screen; an English gloss follows where it helps.
 
-## 0. Il server, raggiungibile da Evolus
+## 0. The server, reachable from Evolus
 
-Evolus vuole un indirizzo pubblico in https e rifiuta quelli privati. Il server gira sulla MI300X, nel container del motore di G1 (`g1/README.md`, passo 3), con il torch ROCm dell'immagine; su un Mac da 8 GB non regge.
+Evolus wants a public https address and refuses private ones. The server runs on the MI300X, in G1's engine container (`g1/README.md`, step 3), with the image's ROCm torch; an 8 GB Mac cannot hold it.
 
 ```bash
-# sulla MI300X: il codice di main in ~/hackathon/eval, che nel container è /work/eval
-docker exec motore bash -c "cd /work/eval/consiglio/servizio && python3 -m venv --system-site-packages /root/venv \
+# on the MI300X: the main code in ~/hackathon/eval, which is /work/eval in the container
+docker exec engine bash -c "cd /work/eval/council/service && python3 -m venv --system-site-packages /root/venv \
     && grep -v '^torch==' requirements.txt > /tmp/req.txt && /root/venv/bin/pip install -r /tmp/req.txt"
 
-# il tunnel: stampa https://<nome>.trycloudflare.com
+# the tunnel: prints https://<name>.trycloudflare.com
 cloudflared tunnel --url http://127.0.0.1:8001
 
-# il server, con quel nome; lo stesso segreto va nel webhook di Evolus
-export CONSIGLIO_SEGRETO=$(openssl rand -hex 32)
-NOME=<nome>.trycloudflare.com
-docker exec -d -e CONSIGLIO_SEGRETO -e NOME motore bash -c "cd /work/eval/consiglio/servizio && \
-    /root/venv/bin/python -m revisore --modello Qwen/Qwen3-14B --passi 10 \
-    --link https://\$NOME/verdetto/{id}?chiave={chiave} --host-pubblico \$NOME"
+# the server, with that name; the same secret goes into Evolus's webhook
+export COUNCIL_SECRET=$(openssl rand -hex 32)
+NAME=<name>.trycloudflare.com
+docker exec -d -e COUNCIL_SECRET -e NAME engine bash -c "cd /work/eval/council/service && \
+    /root/venv/bin/python -m reviewer --model Qwen/Qwen3-14B --steps 10 \
+    --link https://\$NAME/verdict/{id}?key={key} --public-host \$NAME"
 ```
 
-`curl https://$NOME/salute` deve rispondere `"pronto": true`.
-Una macchina nuova ha un IP nuovo e il tunnel un nome nuovo: si aggiorna l'URL del webhook «Consiglio» in Evolus.
-Il nome fisso è in `casa/mi300x/README.md`, "Il nome del motore", ancora da configurare.
+`curl https://$NAME/health` must answer `"ready": true`.
+A new machine has a new IP and the tunnel a new name: update the URL of the «Consiglio» webhook in Evolus.
+The fixed name is in `site/mi300x/README.md`, "The engine's name", still to be configured.
 
-## 1. L'automazione
+## 1. The automation
 
-«Automazioni» › «+ Nuova automazione»: `Consiglio – contratto dall'email`. Resta **«In pausa»** finché il giro non è provato.
+«Automazioni» › «+ Nuova automazione» (Automations › New automation): `Consiglio – contratto dall'email`. It stays **«In pausa»** (paused) until the run has been tested.
 
-### «Quando parte»
+### «Quando parte» (trigger)
 
-- **«Quando arriva un'email»**, «Tipo di casella» **IMAP** (c'è anche Microsoft 365 con Graph, che chiede un'app su Azure):
-  `imap.gmail.com`, porta 993, SSL, utente l'indirizzo completo, password **per le app** di Google.
-  Google non dà la password per le app agli account appena creati: serve un account più vecchio.
-- **La casella dei contratti è diversa da quella che riceve gli avvisi**, altrimenti ogni avviso farebbe ripartire l'automazione.
-- **L'indirizzo pubblico è un altro account Gmail**, che inoltra a `<casella>+contratti@gmail.com`, perché un account nuovo non ha la password per le app:
+- **«Quando arriva un'email»** (when an email arrives), «Tipo di casella» (mailbox type) **IMAP** (there is also Microsoft 365 with Graph, which needs an app on Azure):
+  `imap.gmail.com`, port 993, SSL, user the full address, Google **app password**.
+  Google does not give app passwords to newly created accounts: an older account is needed.
+- **The contracts mailbox is different from the one that receives the notices**, otherwise every notice would restart the automation.
+- **The public address is another Gmail account**, which forwards to `<mailbox>+contratti@gmail.com`, because a new account has no app password:
 
   ```text
-  contratto → indirizzo pubblico ──inoltro──▶ <casella>+contratti ──filtro──▶ cartella «Contratti» ◀── Evolus (IMAP)
+  contract → public address ──forward──▶ <mailbox>+contratti ──filter──▶ «Contratti» folder ◀── Evolus (IMAP)
   ```
 
-  - nell'indirizzo pubblico: «Inoltro e POP/IMAP» › «Inoltra una copia della posta in arrivo a…», poi «Salva modifiche»; un filtro `filename:pdf` › «Non inviare mai a Spam», perché **Gmail non inoltra la posta finita nello spam** e i PDF da indirizzi nuovi ci finiscono;
-  - nella casella: un filtro con «Contiene le parole» `deliveredto:<casella>+contratti@gmail.com` › «Ignora Posta in arrivo», etichetta `Contratti`, «Non inviare mai a Spam». Con il campo «A» non va: l'email inoltrata ha ancora come destinatario l'indirizzo pubblico;
-  - Evolus legge solo le email **non lette**: il filtro non le segna come lette;
-  - chi prova non manda dalla casella stessa: Gmail scarta la copia che torna indietro.
-- «Ogni quanti secondi»: 120 di default. «Segna le email come lette» acceso; «Immagini nel corpo dell'email» escluse.
-- «Se arrivano più documenti insieme»: **«Un giro per ogni documento»**, perché il server esamina un contratto per chiamata.
-- **«Provala»** fa partire l'automazione a mano anche in pausa, con un PDF caricato: è la prima prova, senza email.
+  - in the public address: «Inoltro e POP/IMAP» › «Inoltra una copia della posta in arrivo a…» (forward a copy of incoming mail to…), then «Salva modifiche»; a `filename:pdf` filter › «Non inviare mai a Spam», because **Gmail does not forward mail that ended up in spam** and PDFs from new addresses end up there;
+  - in the mailbox: a filter with «Contiene le parole» `deliveredto:<mailbox>+contratti@gmail.com` › «Ignora Posta in arrivo», label `Contratti`, «Non inviare mai a Spam». The «A» (To) field does not work: the forwarded email still has the public address as recipient;
+  - Evolus reads only **unread** emails: the filter does not mark them as read;
+  - whoever tests does not send from the mailbox itself: Gmail drops the copy that comes back.
+- «Ogni quanti secondi» (polling interval): 120 by default. «Segna le email come lette» (mark as read) on; «Immagini nel corpo dell'email» excluded.
+- «Se arrivano più documenti insieme» (several documents at once): **«Un giro per ogni documento»** (one run per document), because the server reviews one contract per call.
+- **«Provala»** (try it) starts the automation by hand even when paused, with an uploaded PDF: it is the first test, without email.
 
-### «Cosa fa» › «Editor a tutto schermo»
+### «Cosa fa» › «Editor a tutto schermo» (actions, full-screen editor)
 
 ```text
-Partenza ──DOCUMENTO──▶ «Leggi il documento» ──▶ «Chiama un endpoint (API)» ──▶ «Invia un'email»
-                        «Solo testo», gratis «Chiama il Consiglio» «Invia l'avviso al destinatario»
+Trigger ──DOCUMENTO──▶ «Leggi il documento» ──▶ «Chiama un endpoint (API)» ──▶ «Invia un'email»
+                       «Solo testo», free «Chiama il Consiglio» «Invia l'avviso al destinatario»
 ```
 
-La tela si può montare a mano o con **«Costruisci con Evo»**, l'assistente di Evolus, che aggiunge e collega i blocchi.
+The canvas can be built by hand or with **«Costruisci con Evo»**, Evolus's assistant, which adds and connects the blocks.
 
-**In Evolus un endpoint riceve solo testo, mai un file** (provato il 16/10):
-- la Partenza ha due uscite, TESTO (il corpo dell'email) e DOCUMENTO (gli allegati); DOCUMENTO si collega solo a «Leggi il documento» e «Chiama un estrattore dati»;
-- «Multipart coi file del flusso» collegato a TESTO non allega il PDF: manda un modulo con il solo testo, vuoto se si parte da «Provala»;
-- quindi il PDF passa da **«Leggi il documento»** con il lettore **«Solo testo del documento»**, gratis, e il server riceve il testo nella parte `body` del modulo. È lo stesso testo che il server leggerebbe dal PDF; le scansioni restano vuote anche qui.
+**In Evolus an endpoint receives only text, never a file** (tested on 16/10):
+- the trigger has two outputs, TESTO (the email body) and DOCUMENTO (the attachments); DOCUMENTO connects only to «Leggi il documento» and «Chiama un estrattore dati»;
+- «Multipart coi file del flusso» connected to TESTO does not attach the PDF: it sends a form with the text only, empty when starting from «Provala»;
+- so the PDF goes through **«Leggi il documento»** (read the document) with the **«Solo testo del documento»** (document text only) reader, free, and the server receives the text in the `body` part of the form. It is the same text the server would read from the PDF; scans stay empty here too.
 
-Gli altri lettori (Azure Document Intelligence, GreenPT, «Lascia fare a Evolus») costano 10 crediti a pagina. Servono solo per i contratti scansionati: è una fetta successiva.
-In «Leggi il documento»: «I documenti sono facoltativi» spento (senza PDF il giro si ferma lì, senza chiamare il Consiglio), «Salta gli allegati non leggibili» acceso.
+The other readers (Azure Document Intelligence, GreenPT, «Lascia fare a Evolus») cost 10 credits per page. They are only needed for scanned contracts: that is a later slice.
+In «Leggi il documento»: «I documenti sono facoltativi» (documents are optional) off (without a PDF the run stops there, without calling the council), «Salta gli allegati non leggibili» (skip unreadable attachments) on.
 
-### «Chiama il Consiglio» (blocco «Chiama un endpoint (API)»)
+### «Chiama il Consiglio» (block «Chiama un endpoint (API)»)
 
-| Campo | Valore |
+| Field | Value |
 |---|---|
 | «Metodo» | `POST` |
-| «Destinazione» | «Endpoint del catalogo», il collegamento con indirizzo e segreto cifrato |
-| «Intestazioni (header)» | nessuna: lì il valore resta in chiaro, il segreto va nel collegamento del catalogo |
-| «Corpo» | «Il risultato del flusso»: il testo letto dal PDF |
+| «Destinazione» | «Endpoint del catalogo», the catalog connection with address and encrypted secret |
+| «Intestazioni (header)» | none: there the value stays in clear text, the secret goes into the catalog connection |
+| «Corpo» | «Il risultato del flusso»: the text read from the PDF |
 | «Formato di invio» | «Multipart coi file del flusso» |
 | «Come leggere la risposta» | JSON |
-| «Struttura della risposta (facoltativa)» | `risposta-esempio.json`, così il blocco dopo offre i campi |
+| «Struttura della risposta (facoltativa)» | `example-response.json`, so the next block offers the fields |
 
-Il collegamento del catalogo si crea da menu dell'azienda › «Sviluppatori» › «Webhook» › «Nuovo webhook», e appartiene all'applicazione dell'automazione, altrimenti la tendina non lo propone:
+The catalog connection is created from the company menu › «Sviluppatori» › «Webhook» › «Nuovo webhook», and it belongs to the automation's application, otherwise the dropdown does not offer it:
 
-| Campo | Valore |
+| Field | Value |
 |---|---|
 | «Nome» | `Consiglio` |
-| «URL» | `https://<nome>/revisiona_contratto` |
+| «URL» | `https://<name>/review_contract` |
 | «Header di sicurezza» | `X-Api-Key` |
-| «Valore segreto» | `CONSIGLIO_SEGRETO`, così com'è |
-Il segreto sta solo lì, mai in un file del repo.
+| «Valore segreto» | `COUNCIL_SECRET`, as is |
 
-- **Il contratto:** il server prende un PDF (il campo `contratto` o il primo file che è un PDF, anche senza nome) e, se non c'è, il testo della parte `body` o di una parte senza nome, come lo manda Evolus. I campi in più si ignorano.
-- **Mittente, oggetto e data** nell'indirizzo, se il collegamento accetta i segnaposto: `…/revisiona_contratto?mittente=…&oggetto=…`.
-  Se mancano, il caso si esamina lo stesso, con mittente "(sconosciuto)" e la data di oggi; il titolo del verdetto è allora la prima riga del contratto.
-- `modalita` resta quella di default, `telepatia`.
+The secret lives only there, never in a file of the repo.
 
-### «Invia l'avviso al destinatario» (blocco «Invia un'email»)
+- **The contract:** the server takes a PDF (the `contract` field or the first file that is a PDF, even without a name) and, if there is none, the text of the `body` part or of a part without a name, as Evolus sends it. Extra fields are ignored.
+- **Sender, subject and date** in the address, if the connection accepts placeholders: `…/review_contract?sender=…&subject=…&date=…`.
+  If they are missing, the case is reviewed anyway, with sender "(unknown)" and today's date; the verdict's title is then the contract's first line.
+- `mode` stays at its default, `telepathy`.
 
-| Campo | Valore |
+### «Invia l'avviso al destinatario» (block «Invia un'email»)
+
+| Field | Value |
 |---|---|
-| destinatario | fisso: la persona che decide |
-| «Rispondi a chi ha scritto» | **spento**: l'avviso non va mai a chi ha mandato il contratto |
-| oggetto | `avviso.oggetto` della risposta di «Chiama il Consiglio» |
-| testo | `avviso.testo` della stessa risposta, così com'è |
+| recipient | fixed: the person who decides |
+| «Rispondi a chi ha scritto» (reply to sender) | **off**: the notice never goes to whoever sent the contract |
+| subject | `notice.subject` of the «Chiama il Consiglio» response |
+| text | `notice.text` of the same response, as is |
 
-L'avviso lo scrive il server, con raccomandazione, clausole segnalate, dissensi in evidenza e il link alla pagina del verdetto.
-Senza sigillo integro chiede una persona.
+The server writes the notice, in Italian, with recommendation, flagged clauses, highlighted dissents and the link to the verdict page.
+Without an intact seal it asks for a person.
 
-## Cosa manda e cosa riceve
+## What it sends and what it receives
 
-- **Manda:** il PDF in multipart, `mittente`, `oggetto` e `data` nell'indirizzo.
-- **Riceve:** `id_caso`, `verdetto`, `raccomandazione` {valore, motivazione}, `segnalate`, `dissensi_gravi`, `altri_dissensi`, `sigillo_integro`, `link`, `avviso` {oggetto, testo}, `modalita`, `token_generati`, `secondi`.
-- **Usa:** solo `avviso.oggetto` e `avviso.testo`. Gli altri campi servono alla fetta con l'agente e al workflow 2.
+- **Sends:** the PDF text in multipart, `sender`, `subject` and `date` in the address.
+- **Receives:** `case_id`, `verdict`, `recommendation` {value, rationale}, `flagged`, `major_dissents`, `other_dissents`, `seal_intact`, `link`, `notice` {subject, text}, `mode`, `model`, `tokens_generated`, `seconds` (as in `example-response.json`).
+- **Uses:** only `notice.subject` and `notice.text`. The other fields serve the slice with the agent and workflow 2.
 
-Gli errori: 401 senza segreto, 400 con una richiesta sbagliata (per esempio una scansione senza testo), 500 con un guasto.
+Errors: 401 without the secret, 400 with a bad request (for example a scan without text), 500 with a failure. The body is `{"error": "…"}`.
 
-## Il tempo della chiamata e il nuovo tentativo
+## Call duration and retries
 
-Misurato il 16/10 sulla MI300X, con Qwen3-14B e un contratto di una pagina:
-- **la chiamata dura circa 105 secondi ed Evolus aspetta**, senza timeout;
-- **la stessa email è lo stesso caso:** la seconda chiamata uguale torna in meno di un secondo, con lo stesso `id_caso`;
-- **Evolus riprova da solo dopo un 500**, più volte (dopo circa 2, 11 e 30 secondi); **dopo un 400 non riprova**.
+Measured on 16/10 on the MI300X, with Qwen3-14B and a one-page contract:
+- **the call takes about 105 seconds and Evolus waits**, without a timeout;
+- **the same email is the same case:** the second identical call returns in under a second, with the same `case_id`;
+- **Evolus retries by itself after a 500**, several times (after about 2, 11 and 30 seconds); **after a 400 it does not retry**.
 
-## Prova senza Evolus
+## Test without Evolus
 
 ```bash
-curl -X POST "https://$NOME/revisiona_contratto?mittente=legal%40acme.example&oggetto=Contratto%20Acme&data=2026-10-14" \
-    -H "Authorization: Bearer $CONSIGLIO_SEGRETO" -F "file=@contratto.pdf;type=application/pdf"
+curl -X POST "https://$NAME/review_contract?sender=legal%40acme.example&subject=Contratto%20Acme&date=2026-10-14" \
+    -H "Authorization: Bearer $COUNCIL_SECRET" -F "file=@contract.pdf;type=application/pdf"
 ```
 
-Rifatta uguale, torna lo stesso `id_caso` subito.
+Repeated identically, it returns the same `case_id` right away.
 
-## Ancora aperto
+## Still open
 
-- Il limite sugli allegati della casella.
-- Dove si crea il collegamento del catalogo e se il suo indirizzo accetta segnaposto.
-- Il timeout di «Chiama un endpoint» e se Evolus riprova da solo.
-- Se la workspace dell'evento ha il connettore MCP proprio: serve alla fetta successiva.
+- The limit on the mailbox's attachments.
+- Where the catalog connection is created and whether its address accepts placeholders.
+- The timeout of «Chiama un endpoint» and whether Evolus retries by itself.
+- Whether the event workspace has its own MCP connector: it is needed for the next slice.

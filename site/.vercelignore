@@ -1,5 +1,5 @@
 test/
-sorgenti/
-costruisci.py
-locale.mjs
+src/
+build.py
+local.mjs
 README.md

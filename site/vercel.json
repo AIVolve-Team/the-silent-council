@@ -4,7 +4,7 @@
   "outputDirectory": "public",
   "cleanUrls": false,
   "functions": {
-    "api/consiglio.mjs": { "maxDuration": 300 }
+    "api/council.mjs": { "maxDuration": 300 }
   },
   "headers": [
     {

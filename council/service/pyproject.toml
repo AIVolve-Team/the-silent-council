@@ -1,7 +1,7 @@
 [project]
-name = "revisore"
+name = "reviewer"
 version = "0.1.0"
-description = "Consiglio silenzioso: il server per Evolus, i due tool via MCP e HTTP"
+description = "Silent Council: the server for Evolus, the two tools via MCP and HTTP"
 requires-python = ">=3.12"
 dependencies = ["mcp==2.3.0", "uvicorn==0.54.0", "python-multipart==0.0.32", "pypdf==6.19.0"]
 
@@ -10,9 +10,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["revisore"]
+packages = ["reviewer"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# Il Consiglio sta in consiglio/revisione, che non si installa.
-pythonpath = [".", "../revisione"]
+# The council lives in council/review, which is not installed.
+pythonpath = [".", "../review"]

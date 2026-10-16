@@ -1,6 +1,6 @@
-# Verificato il 15/10/2026 su Mac (M1 Max) con Python 3.12. transformers 5 per Gemma 4 (instradamento.py); Qwen3-14B
-# ci gira: 80 contratti CUAD train sulla MI300X in telepatia, F1 68,6 (spike di “Router spike”).
--e ../../motore
+# Verified on 15/10/2026 on a Mac (M1 Max) with Python 3.12. transformers 5 for Gemma 4 (routing.py); Qwen3-14B
+# runs on it: 80 CUAD train contracts on the MI300X in telepathy, F1 68.6.
+-e ../../engine
 torch==2.14.1
 transformers==5.19.0
 safetensors==0.8.0

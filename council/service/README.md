@@ -1,62 +1,84 @@
-# consiglio/servizio: il Consiglio per Evolus
+# council/service: the council for Evolus
 
-Codice, la parte "flusso Evolus".
-Il server espone il Consiglio con due tool, via MCP e via HTTP, con lo stesso schema del server dello Sportello.
-Così Evolus parla con i due progetti nello stesso modo.
+The "Evolus flow" part of the council.
+The server exposes the council with two tools, via MCP and via HTTP, with the same scheme as the Help Desk's server.
+This way Evolus talks to both projects in the same way.
 
 ```mermaid
 sequenceDiagram
     participant E as Evolus
-    participant S as server del Consiglio (MI300X)
-    participant P as persona
-    E->>S: revisiona_contratto(contratto, mittente, oggetto, data) · MCP /mcp o POST /revisiona_contratto
-    S->>S: segreto · stessa email? risposta già scritta · un esame alla volta
-    S-->>E: raccomandazione, segnalate, dissensi gravi, sigillo, link, avviso
-    E->>P: email con l'avviso, così com'è
-    P->>S: GET /verdetto/{id}?chiave=… (la pagina del verdetto)
-    P->>S: Invia le scelte · POST /verdetto/{id}/scelte?chiave=…
-    E->>S: registra_scelte(id, scelte, chi) · oppure GET /casi/{id} per leggerle
+    participant S as council server (MI300X)
+    participant P as person
+    E->>S: review_contract(contract, sender, subject, date) · MCP /mcp or POST /review_contract
+    S->>S: secret · same email? response already written · one review at a time
+    S-->>E: recommendation, flagged, major dissents, seal, link, notice
+    E->>P: email with the notice, as is
+    P->>S: GET /verdict/{id}?key=… (the verdict page)
+    P->>S: Send the choices · POST /verdict/{id}/choices?key=…
+    E->>S: record_choices(id, choices, who) · or GET /cases/{id} to read them
 ```
 
-| File | Cosa fa |
+| File | What it does |
 |---|---|
-| `revisore/gestore.py` | i due tool e le loro regole, uguali per MCP e HTTP |
-| `revisore/server.py` | MCP su `/mcp`, le stesse rotte in HTTP, il segreto, le rotte della persona con la chiave del link |
-| `revisore/__main__.py` | carica Qwen3 una volta, crea il Consiglio in telepatia e a testo, avvia uvicorn |
-| `tests/` | 16 test con un Consiglio finto, che restituisce la revisione d'esempio della pagina |
+| `reviewer/manager.py` | the two tools and their rules, the same for MCP and HTTP |
+| `reviewer/server.py` | MCP on `/mcp`, the same routes in HTTP, the secret, the person's routes with the link's key |
+| `reviewer/routing.py` | with `--long-model`, short contracts to one model and long ones to another |
+| `reviewer/__main__.py` | loads Qwen3 once, creates the council in telepathy and in text, starts uvicorn |
+| `tests/` | tests with a fake council, which returns the page's example review |
 
-## Regole
+## Rules
 
-- **Segreto:** tutte le rotte di Evolus lo chiedono, in `Authorization: Bearer <segreto>` oppure `X-Api-Key`.
-- **Link della persona:** la pagina del verdetto e l'invio delle scelte usano la **chiave del caso**, un HMAC dell'id fatto con il segreto. Chi ha il link apre solo quel caso, senza conoscere il segreto. Con una chiave sbagliata o un caso che non esiste la risposta è sempre 404.
-- **Un esame alla volta**, perché la GPU è una.
-- **La stessa email è lo stesso caso:** il nuovo tentativo di Evolus non fa rigirare il Consiglio.
-- **Senza sigillo integro** non c'è verdetto: `verdetto` è falso e l'avviso chiede una persona.
-- **Il contratto** arriva come testo, in base64 o come file PDF in un modulo. Del PDF si legge il testo; una scansione senza testo viene rifiutata, perché l'OCR non c'è. **Il testo non si salva:** nel caso restano revisione, vista, pagina e scelte, più l'impronta del contratto.
-- **Le scelte:** per ogni categoria in dissenso, `esperto` oppure `verdetto`, come i due bottoni della pagina.
-- **Gli errori:** una richiesta sbagliata torna 400 prima di toccare il modello; un guasto torna 500 senza dettagli.
+- **Secret:** every Evolus route requires it, in `Authorization: Bearer <secret>` or `X-Api-Key`.
+- **The person's link:** the verdict page and sending the choices use the **case key**, an HMAC of the id made with the secret. Whoever has the link opens only that case, without knowing the secret. With a wrong key or a case that does not exist the answer is always 404.
+- **One review at a time**, because there is one GPU.
+- **The same email is the same case:** Evolus retrying does not make the council run again.
+- **Without an intact seal** there is no verdict: `verdict` is false and the notice asks for a person.
+- **The contract** arrives as text, in base64 or as a PDF file in a form. The PDF's text is read; a scan without text is rejected, because there is no OCR. **The text is not saved:** the case keeps review, view, page and choices, plus the contract's fingerprint.
+- **The choices:** for each category in dissent, `expert` or `verdict`, like the two buttons of the page.
+- **The notice** (`notice.subject`, `notice.text`) is written in Italian, like the client's verdict page: it goes to an Italian business.
+- **Errors:** a bad request returns 400 before touching the model; a failure returns 500 without details. Error bodies are `{"error": "…"}`.
 
-## Uso
+## HTTP API
+
+| Route | Auth | Request | Response |
+|---|---|---|---|
+| `POST /review_contract` | secret | JSON `{text \| pdf_base64, sender, subject, date, mode}`, or a form with the PDF (field `contract` or the first PDF file) or the text (part `body` or unnamed); `sender`, `subject`, `date`, `mode` also as query parameters | `case_id`, `verdict`, `recommendation` {value, rationale}, `seal_intact`, `flagged` [{category, quote, quote_found}], `major_dissents` [{category, expert, expert_confidence, highlighted}], `other_dissents`, `link`, `notice` {subject, text}, `mode`, `model`, `tokens_generated`, `seconds` |
+| `POST /record_choices` | secret | `{case_id, choices: {category: "expert" \| "verdict"}, who}` | `case_id`, `recorded`, `choices`, `who`, `when` |
+| `GET /cases` | secret | | [{case_id, title, recommendation, major_dissents, choices}] |
+| `GET /cases/{case_id}` | secret | | `view`, `choices` |
+| `GET /verdict/{case_id}?key=…` | link key | | the verdict page |
+| `POST /verdict/{case_id}/choices?key=…` | link key | `{choices}` | as `record_choices` |
+| `GET /live/contracts` | secret, `--live` | | [{key, title, benchmark, subset}] |
+| `POST /live/contract` | secret, `--live` | `{contract: "<benchmark>:<id>", mode}` | as `review_contract`, plus `live`, `contract`, `view`; 409 if busy |
+| `GET /health` | open | | `ready`, `review_in_progress`, `live` |
+
+MCP on `POST /mcp` has the tools `review_contract(sender, subject, date, text, pdf_base64, mode)` and
+`record_choices(case_id, choices, who)`. `mode` is `telepathy` (default) or `text`.
+
+## Usage
 
 ```bash
-cd consiglio/servizio
+cd council/service
 uv venv -p 3.12.venv && uv pip install -p.venv/bin/python -r requirements.txt
-.venv/bin/python -m pytest -q # 16 test, senza modello
+.venv/bin/python -m pytest -q # without a model
 
-export CONSIGLIO_SEGRETO=$(openssl rand -hex 32) # lo stesso va nel connettore di Evolus
-.venv/bin/python -m revisore --modello Qwen/Qwen3-14B --passi 10 \
-    --link "https://consiglio.example.org/verdetto/{id}?chiave={chiave}" --host-pubblico consiglio.example.org
+export COUNCIL_SECRET=$(openssl rand -hex 32) # the same goes into Evolus's connector
+.venv/bin/python -m reviewer --model Qwen/Qwen3-14B --steps 10 \
+    --link "https://council.example.org/verdict/{id}?key={key}" --public-host council.example.org
 ```
 
-Il TLS lo fa Caddy davanti, come per lo Sportello: `caddy reverse-proxy --from consiglio.example.org --to 127.0.0.1:8001`.
-I casi stanno in `~/.consiglio/casi/<id>/`.
+Other flags: `--long-model` and `--threshold` (routing), `--dtype`, `--no-realign`, `--cases`, `--host`, `--port`,
+`--ssl-certfile`, `--ssl-keyfile`, `--live dev [test]`, `--with-demo`, `--max-tokens`.
 
-## Cosa manca
+TLS is done by Caddy in front, as for the Help Desk: `caddy reverse-proxy --from council.example.org --to 127.0.0.1:8001`.
+The cases live in `~/.council/cases/<id>/`.
 
-- **Il lato Evolus:**
-  - il workflow che parte dall'email e chiama `revisiona_contratto`;
-  - l'avviso alla persona;
-  - il secondo workflow con le scelte.
+## What is missing
 
-  Si fanno con l'integrazione Evolus e le risposte del Discord sui limiti del connettore.
-- **Passi latenti e riallineamento** di `--passi` e `--senza-riallineamento`: quelli scelti, dopo la diagnosi.
+- **The Evolus side:**
+  - the workflow that starts from the email and calls `review_contract`;
+  - the notice to the person;
+  - the second workflow with the choices.
+
+  They are done with the Evolus integration and the Discord answers about the connector's limits.
+- **Latent steps and realignment** for `--steps` and `--no-realign`: the ones chosen in the calibration, after the diagnosis of 12/10/2026.
