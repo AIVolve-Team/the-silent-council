@@ -32,13 +32,11 @@ def test_righe_raccomandazione_e_sigillo():
     assert cessione["citazione_trovata"] is False
 
 
-def test_il_taglio_e_i_passi_per_la_vista_a_fumetti():
-    # quanti caratteri ha letto ogni esperto, e con quanti passi latenti, senza le frasi del contratto.
+def test_i_passi_latenti_nella_vista():
     v = vista(revisione(), BENCHMARK["dimostrativo"], TITOLO)
-    assert v["taglio"] == {"modo": "titoli", "caratteri": {"legale": 4200, "finanza": 900, "rischio": 1400}}
     assert v["passi_latenti"] == 10
-    senza = {k: x for k, x in revisione().items() if k not in ("taglio", "passi_latenti")}
-    assert vista(senza, BENCHMARK["dimostrativo"], TITOLO)["taglio"] is None
+    senza = {k: x for k, x in revisione().items() if k != "passi_latenti"}
+    assert vista(senza, BENCHMARK["dimostrativo"], TITOLO)["passi_latenti"] is None
 
 
 def test_dissenso_grave_con_esperto_sicuro_in_evidenza():

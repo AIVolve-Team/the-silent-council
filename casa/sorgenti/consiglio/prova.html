@@ -126,7 +126,7 @@ const T = {
     memoria: "Handing over memory", testo: "Writing to each other",
     avvia: "Start the review", circa: (s) => `Usually about ${s} seconds on the recorded runs.`,
     lavoro: (t) => `The council is reviewing ${t}`, lavoroSotto: "One review at a time on the GPU. Keep this page open.",
-    fatto: (s) => `Done in ${s} seconds.`, apri: "Open the verdict", fumetto: "Watch it as a comic strip", fumettoBreve: "Comic strip", nessuno: "No valid verdict",
+    fatto: (s) => `Done in ${s} seconds.`, apri: "Open the verdict", nessuno: "No valid verdict",
     racc: { "firmare": "Sign", "negoziare": "Negotiate", "non firmare": "Do not sign" },
     trovate: (a, b) => [`Found `, el("b", { text: String(a) }), ` of the `, el("b", { text: String(b) }), ` clauses the experts flagged.`],
     occupato: "Another judge is running a review right now.", occupatoTesto: "Try again in a minute.",
@@ -145,7 +145,7 @@ const T = {
     memoria: "Si passano la memoria", testo: "Si scrivono",
     avvia: "Avvia la revisione", circa: (s) => `Di solito circa ${s} secondi, nei giri registrati.`,
     lavoro: (t) => `Il Consiglio sta esaminando ${t}`, lavoroSotto: "Una revisione alla volta sulla GPU. Tieni aperta questa pagina.",
-    fatto: (s) => `Fatto in ${s} secondi.`, apri: "Apri il verdetto", fumetto: "Guardala a fumetti", fumettoBreve: "Fumetto", nessuno: "Nessun verdetto valido",
+    fatto: (s) => `Fatto in ${s} secondi.`, apri: "Apri il verdetto", nessuno: "Nessun verdetto valido",
     racc: { "firmare": "Firmare", "negoziare": "Negoziare", "non firmare": "Non firmare" },
     trovate: (a, b) => [`Trovate `, el("b", { text: String(a) }), ` delle `, el("b", { text: String(b) }), ` clausole segnate dagli esperti.`],
     occupato: "Un altro giudice sta facendo una prova proprio adesso.", occupatoTesto: "Riprova fra un minuto.",
@@ -227,8 +227,7 @@ function bloccoEsito(r) {
     el("h2", { text: v.titolo }),
     el("p", { class: "valore", text: valore ? t().racc[valore] : t().nessuno }),
     c && c.da_trovare ? el("p", { class: "riga" }, t().trovate(c.trovate, c.da_trovare)) : null,
-    el("div", { class: "bottoni" }, el("a", { class: "bottone", href: `verdetto.html?dal-vivo=${encodeURIComponent(r.id_caso)}`, text: t().apri }),
-      el("a", { class: "bottone vuoto", href: `fumetto.html?dal-vivo=${encodeURIComponent(r.id_caso)}`, text: t().fumetto })));
+    el("div", { class: "bottoni" }, el("a", { class: "bottone", href: `verdetto.html?dal-vivo=${encodeURIComponent(r.id_caso)}`, text: t().apri })));
 }
 
 function disegna() {
@@ -280,8 +279,7 @@ function disegna() {
       el("ul", {}, mie.map((f) => el("li", {},
         el("div", {}, el("span", { class: "titolo", text: f.titolo }), el("br"),
           el("span", { class: "dettagli", text: [f.modalita === "testo" ? t().testo : t().memoria, f.raccomandazione ? t().racc[f.raccomandazione] : t().nessuno, t().quando(f.quando)].join(", ") })),
-        el("span", { class: "link" }, el("a", { href: `verdetto.html?dal-vivo=${encodeURIComponent(f.id_caso)}`, text: t().apri }),
-          el("a", { href: `fumetto.html?dal-vivo=${encodeURIComponent(f.id_caso)}`, text: t().fumettoBreve })))))));
+        el("span", { class: "link" }, el("a", { href: `verdetto.html?dal-vivo=${encodeURIComponent(f.id_caso)}`, text: t().apri }))))));
   }
   pagina.append(el("footer", { text: t().piede }));
 }

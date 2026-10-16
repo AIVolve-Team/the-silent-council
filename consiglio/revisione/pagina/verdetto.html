@@ -69,9 +69,6 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .sigillo.rotto { border-color: var(--rifiutare); background: var(--rifiutare-tenue); }
 .sigillo.rotto strong { color: var(--rifiutare); }
 .impronte { font: 0.75rem/1.5 var(--codice); color: var(--tenue); overflow-wrap: anywhere; }
-/* il collegamento alla vista a fumetti: un'etichetta col bordo d'inchiostro, come le vignette */
-.al-fumetto { display: inline-flex; gap: 9px; align-items: center; justify-self: start; font-weight: 700; text-decoration: none; border: 2px solid var(--inchiostro); border-radius: 999px; padding: 6px 15px; box-shadow: 3px 3px 0 var(--inchiostro); background: var(--foglio); }
-.al-fumetto::before { content: ""; width: 15px; height: 11px; border: 2px solid currentColor; border-radius: 6px 6px 6px 1px; flex: none; }
 .lingua-modello { font-size: 0.9375rem; color: var(--tenue); border-left: 3px solid var(--linea); padding-left: 12px; }
 
 /* raccomandazione */
@@ -212,7 +209,6 @@ const T = {
     titolo: (t) => `Verdetto: ${t}`, indice: "Tutti i verdetti", indiceDalVivo: "Le prove dal vivo", lingueGruppo: "Lingua", linguaModello: null,
     dalVivo: (q) => `Revisione dal vivo, ${new Date(q).toLocaleString("it-IT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
     nonQui: "Questa prova dal vivo non è in questo browser: le prove restano nel browser dove sono state fatte.",
-    fumetto: "Guardala a fumetti",
   },
   en: {
     chi: { legale: "the legal expert", finanza: "the finance expert", rischio: "the risk expert" },
@@ -258,7 +254,6 @@ const T = {
     titolo: (t) => `Verdict: ${t}`, indice: "All verdicts", indiceDalVivo: "Live reviews", lingueGruppo: "Language",
     dalVivo: (q) => `Live review, ${new Date(q).toLocaleString("en-GB", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}.`,
     nonQui: "This live review is not in this browser: live reviews stay in the browser where they were made.",
-    fumetto: "Watch it as a comic strip",
     linguaModello: "The council writes its reasoning in Italian, for the Italian business it works for. Quotes are in the contract's own language.",
   },
 };
@@ -297,15 +292,6 @@ const stessoSito = (u) => {
   // Lo schema va confrontato a parte: aperta dal disco, la pagina ha origine "null" come javascript: e data:.
   try { const x = new URL(u, location.href); return x.protocol === location.protocol && x.origin === location.origin; } catch { return false; }
 };
-
-// La vista a fumetti dello stesso contratto, aperta sulla modalità di questo verdetto.
-function linkFumetto(vista) {
-  const f = sicuro(vista.fumetto);
-  if (!f) return null;
-  const u = new URL(f);
-  u.searchParams.set("modo", vista.modalita);
-  return u.href;
-}
 
 function chiaveScelte(vista) { return `consiglio-scelte:${vista.benchmark}/${vista.contratto}`; }
 function leggiScelte(vista) {
@@ -466,14 +452,12 @@ function mostra(vista) {
   const indice = sicuro(vista.indice);
   const fonte = c ? sicuro(c.link) : null;
   const invio = stessoSito(vista.invio_scelte);
-  const fumetto = linkFumetto(vista);
   pagina.replaceChildren(
     el("div", { class: "barra non-stampare" }, indice ? el("a", { href: indice }, `← ${vista.dal_vivo ? t().indiceDalVivo : t().indice}`) : null, lingue),
     el("header", { class: "testa" },
       el("div", { class: "titoli" }, el("span", { class: "etichetta" }, t().revisione), el("h1", {}, vista.titolo),
         el("p", { class: "tenue" }, vista.modalita === "testo" ? t().testo(vista.note.length) : t().telepatia(vista.note.length)),
-        vista.dal_vivo ? el("p", { class: "etichetta" }, t().dalVivo(vista.dal_vivo)) : null,
-        fumetto ? el("a", { class: "al-fumetto non-stampare", href: fumetto }, t().fumetto) : null),
+        vista.dal_vivo ? el("p", { class: "etichetta" }, t().dalVivo(vista.dal_vivo)) : null),
       sigillo),
     t().linguaModello ? el("p", { class: "lingua-modello" }, t().linguaModello) : null,
     s.integro && r
@@ -523,7 +507,7 @@ async function avvia() {
     let fatte = [];
     try { fatte = JSON.parse(localStorage.getItem("consiglio-dal-vivo")) || []; } catch { /* niente */ }
     const voce = Array.isArray(fatte) ? fatte.find(f => f && f.id_caso === dalVivo) : null;
-    if (voce) return vedi({ ...voce.vista, fumetto: `fumetto.html?dal-vivo=${encodeURIComponent(dalVivo)}` });
+    if (voce) return vedi(voce.vista);
     lingua = scegliLingua({});
     document.getElementById("carica").replaceChildren(el("h1", {}, maiuscola(t().indiceDalVivo)), el("p", { class: "tenue" }, t().nonQui),
       el("p", {}, el("a", { href: "prova.html" }, `← ${t().indiceDalVivo}`)));

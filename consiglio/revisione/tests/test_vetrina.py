@@ -7,7 +7,7 @@ import pytest
 
 from revisione import BENCHMARK
 from revisione.dati import risposte_esperti
-from revisione.vetrina import FUMETTO, Privato, scrivi_vetrina, titolo_cuad
+from revisione.vetrina import Privato, scrivi_vetrina, titolo_cuad
 
 ESEMPIO = Path(__file__).parents[1] / "pagina" / "esempio-revisione.json"
 
@@ -39,44 +39,6 @@ def test_indice_e_pagine(tmp_path):
     # la pagina vuota del verdetto, che la prova dal vivo apre con la vista salvata nel browser del giudice
     assert '<script id="dati" type="application/json">null</script>' in (uscita / "verdetto.html").read_text()
     assert "citazione" not in json.dumps(voce)  # nell'indice solo conteggi, niente frasi del contratto
-
-
-def dati_di(pagina: Path) -> dict:
-    return json.loads(pagina.read_text().split('<script id="dati" type="application/json">')[1].split("</script>")[0])
-
-
-def test_la_vista_a_fumetti_di_ogni_contratto(tmp_path):
-    # una pagina per contratto con le due modalità, raggiungibile dall'indice e da ogni verdetto.
-    contratto = "TRANSPHORM,INC_02_14_2020-EX-10.12(1)-JOINT VENTURE AGREEMENT"
-    telepatia = giro(tmp_path, benchmark="cuad", contratto=contratto, secondi=100.0)
-    testo = tmp_path / "giro-testo.jsonl"
-    testo.write_text(
-        json.dumps(json.loads(ESEMPIO.read_text()) | {"benchmark": "cuad", "contratto": contratto, "modalita": "testo"})
-        + "\n"
-    )
-    uscita = tmp_path / "vetrina"
-    scrivi_vetrina([telepatia, testo], uscita, registrato="oggi")
-    voci = dati_di(uscita / "index.html")["verdetti"]
-    assert len({v["fumetto"] for v in voci}) == 1
-    fumetto = dati_di(uscita / voci[0]["fumetto"])
-    assert fumetto["registrato"] == "oggi" and fumetto["lingua"] == "en" and fumetto["indice"] == "index.html"
-    for modalita in ("telepatia", "testo"):
-        v = fumetto[modalita]
-        assert v["modalita"] == modalita and (uscita / v["verdetto"]).exists()
-        assert v["taglio"]["caratteri"] == json.loads(ESEMPIO.read_text())["taglio"]["caratteri"]
-        # e il verdetto porta al fumetto
-        assert dati_di(uscita / v["verdetto"])["fumetto"] == voci[0]["fumetto"]
-    assert fumetto["telepatia"]["costo"]["secondi"] == 100.0
-    # la pagina vuota, per le prove dal vivo
-    assert (uscita / "fumetto.html").read_text() == FUMETTO.read_text()
-
-
-def test_fumetto_con_una_modalita_sola(tmp_path):
-    uscita = tmp_path / "vetrina"
-    scrivi_vetrina([giro(tmp_path, benchmark="cuad", contratto="ESEMPIO-SUPPLY AGREEMENT")], uscita, registrato=None)
-    voce = dati_di(uscita / "index.html")["verdetti"][0]
-    fumetto = dati_di(uscita / voce["fumetto"])
-    assert fumetto["telepatia"]["contratto"] == "ESEMPIO-SUPPLY AGREEMENT" and fumetto["testo"] is None
 
 
 def test_i_nomi_delle_categorie_sono_quelli_dei_dati():
