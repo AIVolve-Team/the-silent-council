@@ -1,8 +1,8 @@
 {
-  "seme": 60,
-  "tetto": 24000,
+  "seed": 60,
+  "token_cap": 24000,
   "cuad": {
-    "sviluppo": [
+    "dev": [
       "TRANSPHORM,INC_02_14_2020-EX-10.12(1)-JOINT VENTURE AGREEMENT",
       "FEDERATEDGOVERNMENTINCOMESECURITIESINC_04_28_2020-EX-99.SERV AGREE-SERVICES AGREEMENT",
       "PenntexMidstreamPartnersLp_20150416_S-1A_EX-10.4_9042833_EX-10.4_Transportation Agreement",
@@ -33,7 +33,7 @@
     ]
   },
   "contractnli": {
-    "sviluppo": [
+    "dev": [
       "1592288_0001193125-17-306543_d469659dex99e2.htm",
       "103884_0001193125-12-338104_d390544dex99d3.htm",
       "MelbourneDatathon2017NDA.pdf",
@@ -64,7 +64,7 @@
     ]
   },
   "claudette": {
-    "sviluppo": [
+    "dev": [
       "Amazon",
       "Electronic_Arts",
       "Google",

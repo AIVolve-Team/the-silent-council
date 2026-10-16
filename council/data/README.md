@@ -1,89 +1,92 @@
-# consiglio/dati — set di misura e set dimostrativo del Consiglio
+# council/data — the council's measurement set and demo set
 
-Le regole vengono da "Benchmark e contratti di prova" e da "Impostazione del Consiglio".
-I termini (set di misura, set dimostrativo, clausola da segnalare, risposta giusta) sono quelli di `CONTEXT.md`.
+The rules come from the team's decisions "Benchmarks and trial contracts" and "Council setup".
+The terms (measurement set, demo set, clause to flag, correct answer) are the ones in `CONTEXT.md`.
 
-`prepara.py` scarica CUAD, ContractNLI e i ToS italiani di CLAUDETTE dalle fonti ufficiali, a versioni fissate e con l'hash controllato.
-Poi conta i token Qwen3 di ogni contratto, estrae il campione con seme fisso tra i contratti sotto il tetto e scrive la risposta giusta di ogni coppia (contratto, categoria).
+`prepare.py` downloads CUAD, ContractNLI and CLAUDETTE's Italian ToS from the official sources, at pinned versions and with their hash checked.
+It then counts the Qwen3 tokens of each contract, draws the sample with a fixed seed among the contracts under the token cap and writes the correct answer for each (contract, category) pair.
 
-| File | Cosa contiene |
+| File | What it contains |
 |---|---|
-| `prepara.py` | download, conteggio dei token, campione e risposte giuste |
-| `categorie.py` | le categorie di ogni benchmark e il ruolo che le guarda |
-| `test_prepara.py` | test delle regole sì/no e della lettura dei tag di CLAUDETTE |
-| `dimostrativo.py` | controlla il set dimostrativo e ne scrive l'hash |
-| `test_dimostrativo.py` | test dei controlli sul set dimostrativo |
-| `set-di-misura/campione.json` | i contratti estratti, per benchmark e insieme |
-| `set-di-misura/risposte-giuste.jsonl` | una riga per coppia (contratto, categoria) dei contratti estratti |
-| `set-di-misura/campione-replica.json` | i 72 contratti della replica di CUAD |
-| `set-di-misura/risposte-giuste-replica.jsonl` | le risposte giuste della replica, una riga per coppia |
-| `set-di-misura/conteggi.json` | quanti contratti stanno sotto il tetto, con mediana, p90 e massimo |
-| `set-di-misura/token-per-contratto.csv` | i token Qwen3 di ogni contratto dei tre benchmark |
-| `NOTICE.md` | attribuzioni e licenze dei dati |
+| `prepare.py` | download, token count, sample and correct answers |
+| `categories.py` | the categories of each benchmark and the role that reviews them |
+| `test_prepare.py` | tests of the yes/no rules and of the reading of CLAUDETTE's tags |
+| `demo.py` | checks the demo set and writes its hash |
+| `test_demo.py` | tests of the checks on the demo set |
+| `measurement-set/sample.json` | the drawn contracts, by benchmark and subset |
+| `measurement-set/correct-answers.jsonl` | one row per (contract, category) pair of the drawn contracts |
+| `measurement-set/sample-replication.json` | the 72 contracts of the CUAD replication |
+| `measurement-set/correct-answers-replication.jsonl` | the correct answers of the replication, one row per pair |
+| `measurement-set/counts.json` | how many contracts fit under the token cap, with median, p90 and max |
+| `measurement-set/tokens-per-contract.csv` | the Qwen3 tokens of every contract of the three benchmarks |
+| `NOTICE.md` | attributions and licences of the data |
 
-## Uso
+## Usage
 
 ```bash
-cd consiglio/dati
-uv venv -p 3.12.venv && uv pip install -p.venv -r requirements.txt
+cd council/data
+uv venv -p 3.12 .venv && uv pip install -p .venv -r requirements.txt
 .venv/bin/python -m pytest -q
-.venv/bin/python prepara.py # tetto 24k; con --tetto 12000 il ripiego deciso
-.venv/bin/ruff check. &&.venv/bin/ruff format --check.
+.venv/bin/python prepare.py                 # 24k cap; --token-cap 12000 is the fallback decided in the council setup
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
 ```
 
-I file scaricati restano in `cache/`, fuori dal repo.
-Due giri dello script producono gli stessi file.
+The downloaded files stay in `cache/`, out of the repo.
+Two runs of the script produce the same files.
 
-## Regole
+The files of the measurement set were renamed to English (file names, keys and enum values) after the pre-registration, which pins the hashes of the Italian originals.
+The content is unchanged: `test_prepare.py` rebuilds the original bytes from the committed files and checks them against the pre-registered hashes.
 
-- **Tetto:** 24.000 token Qwen3, contati sul solo testo del contratto con il tokenizer di Qwen3-14B.
-- **Campione:** seme 60, estrazione indipendente per benchmark e insieme.
-  - CUAD e ContractNLI: 5 contratti di sviluppo dallo split *train* e 20 di test dallo split *test* ufficiale.
-  - CLAUDETTE, che non ha uno split ufficiale: 20 di test, e tutti gli altri sotto il tetto come sviluppo.
-  - Replica di CUAD: tutti i contratti di test sotto il tetto che il test non ha usato, 72, senza estrazione. Sta in file a parte perché quelli del test sono fissati per hash nella pre-registrazione.
-- **Risposta giusta:**
-  - CUAD: "sì" se c'è almeno un pezzo di testo annotato per una delle 19 categorie. Le risposte vengono da `CUADv1.json`; i file dello split servono solo a sapere in quale insieme sta un contratto.
-  - ContractNLI: "sì" se l'ipotesi ha etichetta Contradiction; l'etichetta originale resta nella riga.
-  - CLAUDETTE: "sì" se almeno una clausola della categoria ha grado 2 o 3; il grado 3 da solo è nel campo `da_segnalare_grado_3`.
-- **Correzioni a CLAUDETTE:** due tag chiusi male nei ToS italiani (Weebly e Yelp), corretti come nella versione inglese degli stessi ToS. Sono in `CORREZIONI_CLAUDETTE`, e lo script si ferma se il testo originale cambia.
+## Rules
 
-## Numeri del campione (tetto 24k)
+- **Token cap:** 24,000 Qwen3 tokens, counted on the contract text only with the Qwen3-14B tokenizer.
+- **Sample:** seed 60, an independent draw per benchmark and subset.
+  - CUAD and ContractNLI: 5 dev contracts from the *train* split and 20 test contracts from the official *test* split.
+  - CLAUDETTE, which has no official split: 20 test contracts, and all the others under the cap as dev.
+  - CUAD replication: all the test contracts under the cap that the test did not use, 72, with no draw. It lives in separate files because the test ones are pinned by hash in the pre-registration.
+- **Correct answer:**
+  - CUAD: "yes" if there is at least one annotated piece of text for one of the 19 categories. The answers come from `CUADv1.json`; the split files are only used to know which split a contract belongs to.
+  - ContractNLI: "yes" if the hypothesis is labelled Contradiction; the original label stays in the row.
+  - CLAUDETTE: "yes" if at least one clause of the category has grade 2 or 3; grade 3 alone is in the `should_flag_grade_3` field.
+- **Fixes to CLAUDETTE:** two badly closed tags in the Italian ToS (Weebly and Yelp), fixed as in the English version of the same ToS. They are in `CLAUDETTE_FIXES`, and the script stops if the original text changes.
 
-| Benchmark | Sotto il tetto | Test: coppie | Test: da segnalare | F1 di chi dice sempre "sì" |
+## Sample numbers (24k cap)
+
+| Benchmark | Under the cap | Test: pairs | Test: to flag | F1 of always saying "yes" |
 |---|---|---|---|---|
-| CUAD | train 357/408, test 92/102 | 380 | 74 (19%) | 32,6 |
-| ContractNLI | 423/423, 123/123 | 340 | 38 (11%) | 20,1 |
-| CLAUDETTE | 42/50 | 180 | 143 (79%) | 88,5 |
+| CUAD | train 357/408, test 92/102 | 380 | 74 (19%) | 32.6 |
+| ContractNLI | 423/423, 123/123 | 340 | 38 (11%) | 20.1 |
+| CLAUDETTE | 42/50 | 180 | 143 (79%) | 88.5 |
 
-Su CLAUDETTE quasi tutte le coppie vanno segnalate: un sistema che dice sempre "sì" prende già F1 88,5.
-Sul grado 3 da solo (46 coppie su 180) la stessa base scende a F1 40,7.
-Deciso: l'eval riporta accanto a ogni F1 la base "sempre sì" e l'MCC, che vale 0 per chi dice sempre "sì", e per CLAUDETTE anche la vista sul grado 3 da solo.
+On CLAUDETTE almost every pair should be flagged: a system that always says "yes" already gets F1 88.5.
+On grade 3 alone (46 pairs out of 180) the same baseline drops to F1 40.7.
+Decided by the team: the eval reports next to each F1 the "always yes" baseline and the MCC, which is 0 for always saying "yes", and for CLAUDETTE also the view on grade 3 alone.
 
-## Ruoli per benchmark
+## Roles per benchmark
 
-Deciso (6/10/2026), in `categorie.py`:
+Decided on 6/10/2026, in `categories.py`:
 
-- **CUAD e set dimostrativo:** legale, finanza, rischio e relatore, con la tabella.
-- **ContractNLI e CLAUDETTE:** nessuna delle 17 ipotesi e delle 9 categorie è finanziaria, quindi la finanza non è convocata e il Consiglio è a tre: legale, rischio e relatore.
-  - ContractNLI: al legale cosa è riservato e la proprietà intellettuale (8 ipotesi), al rischio uso, condivisione e durata degli obblighi (9).
-  - CLAUDETTE: al legale responsabilità, arbitrato, foro, legge applicabile, accettazione con l'uso e privacy (6), al rischio modifica unilaterale, recesso unilaterale e rimozione dei contenuti (3).
-- `LETTORI` dà, per ogni benchmark, i ruoli che leggono una sezione nell'ordine della staffetta; il relatore la chiude sempre.
+- **CUAD and the demo set:** legal, finance, risk and the rapporteur, with the table of the council setup.
+- **ContractNLI and CLAUDETTE:** none of the 17 hypotheses and 9 categories is financial, so finance is not convened and the council has three members: legal, risk and the rapporteur.
+  - ContractNLI: legal gets what is confidential and intellectual property (8 hypotheses), risk gets use, sharing and duration of the obligations (9).
+  - CLAUDETTE: legal gets liability, arbitration, jurisdiction, governing law, acceptance by use and privacy (6), risk gets unilateral change, unilateral termination and content removal (3).
+- `READERS` gives, for each benchmark, the roles that read a section in relay order; the rapporteur always closes it.
 
-## Set dimostrativo
+## Demo set
 
-I contratti B2B in italiano scritti dal team stanno in `set-dimostrativo/`, che git ignora: restano fuori dal repo fino alla consegna.
-Ogni contratto è un file `<nome>.txt` con accanto la risposta attesa `<nome>.json`, nel formato di "Verdetto e dissenso":
+The Italian B2B contracts written by the team live in `demo-set/`, which git ignores: they stay out of the repo until delivery.
+Each contract is a `<name>.txt` file next to its expected answer `<name>.json`, in the format of "Verdict and dissent":
 
-- la raccomandazione (firmare, negoziare o non firmare) con la motivazione;
-- le 19 righe CUAD, con citazione e motivazione per le righe a "sì";
-- il dissenso atteso: dove è plausibile che la nota di un esperto e il verdetto non siano d'accordo, e chi ha ragione;
-- gli importi e le date che il verdetto deve riportare giusti.
+- the `recommendation` (`sign`, `negotiate` or `do not sign`) with its `rationale`;
+- the 19 CUAD `rows`, each with `category`, `role` and `should_flag`, plus `quote` and `rationale` for the "yes" rows;
+- the `expected_dissent`: where an expert's note and the verdict may plausibly disagree (`expected_note` and `expected_verdict`, one `yes` and one `no`), its `type` (`major` or `minor`), `who_is_right` (`expert` or `verdict`) and `why`;
+- the `amounts_and_dates` the verdict must report correctly.
 
 ```bash
-.venv/bin/python dimostrativo.py # controlla citazioni, importi, categorie e dissensi
-.venv/bin/python dimostrativo.py --hash # dopo la revisione: scrive set-dimostrativo.sha256
-shasum -a 256 -c set-dimostrativo.sha256 # alla consegna, per verificare che il set non sia cambiato
+.venv/bin/python demo.py           # checks quotes, amounts, categories and dissents
+.venv/bin/python demo.py --hash    # after the review: writes demo-set.sha256
+shasum -a 256 -c demo-set.sha256   # at delivery, to check that the set has not changed
 ```
 
-Nel repo va solo `set-dimostrativo.sha256`, scritto dopo la revisione di una persona del team.
-Chi rivede il set non fa il controllo a mano dell'eval.
+Only `demo-set.sha256` goes in the repo, written after a team member has reviewed the set.
+Whoever reviews the set does not do the eval's manual check.
