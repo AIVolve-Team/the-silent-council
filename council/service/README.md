@@ -1,7 +1,7 @@
 # council/service: the council for Evolus
 
-The "Evolus flow" part of the council.
-The server exposes the council with two tools, via MCP and via HTTP, with the same scheme as the Help Desk's server.
+Code of the "Evolus flow" part of the council.
+The server exposes the council with three tools, via MCP and via HTTP, with the same scheme as the Help Desk's server.
 This way Evolus talks to both projects in the same way.
 
 ```mermaid
@@ -16,15 +16,19 @@ sequenceDiagram
     P->>S: GET /verdict/{id}?key=… (the verdict page)
     P->>S: Send the choices · POST /verdict/{id}/choices?key=…
     E->>S: record_choices(id, choices, who) · or GET /cases/{id} to read them
+    E->>S: ask_council(id, question, who) · answered from the memory of the review
 ```
 
 | File | What it does |
 |---|---|
-| `reviewer/manager.py` | the two tools and their rules, the same for MCP and HTTP |
+| `reviewer/manager.py` | the three tools and their rules, the same for MCP and HTTP |
 | `reviewer/server.py` | MCP on `/mcp`, the same routes in HTTP, the secret, the person's routes with the link's key |
 | `reviewer/routing.py` | with `--long-model`, short contracts to one model and long ones to another |
 | `../review/review/visual.py` | the PDF inspector of the visual skill, used by the manager when a PDF arrives |
-| `reviewer/__main__.py` | loads Qwen3 once, creates the council in telepathy and in text, starts uvicorn |
+| `reviewer/memory.py` | the memory of the last reviews, on the GPU, for `ask_council` and the visual checks |
+| `reviewer/institution.py` | the institutional memory: playbook and precedents |
+| `reviewer/mailbox.py` | the PDF of a contract Evolus sends as text, read from the contracts mailbox |
+| `reviewer/__main__.py` | loads the models once, creates the council in telepathy and in text, plugs the visual mode, starts uvicorn |
 | `tests/` | tests with a fake council, which returns the page's example review |
 
 ## Rules
@@ -49,7 +53,7 @@ One signal is enough to make the PDF complex: a scanned page, raster images larg
 |---|---|---|
 | simple | the PDF's text, as before: same case id | `text` |
 | complex, visual mode off | the visible text, without the hidden text | `text` |
-| complex, visual mode on | the visible text, plus the pages that fired a signal as images in the first expert's memory | `visual` |
+| complex, visual mode on | the visible text, plus the pages that fired a signal as images, seen by the visual expert at the head of the chain | `visual` |
 | scan without text, visual mode off | nothing: 400, a scan needs the visual mode | |
 
 Hidden text is removed from the text of a complex PDF, so a white-on-white instruction does not reach the agents, and the signals give only its reason and length, so it does not reach Evolus's agent through the response either.
@@ -60,7 +64,7 @@ A text contract has neither.
 
 ### The visual checks
 
-In the `visual` route the first expert gets the pages with the text of those sections (`skill`), and right after the review the council answers the fixed questions of the loaded sections from the memory of that review (`ask(..., visual=True)`):
+In the `visual` route the visual expert sees the pages, and right after the review the council answers the fixed questions of the sections the signals call for from the memory of that review (`ask(..., visual=True)`):
 
 | Section | Question |
 |---|---|
@@ -76,14 +80,29 @@ The verdict page of a complex PDF shows the same in plain words (how the council
 
 For a complex PDF the case id hashes the visible text and the route (and, in the visual route, the PDF): the same email sent again after the visual mode is turned on is a new case, not the text-only one already written.
 
-The visual mode itself is the `visual_review(case_id, text, pdf, pages, mode, benchmark, skill)` argument of `Reviewer` (`reviewer/__main__.py` says where it plugs in); it must keep the memory of the review for the checks. Today it is off.
+### The visual expert
+
+The visual mode is on when Gemma 4 31B is loaded (`--model` or `--long-model google/gemma-4-31B-it`); the server says "Visual mode on" at start-up.
+`visual_review` in `reviewer/__main__.py` skips the router and always uses Gemma 4 31B:
+
+1. the flagged pages are rendered (`render_pages`, longest side 1536 px) and read at 560 soft tokens each: in the probe of 17/10 on the four synthetic PDFs, 560 found what 1120 found (precision 100%, recall 75%), in less time;
+2. a **visual expert** heads the review's chain (`Council.review(..., visual=...)`), after the institutional memory: it sees the page images, and its instructions are the **whole** visual skill (`skill_text(SECTIONS)`), the same fixed prompt for every PDF;
+3. the legal, finance and risk experts then read the visible text as usual, on top of its memory; the chair writes the verdict;
+4. the memory of the review is kept for the visual checks and `ask_council`.
+
+In telepathy the visual expert passes on its memory, which holds the pages themselves; in text mode it writes a report and only that survives.
+On PDF A and D of `council/data/vision`, four questions nobody had planned (the seal's shape and ink colour, whether the seal carries a date, what is drawn next to the empty signature field, whether a signature is handwritten) were answered right 4 times in telepathy and once in text, and the telepathy reviews took 88 s and 39 s against 148 s and 82 s.
+On the fixed checks (`visual_trial.py` on the four PDFs) the two modes are close: telepathy precision 91%, recall 50%, 92 s per document; text 100%, 45%, 128 s.
+
+A question asked with `ask_council` on a case that went the `visual` way is asked on the pages too (`visual=True`), and the answer carries the objects seen.
 
 ## HTTP API
 
 | Route | Auth | Request | Response |
 |---|---|---|---|
 | `POST /review_contract` | secret | JSON `{text \| pdf_base64, sender, subject, date, mode}`, or a form with the PDF (field `contract` or the first PDF file) or the text (part `body` or unnamed); `sender`, `subject`, `date`, `mode` also as query parameters | `case_id`, `verdict`, `recommendation` {value, rationale}, `seal_intact`, `flagged` [{category, quote, quote_found}], `major_dissents` [{category, expert, expert_confidence, highlighted}], `other_dissents`, `link`, `notice` {subject, text}, `mode`, `model`, `tokens_generated`, `seconds`; only for a PDF, `visual` {complex, signals, visual_pages, route, hidden_text_removed, visual_mode, skill_sections, and in the `visual` route checks} |
-| `POST /record_choices` | secret | `{case_id, choices: {category: "expert" \| "verdict"}, who}` | `case_id`, `recorded`, `choices`, `who`, `when` |
+| `POST /record_choices` | secret | `{case_id, choices: {category: "expert" \| "verdict"}, who, reasons, corrections, instruction}` | `case_id`, `recorded`, `choices`, `who`, `when`; with the institutional memory, `precedents_added` |
+| `POST /ask_council` | secret | `{case_id, question, who}` | `case_id`, `question`, `who`, `when`, `answer` {answer, quote or objects, known}, `stopped`, `memory_bytes`, `seconds` |
 | `GET /cases` | secret | | [{case_id, title, recommendation, major_dissents, choices}] |
 | `GET /cases/{case_id}` | secret | | `view`, `choices` |
 | `GET /verdict/{case_id}?key=…` | link key | | the verdict page |
@@ -92,23 +111,48 @@ The visual mode itself is the `visual_review(case_id, text, pdf, pages, mode, be
 | `POST /live/contract` | secret, `--live` | `{contract: "<benchmark>:<id>", mode}` | as `review_contract`, plus `live`, `contract`, `view`; 409 if busy |
 | `GET /health` | open | | `ready`, `review_in_progress`, `live` |
 
-MCP on `POST /mcp` has the tools `review_contract(sender, subject, date, text, pdf_base64, mode)` and
-`record_choices(case_id, choices, who)`. `mode` is `telepathy` (default) or `text`.
+MCP on `POST /mcp` has the tools `review_contract(sender, subject, date, text, pdf_base64, mode)`,
+`record_choices(case_id, who, choices, reasons, corrections, instruction)` and `ask_council(case_id, question, who)`.
+`mode` is `telepathy` (default) or `text`. `ask_council` answers from the memory of the review, kept on the GPU within
+`--memory-gb` (24 by default) and never written to disk: after a restart, or when newer reviews push it out, the
+contract must be reviewed again.
 
 ## Usage
 
 ```bash
 cd council/service
-uv venv -p 3.12.venv && uv pip install -p.venv/bin/python -r requirements.txt
-.venv/bin/python -m pytest -q # without a model
+uv venv -p 3.12 .venv && uv pip install -p .venv/bin/python -r requirements.txt
+.venv/bin/python -m pytest -q          # without a model
 
-export COUNCIL_SECRET=$(openssl rand -hex 32) # the same goes into Evolus's connector
+export COUNCIL_SECRET=$(openssl rand -hex 32)      # the same goes into Evolus's connector
 .venv/bin/python -m reviewer --model Qwen/Qwen3-14B --steps 10 \
     --link "https://council.example.org/verdict/{id}?key={key}" --public-host council.example.org
 ```
 
 Other flags: `--long-model` and `--threshold` (routing), `--dtype`, `--no-realign`, `--cases`, `--host`, `--port`,
-`--ssl-certfile`, `--ssl-keyfile`, `--live dev [test]`, `--with-demo`, `--max-tokens`.
+`--ssl-certfile`, `--ssl-keyfile`, `--live dev [test]`, `--with-demo`, `--max-tokens`, `--memory-gb`, `--playbook`,
+`--institution`.
+
+The visual mode needs transformers 5.20.1 or later, `pypdfium2` and `pillow` (the probe stops if Gemma ignores the
+image budget). On the MI300X it ran with `--model google/gemma-4-31B-it --steps 0 --no-realign --playbook
+playbook-example.md`.
+
+### The PDF from the contracts mailbox
+
+Evolus sends only the text of an attachment (see `../evolus/README.md`). With these environment variables the server
+reads the PDF from the same mailbox Evolus reads, read-only (`BODY.PEEK`, nothing marked or moved), and picks the
+attachment whose words match the text Evolus sent (at least 80% in common), or, for a scan without text, the newest PDF
+of the last 15 minutes:
+
+```bash
+export COUNCIL_IMAP_USER=contracts@example.org
+export COUNCIL_IMAP_PASSWORD=...        # an app password, never in a file of the repo
+export COUNCIL_IMAP_FOLDER=INBOX        # the folder Evolus checks
+export COUNCIL_IMAP_HOST=imap.gmail.com # default
+```
+
+A complex PDF found there goes the `visual` way, and the case says `"pdf_from": "mailbox"`. Without the variables, or
+if the mailbox cannot be read, the contract goes the text way as before.
 
 TLS is done by Caddy in front, as for the Help Desk: `caddy reverse-proxy --from council.example.org --to 127.0.0.1:8001`.
 The cases live in `~/.council/cases/<id>/`.
@@ -129,11 +173,7 @@ playbook and the precedents its people decide.
 
 ## What is missing
 
-- **The Evolus side:**
-  - the workflow that starts from the email and calls `review_contract`;
-  - the notice to the person;
-  - the second workflow with the choices.
-
-  They are done with the Evolus integration and the Discord answers about the connector's limits.
-- **The visual mode**: Gemma 4 reading the pages that fired a signal; until it is plugged in, complex PDFs go the text way with `"visual_mode": "off"`.
+- **The Evolus side:** workflow 1 works (email → `review_contract` → notice, checked on 17/10, see `../evolus/README.md`). Still to do: the second workflow with the choices, and the person's questions by reply (`ask_council`).
+- **The inspector's limits:** a page without images is never sent, so missing initials on a text-only page are not seen; some hidden text is not detected.
+- **The chair's rationale** can be cut by its token cap.
 - **Latent steps and realignment** for `--steps` and `--no-realign`: the ones chosen in the calibration, after the diagnosis of 12/10/2026.

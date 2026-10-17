@@ -24,6 +24,9 @@ kept in Italian so they can be found on screen; an English gloss follows where i
 
 Evolus wants a public https address and refuses private ones. The server runs on the MI300X, in G1's engine container (`g1/README.md`, step 3), with the image's ROCm torch; an 8 GB Mac cannot hold it.
 
+`cloudflared` is not in the MI300X image: install Cloudflare's official package first
+(`curl -sSLO https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && dpkg -i cloudflared-linux-amd64.deb`).
+
 ```bash
 # on the MI300X: the main code in ~/hackathon/eval, which is /work/eval in the container
 docker exec engine bash -c "cd /work/eval/council/service && python3 -m venv --system-site-packages /root/venv \
@@ -41,7 +44,11 @@ docker exec -d -e COUNCIL_SECRET -e NAME engine bash -c "cd /work/eval/council/s
 ```
 
 `curl https://$NAME/health` must answer `"ready": true`.
-A new machine has a new IP and the tunnel a new name: update the URL of the «Consiglio» webhook in Evolus.
+A new machine has a new IP and the tunnel a new name: update the URL of the «Consiglio» webhook in Evolus
+(«La tua azienda» › «Per sviluppatori» › «Webhook» › «Consiglio»). The path is `/review_contract` (it was
+`/revisiona_contratto` before the English refactor); the secret in «Valore segreto» must be the server's
+`COUNCIL_SECRET`, or every call gets 401.
+For the visual mode start the server with Gemma 4 31B (`--model google/gemma-4-31B-it`, see `council/service/README.md`).
 The fixed name is in `site/mi300x/README.md`, "The engine's name", still to be configured.
 
 ## 1. The automation
@@ -72,7 +79,7 @@ The fixed name is in `site/mi300x/README.md`, "The engine's name", still to be c
 
 ```text
 Trigger ──DOCUMENTO──▶ «Leggi il documento» ──▶ «Chiama un endpoint (API)» ──▶ «Invia un'email»
-                       «Solo testo», free «Chiama il Consiglio» «Invia l'avviso al destinatario»
+                       «Solo testo», free         «Chiama il Consiglio»          «Invia l'avviso al destinatario»
 ```
 
 The canvas can be built by hand or with **«Costruisci con Evo»**, Evolus's assistant, which adds and connects the blocks.
@@ -81,6 +88,9 @@ The canvas can be built by hand or with **«Costruisci con Evo»**, Evolus's ass
 - the trigger has two outputs, TESTO (the email body) and DOCUMENTO (the attachments); DOCUMENTO connects only to «Leggi il documento» and «Chiama un estrattore dati»;
 - «Multipart coi file del flusso» connected to TESTO does not attach the PDF: it sends a form with the text only, empty when starting from «Provala»;
 - so the PDF goes through **«Leggi il documento»** (read the document) with the **«Solo testo del documento»** (document text only) reader, free, and the server receives the text in the `body` part of the form. It is the same text the server would read from the PDF; scans stay empty here too.
+- checked again on 17/10: «Esegui uno script» gets only text and JSON (`input`, `data`, `sources`, `params`), and dragging DOCUMENTO onto it is refused (*"Dall'uscita Documento passa un file: lo leggono solo «Leggi il documento» e «Chiama un estrattore dati»"*). No block hands the file to an endpoint.
+
+**The PDF for the visual mode** therefore comes from the mailbox itself: with `COUNCIL_IMAP_USER`, `COUNCIL_IMAP_PASSWORD` (an app password of the mailbox Evolus reads) and `COUNCIL_IMAP_FOLDER` (the folder of «Cartella da controllare», `INBOX` today) the server reads the email read-only and takes the attachment whose text matches the one Evolus sent. A complex PDF then goes the visual way: signatures, stamps and handwriting are seen by Gemma 4 31B and the notice gets the "Visual check" lines. Details in `council/service/README.md`, "The PDF from the contracts mailbox".
 
 The other readers (Azure Document Intelligence, GreenPT, «Lascia fare a Evolus») cost 10 credits per page. They are only needed for scanned contracts: that is a later slice.
 In «Leggi il documento»: «I documenti sono facoltativi» (documents are optional) off (without a PDF the run stops there, without calling the council), «Salta gli allegati non leggibili» (skip unreadable attachments) on.
@@ -95,7 +105,7 @@ In «Leggi il documento»: «I documenti sono facoltativi» (documents are optio
 | «Corpo» | «Il risultato del flusso»: the text read from the PDF |
 | «Formato di invio» | «Multipart coi file del flusso» |
 | «Come leggere la risposta» | JSON |
-| «Struttura della risposta (facoltativa)» | `example-response.json`, so the next block offers the fields |
+| «Struttura della risposta (facoltativa)» | `example-response.json`, so the next block offers the fields (in English since the refactor: `case_id`, `notice.subject`, …) |
 
 The catalog connection is created from the company menu › «Sviluppatori» › «Webhook» › «Nuovo webhook», and it belongs to the automation's application, otherwise the dropdown does not offer it:
 
@@ -119,8 +129,11 @@ The secret lives only there, never in a file of the repo.
 |---|---|
 | recipient | fixed: the person who decides |
 | «Rispondi a chi ha scritto» (reply to sender) | **off**: the notice never goes to whoever sent the contract |
-| subject | `notice.subject` of the «Chiama il Consiglio» response |
-| text | `notice.text` of the same response, as is |
+| subject | `notice.subject` of the «Chiama il Consiglio» response (`«Chiama il Consiglio · notice.subject»`) |
+| text | `notice.text` of the same response, as is (`«Chiama il Consiglio · notice.text»`) |
+
+Before 17/10 these two fields still read `avviso.oggetto` and `avviso.testo`, the Italian names of before the refactor: with the
+English server the notice went out empty. Fixed on 17/10 in the active automation.
 
 The server writes the notice, in English, with recommendation, flagged clauses, highlighted dissents and the link to the verdict page.
 Without an intact seal it asks for a person.
@@ -139,6 +152,7 @@ Measured on 16/10 on the MI300X, with Qwen3-14B and a one-page contract:
 - **the call takes about 105 seconds and Evolus waits**, without a timeout;
 - **the same email is the same case:** the second identical call returns in under a second, with the same `case_id`;
 - **Evolus retries by itself after a 500**, several times (after about 2, 11 and 30 seconds); **after a 400 it does not retry**.
+- On 17/10, with Gemma 4 31B in telepathy and the institutional memory on, «Provala» with a one-page text PDF took 48.9 s end to end (45.8 s in the council), 3 steps out of 3, notice sent.
 
 ## Test without Evolus
 
@@ -151,7 +165,8 @@ Repeated identically, it returns the same `case_id` right away.
 
 ## Still open
 
-- The limit on the mailbox's attachments.
-- Where the catalog connection is created and whether its address accepts placeholders.
-- The timeout of «Chiama un endpoint» and whether Evolus retries by itself.
-- Whether the event workspace has its own MCP connector: it is needed for the next slice.
+- The attachment limit of the mailbox.
+- The tunnel is a quick one: its name changes at every restart, and the webhook URL must follow. A named tunnel or a DNS name (`site/mi300x/README.md`) removes the step.
+- The visual mode from a real email needs the app password of the mailbox on the server (`COUNCIL_IMAP_*`).
+- The person's questions by reply: a workflow that reads the reply to the notice and calls `ask_council` with the case id (it is in the notice's link).
+- Workflow 2, the choices with `record_choices`.
