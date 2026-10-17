@@ -2,9 +2,9 @@ import json
 
 import pytest
 
-from reviewer.manager import Busy, Rejected, case_key
+from reviewer.manager import Busy, Rejected, Reviewer, case_key
 
-from .conftest import CATALOG, CONTRACT, EXAMPLE, SECRET, email, pdf_with_text
+from .conftest import CATALOG, CONTRACT, EXAMPLE, LINK, SECRET, email, pdf_with_text
 
 
 def test_a_contract_becomes_a_case_with_page_link_and_notice(reviewer, council):
@@ -122,3 +122,39 @@ def test_the_live_review_rejects_and_does_not_wait(live, reviewer, council):
     with live.lock, pytest.raises(Busy):
         live.live_review(next(iter(CATALOG)))
     assert council.calls == []
+
+
+class FakeMemory:
+    """Answers from the memory of a review and records the questions."""
+
+    def __init__(self) -> None:
+        self.questions: list[tuple[str, str]] = []
+
+    def __call__(self, case_id: str, question: str) -> dict:
+        self.questions.append((case_id, question))
+        return {"answer": {"answer": "Only the first party signed.", "quote": "", "known": True}, "stopped": None}
+
+
+def test_a_question_on_a_reviewed_case_is_answered_and_logged(council, tmp_path):
+    memory = FakeMemory()
+    reviewer = Reviewer(council, tmp_path / "cases", secret=SECRET, link=LINK, ask=memory)
+    case_id = reviewer.review_contract(None, CONTRACT, **email())["case_id"]
+    r = reviewer.ask_council(case_id, "Who signed?", "agent")
+    assert r["case_id"] == case_id and r["answer"]["answer"] == "Only the first party signed."
+    assert memory.questions == [(case_id, "Who signed?")]
+    logged = [json.loads(line) for line in (reviewer.cases / case_id / "questions.jsonl").read_text().splitlines()]
+    assert logged[0]["question"] == "Who signed?" and logged[0]["who"] == "agent"
+    # The council did not review the contract again to answer.
+    assert len(council.calls) == 1
+
+
+def test_questions_need_a_case_a_short_question_and_the_memory(council, tmp_path):
+    reviewer = Reviewer(council, tmp_path / "cases", secret=SECRET, link=LINK, ask=FakeMemory())
+    case_id = reviewer.review_contract(None, CONTRACT, **email())["case_id"]
+    with pytest.raises(Rejected, match="case_id"):
+        reviewer.ask_council("council-000000000000", "Who signed?", "agent")
+    with pytest.raises(Rejected, match="question"):
+        reviewer.ask_council(case_id, "x" * 1001, "agent")
+    without = Reviewer(council, tmp_path / "cases", secret=SECRET, link=LINK)
+    with pytest.raises(Rejected, match="off"):
+        without.ask_council(case_id, "Who signed?", "agent")

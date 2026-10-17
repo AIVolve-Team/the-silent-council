@@ -39,15 +39,15 @@ The prompts are in English and the council writes its rationales in English, for
 
 ```bash
 cd council/review
-uv venv -p 3.12.venv && uv pip install -p.venv -e../../engine -r../../engine/requirements.txt
-.venv/bin/python -m pytest -q -m "not model" # 51 fast tests
-.venv/bin/python -m pytest -q # 55 tests, with Qwen3-0.6B
+uv venv -p 3.12 .venv && uv pip install -p .venv -e ../../engine -r ../../engine/requirements.txt
+.venv/bin/python -m pytest -q -m "not model"   # 51 fast tests
+.venv/bin/python -m pytest -q                  # 55 tests, with Qwen3-0.6B
 
 # The contracts of the measurement set come from council/data/cache (prepare.py downloads them).
 .venv/bin/python -m review.run --benchmark cuad --mode telepathy --steps 10 --model Qwen/Qwen3-1.7B
 .venv/bin/python -m review.run --benchmark demo --mode text
-.venv/bin/python -m review.run --benchmark cuad --steps 0 10 20 40 # calibration of the latent steps 
-.venv/bin/python -m review.run --benchmark demo --no-realign --steps 0 10 40 # diagnosis 
+.venv/bin/python -m review.run --benchmark cuad --steps 0 10 20 40             # calibration of the latent steps
+.venv/bin/python -m review.run --benchmark demo --no-realign --steps 0 10 40   # diagnosis
 ```
 
 - The demo set is in `council/data/demo-set`, outside the repo; `COUNCIL_DEMO_SET` points to another folder.
@@ -65,12 +65,13 @@ uv venv -p 3.12.venv && uv pip install -p.venv -e../../engine -r../../engine/req
 - the major dissent with a confident expert always highlighted, the other dissents open with a click. On each dissent the person chooses who is right;
 - the seal: "communication between experts intact" with the message fingerprints, or the red notice without a verdict;
 - "Show what each expert thought" opens the notes;
-- "Download the summary (PDF)" prints recommendation, flagged clauses, dissents and choices; "Save the choices" downloads a JSON.
+- "Download the summary (PDF)" prints recommendation, flagged clauses, dissents and choices; "Save the choices" downloads a JSON;
+- for a PDF the inspector found complex, "Visual checks": how the council read it, why the PDF is complex and the answers on the pages, with where each object is; `page/visual.css` and `page/visual.js` enter only these pages, so every other page stays byte for byte the same.
 
 The page is bilingual (Italian and English): the client business starts from Italian, the judges' site from English.
 
 ```bash
-.venv/bin/python -m review.view results/<run>.jsonl --contract <id> --title "Contract..." --output view.json --html verdict.html
+.venv/bin/python -m review.view results/<run>.jsonl --contract <id> --title "Contract ..." --output view.json --html verdict.html
 ```
 
 With `--html` the page already contains the data: it is a single file, to open or attach. Without it, the page reads `?view=view.json` or a file chosen by hand.
@@ -78,7 +79,7 @@ With `--html` the page already contains the data: it is a single file, to open o
 To regenerate it:
 
 ```bash
-.venv/bin/python -c "import json; from pathlib import Path; from review import BENCHMARK; from review.view import page, view; r = json.loads(Path('page/example-review.json').read_text); Path('page/example.html').write_text(page(view(r, BENCHMARK['demo'], 'Contratto di fornitura di componenti (esempio)')))"
+.venv/bin/python -c "import json; from pathlib import Path; from review import BENCHMARK; from review.view import page, view; r = json.loads(Path('page/example-review.json').read_text()); Path('page/example.html').write_text(page(view(r, BENCHMARK['demo'], 'Contratto di fornitura di componenti (esempio)')))"
 ```
 
 The link with Evolus (email with the link to the page, choices sent back by the second workflow) waits for the integration with Evolus.
@@ -92,7 +93,7 @@ The rules are in [`council/PREREGISTRATION.md`](../PREREGISTRATION.md), which mu
 # sabotage tests (zeroed thoughts, thoughts from another contract, swapped contract).
 .venv/bin/python -m review.eval run --benchmark cuad --subset dev --steps 10 --output eval
 .venv/bin/python -m review.eval run --benchmark demo --steps 10 --configurations telepathy text --output eval
-.venv/bin/python -m review.eval report eval # report.md, numbers.json and one chart per benchmark
+.venv/bin/python -m review.eval report eval        # report.md, numbers.json and one chart per benchmark
 
 # Calibration, from the runs of review.run with --steps 0 10 20 40
 .venv/bin/python -m review.calibration results --benchmark cuad

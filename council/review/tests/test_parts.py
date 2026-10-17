@@ -118,3 +118,41 @@ def test_token_limit_from_the_worst_case_of_the_schema():
     assert max_tokens(schema) == 2 + (3 + 4 + 5) + (5 + 4 + 2 * 13 + 2) + (7 + 4 + 13)
     verdict = max_tokens(verdict_schema(CUAD.categories))
     assert verdict > 1100 and max_tokens(note_schema(CUAD.of_role("risk"))) > 300
+
+
+def test_integers_need_both_bounds_and_count_their_digits():
+    from review.schemas import max_tokens
+
+    assert max_tokens({"type": "integer", "minimum": 0, "maximum": 1000}) == 4
+    assert max_tokens({"type": "integer", "minimum": -50, "maximum": 9}) == 3
+    box = {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "integer", "minimum": 0, "maximum": 1000}}
+    assert max_tokens(box) == 4 * (4 + 1) + 2
+    with pytest.raises(KeyError):
+        max_tokens({"type": "integer", "minimum": 0})
+
+
+def test_the_visual_answer_is_bounded_and_keeps_only_objects_within_the_page():
+    from review.prompts import visual_question
+    from review.schemas import VISUAL_OBJECTS, max_tokens, visual_answer_schema, visual_objects
+
+    schema = visual_answer_schema()
+    assert schema["required"] == ["answer", "objects", "known"]
+    item = schema["properties"]["objects"]["items"]
+    assert (
+        item["required"] == ["page", "type", "box_2d", "text"] and item["properties"]["type"]["enum"] == VISUAL_OBJECTS
+    )
+    assert item["properties"]["box_2d"]["minItems"] == item["properties"]["box_2d"]["maxItems"] == 4
+    assert 1500 < max_tokens(schema) < 2500
+    good = {"page": 6, "type": "signature", "box_2d": [700, 100, 760, 400], "text": "Mario Rossi"}
+    out = [
+        good | {"box_2d": [700, 100, 1001, 400]},
+        good | {"box_2d": [760, 100, 700, 400]},
+        good | {"box_2d": [700, 100, 760]},
+        good | {"page": 0},
+        good | {"type": "seal"},
+        "a signature",
+    ]
+    assert visual_objects([good, *out]) == [good] and visual_objects(None) == []
+    prompt = visual_question("Who signed? ")
+    assert prompt.startswith("The question: Who signed?\n") and "[ymin, xmin, ymax, xmax]" in prompt
+    assert all(t in prompt for t in VISUAL_OBJECTS) and "0 to 1000" in prompt

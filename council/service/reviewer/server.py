@@ -1,13 +1,13 @@
-"""The council's server for Evolus: the two tools via MCP and via plain HTTP, with the same manager.
+"""The council's server for Evolus: the tools via MCP and via plain HTTP, with the same manager.
 
 The scheme is the one of the Help Desk's server: stateless MCP with JSON responses, the same routes in HTTP, the
 secret in `Authorization: Bearer <secret>` or `X-Api-Key: <secret>`.
 
 Routes with the secret (Evolus):
-- `POST /mcp`: MCP with the tools `review_contract` and `record_choices`;
-- `POST /review_contract`, `POST /record_choices`: the same tools in HTTP. The contract arrives as text (`text`), in
-  base64 (`pdf_base64`) or as a PDF file in a form (`multipart/form-data`): the MCP connector only carries the text the
-  model writes, never the file;
+- `POST /mcp`: MCP with the tools `review_contract`, `record_choices` and `ask_council`;
+- `POST /review_contract`, `POST /record_choices`, `POST /ask_council`: the same tools in HTTP. The contract arrives
+  as text (`text`), in base64 (`pdf_base64`) or as a PDF file in a form (`multipart/form-data`): the MCP connector
+  only carries the text the model writes, never the file;
 - `GET /cases`, `GET /cases/{case_id}`: list of the cases, view and choices.
 
 The person's routes, with the key of their link and without the secret:
@@ -56,7 +56,9 @@ INSTRUCTIONS = (
     "base64, or the text). It returns the recommendation (sign, negotiate or do not sign), the flagged clauses, the "
     "major dissents between experts and verdict, the link to the verdict page and the notice to send as is to the "
     "person. If verdict is false, the contract goes to a person. The person's choices on the dissents are recorded "
-    "with record_choices."
+    "with record_choices. To ask something about a contract already reviewed (for example who signed, or the notice "
+    "period), call ask_council with its case_id: the council answers from the memory of that review, without reading "
+    "the contract again."
 )
 OPEN = ("/health",)
 PERSON = "/verdict/"
@@ -193,8 +195,13 @@ def create_app(reviewer: Reviewer, secret: str, *, public_hosts: tuple[str, ...]
             reviewer.review_contract, contract, text or None, sender, subject, date, mode
         )
 
-    async def choose(case_id=None, choices=None, who=None) -> dict:
-        return await anyio.to_thread.run_sync(reviewer.record_choices, case_id, choices, who)
+    async def choose(case_id=None, choices=None, who=None, reasons=None, corrections=None, instruction=None) -> dict:
+        return await anyio.to_thread.run_sync(
+            reviewer.record_choices, case_id, choices, who, reasons, corrections, instruction
+        )
+
+    async def ask(case_id=None, question=None, who="agent") -> dict:
+        return await anyio.to_thread.run_sync(reviewer.ask_council, case_id, question, who)
 
     @mcp.tool(name="review_contract", structured_output=True)
     async def review_contract(
@@ -210,11 +217,31 @@ def create_app(reviewer: Reviewer, secret: str, *, public_hosts: tuple[str, ...]
             raise ToolError(str(error)) from error
 
     @mcp.tool(name="record_choices", structured_output=True)
-    async def record_choices(case_id: str, choices: dict[str, str], who: str) -> dict[str, Any]:
-        """Records the person's choices on the dissents of a case: choices maps a category to "expert" or "verdict",
-        only for the categories in dissent; who is the person."""
+    async def record_choices(
+        case_id: str,
+        who: str,
+        choices: dict[str, str] | None = None,
+        reasons: dict[str, str] | None = None,
+        corrections: dict[str, bool] | None = None,
+        instruction: str = "",
+    ) -> dict[str, Any]:
+        """Records what the person decided on a case: choices maps a category in dissent to "expert" or "verdict";
+        corrections maps a category without a dissent to true (flag it) or false (do not flag it) where the verdict is
+        wrong; reasons maps some of those categories to why; instruction is a rule for the next contracts. who is the
+        person. With the institutional memory on, the council learns all of it."""
         try:
-            return await choose(case_id, choices, who)
+            return await choose(case_id, choices, who, reasons, corrections, instruction or None)
+        except Rejected as error:
+            raise ToolError(str(error)) from error
+
+    @mcp.tool(name="ask_council", structured_output=True)
+    async def ask_council(case_id: str, question: str, who: str = "agent") -> dict[str, Any]:
+        """Asks the council a question on a contract it already reviewed, for example "who signed?" or "is there a cap
+        on liability?". It answers from the memory of that review, without reading the contract again: answer, the
+        quote that supports it and known (false if the memory does not tell). If the memory of the case is no longer on
+        the server, the contract must be reviewed again."""
+        try:
+            return await ask(case_id, question, who)
         except Rejected as error:
             raise ToolError(str(error)) from error
 
@@ -249,6 +276,7 @@ def create_app(reviewer: Reviewer, secret: str, *, public_hosts: tuple[str, ...]
         http(review, ("sender", "subject", "date", "mode"), if_missing)
     )
     mcp.custom_route("/record_choices", methods=["POST"])(http(choose))
+    mcp.custom_route("/ask_council", methods=["POST"])(http(ask))
 
     @mcp.custom_route("/cases", methods=["GET"])
     async def cases(request: Request) -> Response:
@@ -284,7 +312,9 @@ def create_app(reviewer: Reviewer, secret: str, *, public_hosts: tuple[str, ...]
             return JSONResponse({"error": "invalid link"}, status_code=404)
         try:
             data, _ = await fields(request)
-            return JSONResponse(await choose(case_id, data.get("choices"), "person, from the verdict page"))
+            who = "person, from the verdict page"
+            taught = [data.get(k) for k in ("reasons", "corrections", "instruction")]
+            return JSONResponse(await choose(case_id, data.get("choices"), who, *taught))
         except Rejected as error:
             return JSONResponse({"error": str(error)}, status_code=400)
 

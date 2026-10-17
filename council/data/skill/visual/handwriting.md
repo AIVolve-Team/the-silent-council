@@ -1,0 +1,3 @@
+- Handwritten corrections: words or numbers struck through, replaced or inserted by hand, including in amounts and dates.
+- Handwritten notes: comments written in the margins or between lines.
+- Initials: small handwritten initials, usually in a page corner or margin; note pages that have none when other pages do.

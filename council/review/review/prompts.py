@@ -7,6 +7,7 @@ rapporteur does not read the contract: it knows it only from what it receives fr
 from __future__ import annotations
 
 from .categories import FINANCE, LEGAL, RISK, ROLE_NAMES, Benchmark, Category
+from .schemas import BOX, MAX_VISUAL_OBJECTS, VISUAL_OBJECTS
 
 CLIENT = "a small Italian business, the client of the contract"
 
@@ -105,3 +106,55 @@ def independent_instructions(role: str, benchmark: Benchmark) -> str:
 
 def whole_contract(text: str, *, translate: bool = False) -> str:
     return f"The contract:\n\n{text.strip()}\n\n" + verdict(translate=translate, objections=False)
+
+
+# --- Questions on a reviewed contract: the rapporteur answers from the council's memory ---------------------
+
+
+def question_instructions() -> str:
+    return (
+        f"You are the rapporteur of a council that reviewed a contract on behalf of {CLIENT}. You have not read the "
+        "contract: you know it only from what you received from your colleagues, who each read a part of it. Answer "
+        "the question from that knowledge alone, and say so when it does not tell you the answer."
+    )
+
+
+def question(text: str) -> str:
+    return (
+        f"The question: {text.strip()}\n\n"
+        "Answer in JSON, in this order.\n"
+        '1. "answer": the answer in at most 2 sentences, in the language of the question.\n'
+        '2. "quote": the exact words of the contract that support it, copied without changing them, at most 30 '
+        "words; empty if there are none.\n"
+        '3. "known": true if what you received tells you the answer, false if it does not.'
+    )
+
+
+def visual_question(text: str) -> str:
+    """A question on what the pages look like: in the visual route the first expert saw the pages that
+    fired a signal as images, and the others got that memory in telepathy. The rapporteur points at what they saw,
+    with the page and the box, and invents nothing it did not receive."""
+    return (
+        f"The question: {text.strip()}\n\n"
+        "It is about what is drawn, signed, stamped or handwritten on the pages that your colleagues saw as images.\n"
+        "Answer in JSON, in this order.\n"
+        '1. "answer": the answer in at most 2 sentences, in the language of the question.\n'
+        f'2. "objects": at most {MAX_VISUAL_OBJECTS} of the things your colleagues saw on those pages that answer the '
+        'question, each with its "page" (the page number, from 1), its "type" (one of: '
+        + ", ".join(VISUAL_OBJECTS)
+        + f'), its "box_2d" [ymin, xmin, ymax, xmax] with the coordinates normalized from 0 to {BOX} (0, 0 is the '
+        'top left corner of the page) and its "text": the name or the words written in it or next to it, at most 120 '
+        "characters, empty if there are none. Only what your colleagues saw: if they did not see it, leave it out; "
+        "empty if there is nothing.\n"
+        '3. "known": true if what you received tells you the answer, false if it does not.'
+    )
+
+
+def visual_reading(pages: list[int], placeholder: str) -> str:
+    """The visual expert's text: the images of the pages that fired a signal, each after its number, as in
+    the probe. What to look for and how to report it are its instructions, the visual skill."""
+    images = "\n\n".join(f"[Page {page}]\n{placeholder}" for page in pages)
+    return (
+        f"{images}\n\nThe images above are the pages of the contract that carry pictures or scans, each after its page "
+        "number. Inspect them following the instructions and return the JSON object."
+    )

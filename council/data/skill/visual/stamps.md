@@ -1,0 +1,1 @@
+- Stamps or seals: company stamps, notary seals, "received" or "paid" stamps, with their text if readable.

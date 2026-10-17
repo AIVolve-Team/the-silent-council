@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from .check import Outcome
 from .engine import Agent, Engine
@@ -18,6 +18,8 @@ class RelayOutcome:
     final: Generation | None
     stopped: Outcome | None
     seconds: float
+    # The institutional memory the chain started from: read once, not counted in the review's tokens.
+    base: list[LatentMessage] = field(default_factory=list)
 
     @property
     def tokens_read(self) -> int:
@@ -62,15 +64,26 @@ class Relay:
         max_tokens: int | None = None,
         thoughts_from: dict[str, LatentMessage] | None = None,
         attacks: dict[str, Callable[[LatentMessage], None]] | None = None,
+        base: list[LatentMessage] | None = None,
+        pages: dict[str, list] | None = None,
     ) -> RelayOutcome:
         """Makes the agents think in order, delivers each message and then makes the last one write.
 
         `thoughts_from` replaces an agent's thoughts with those of another message (“Pre-registered eval” test).
         `attacks` tampers with a message after it is born and before delivery (lie-detector demo).
+        `base` is the institutional memory the chain starts from: delivered again here, so a changed byte stops
+        the review.
+        `pages` gives an agent its page images, read with no OCR.
         If a check stops a message, the relay stops there.
         """
         start = time.perf_counter()
         chain: list[LatentMessage] = []
+        for message in base or []:
+            handoff = self.engine.deliver(message, chain)
+            if not handoff.outcome.passed:
+                return RelayOutcome([], None, handoff.outcome, time.perf_counter() - start)
+            chain.append(handoff.copy)
+        n_base = len(chain)
         names = [a.name for a in self.agents] + [self.last.name]
         for i, agent in enumerate(self.agents):
             message = self.engine.think(
@@ -81,6 +94,7 @@ class Relay:
                 latent_steps=self.latent_steps,
                 mode=self.mode,
                 recipient=names[i + 1],
+                pages=(pages or {}).get(agent.name),
             )
             if thoughts_from and agent.name in thoughts_from:
                 donor = thoughts_from[agent.name]
@@ -90,12 +104,12 @@ class Relay:
                 attacks[agent.name](message)
             handoff = self.engine.deliver(message, chain)
             if not handoff.outcome.passed:
-                return RelayOutcome(chain, None, handoff.outcome, time.perf_counter() - start)
+                return RelayOutcome(chain[n_base:], None, handoff.outcome, time.perf_counter() - start, chain[:n_base])
             chain.append(handoff.copy)
             del message  # the delivered copy remains: on a Mac the messages' memory counts
         outcome = self.engine.verify_chain(chain)
         if not outcome.passed:
-            return RelayOutcome(chain, None, outcome, time.perf_counter() - start)
+            return RelayOutcome(chain[n_base:], None, outcome, time.perf_counter() - start, chain[:n_base])
         final = self.engine.write(
             self.last,
             texts[self.last.name],
@@ -107,4 +121,4 @@ class Relay:
             observe=observe,
             max_tokens=max_tokens,
         )
-        return RelayOutcome(chain, final, None, time.perf_counter() - start)
+        return RelayOutcome(chain[n_base:], final, None, time.perf_counter() - start, chain[:n_base])

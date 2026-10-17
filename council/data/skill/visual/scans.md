@@ -1,0 +1,1 @@
+- Scanned pages: the text of these pages exists only in the images, so read their clauses too, not only the objects.

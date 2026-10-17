@@ -47,9 +47,27 @@ async def test_mcp_and_http_give_the_same_case(app, council):
                 choices = {"case_id": via_http["case_id"], "choices": {category: "verdict"}, "who": "Evolus"}
                 recorded = (await mcp.call_tool("record_choices", choices)).structured_content
 
-    assert tools == {"review_contract", "record_choices"}
+    assert tools == {"review_contract", "record_choices", "ask_council"}
     assert via_mcp == via_http and len(council.calls) == 1
     assert recorded["recorded"] == 1
+
+
+@pytest.mark.anyio
+async def test_a_question_via_mcp_and_via_http(app, reviewer, council):
+    """the answer comes from the memory of the review, the council does not run again."""
+    reviewer.ask = lambda case_id, question: {"answer": {"answer": "Yes.", "quote": "", "known": True}}
+    async with app.router.lifespan_context(app):
+        transport = httpx2.ASGITransport(app=app)
+        async with httpx2.AsyncClient(transport=transport, base_url="http://127.0.0.1:8001", headers=AUTH) as http:
+            case_id = (await http.post("/review_contract", json=email(text=CONTRACT))).json()["case_id"]
+            question = {"case_id": case_id, "question": "Is there a cap on liability?"}
+            via_http = (await http.post("/ask_council", json=question)).json()
+            async with Client(streamable_http_client("http://127.0.0.1:8001/mcp", http_client=http)) as mcp:
+                via_mcp = (await mcp.call_tool("ask_council", question)).structured_content
+            unknown = await http.post("/ask_council", json={"case_id": "council-000000000000", "question": "?"})
+    assert via_http["answer"] == via_mcp["answer"] == {"answer": "Yes.", "quote": "", "known": True}
+    assert via_http["who"] == via_mcp["who"] == "agent" and len(council.calls) == 1
+    assert unknown.status_code == 400
 
 
 def test_the_pdf_in_a_form_and_the_extra_fields(app, council):
@@ -128,6 +146,26 @@ def test_the_person_opens_the_verdict_and_sends_the_choices_with_their_link(app,
     assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
     assert wrong.status_code == missing.status_code == without_key.status_code == 404
     assert choices.status_code == 200 and case["choices"][0]["who"] == "person, from the verdict page"
+
+
+def test_the_page_sends_corrections_reasons_and_an_instruction(app, reviewer):
+    """what the verdict page sends to teach the council, as the page's script builds it."""
+    with TestClient(app) as http:
+        case_id = http.post("/review_contract", json=email(text=CONTRACT), headers=AUTH).json()["case_id"]
+        rows = http.get(f"/cases/{case_id}", headers=AUTH).json()["view"]["rows"]
+        calm = next(r["key"] for r in rows if not r["dissent"] and r["flag"] is True)
+        sent = {
+            "choices": {},
+            "corrections": {calm: False},
+            "reasons": {calm: "a template clause"},
+            "instruction": "Always flag a non-compete over 12 months.",
+        }
+        response = http.post(f"/verdict/{case_id}/choices?key={case_key(SECRET, case_id)}", json=sent)
+        case = http.get(f"/cases/{case_id}", headers=AUTH).json()
+    assert response.status_code == 200 and response.json()["recorded"] == 2
+    line = case["choices"][0]
+    assert line["corrections"] == {calm: False} and line["instruction"] == sent["instruction"]
+    assert line["reasons"] == {calm: "a template clause"}
 
 
 def test_live_reviews_only_with_the_catalog_and_with_the_secret(reviewer, live):

@@ -1,0 +1,3 @@
+- Checkboxes: boxes that are ticked or crossed; ignore empty ones unless the choice matters.
+- Tables with amounts: prices, fees, payment schedules.
+- Logos: company logos that identify a party.

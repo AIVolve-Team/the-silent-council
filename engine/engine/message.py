@@ -136,19 +136,36 @@ class LatentMessage:
         return cls(label, kv("read"), kv("thoughts"), tensors.get("states"), metadata["text"] or None)
 
 
-def cache_from_pieces(pieces: list[KV]) -> DynamicCache:
-    """The cache made of the pieces in a row. `torch.cat` creates new tensors: the pieces are not touched."""
+def cache_for_writing(config=None) -> DynamicCache:
+    """The empty cache an agent writes with. With transformers 5 and the model's config it is born the way the model
+    wants it: Gemma 4's sliding layers keep only the last window instead of every position."""
+    if config is None or hasattr(DynamicCache, "from_legacy_cache"):
+        return DynamicCache()
+    return DynamicCache(config=config)
+
+
+def cache_from_pieces(pieces: list[KV], config=None) -> DynamicCache:
+    """The cache made of the pieces in a row. `torch.cat` creates new tensors: the pieces are not touched.
+
+    Without `config` every layer keeps every position: that is what reading and then slicing the messages needs. With
+    the config (transformers 5) the cache is the model's own, and the sliding layers keep only the last window: that
+    is what writing needs, since the older positions would be thrown away by the mask anyway."""
     pieces = [p for p in pieces if p and p[0][0].shape[-2] > 0]
     if not pieces:
-        return DynamicCache()
+        return cache_for_writing(config)
     layers = tuple(
         (torch.cat([p[i][0] for p in pieces], dim=-2), torch.cat([p[i][1] for p in pieces], dim=-2))
         for i in range(len(pieces[0]))
     )
     if hasattr(DynamicCache, "from_legacy_cache"):
         return DynamicCache.from_legacy_cache(layers)
-    # transformers 5: without a config every layer is full, even Gemma 4's sliding ones; the mask does the window
-    return DynamicCache(ddp_cache_data=layers)
+    if config is None:
+        # transformers 5: without a config every layer is full, even Gemma 4's sliding ones; the mask does the window
+        return DynamicCache(ddp_cache_data=layers)
+    cache = DynamicCache(config=config)
+    for i, (keys, values) in enumerate(layers):
+        cache.update(keys, values, i)
+    return cache
 
 
 def kv_layers(cache: DynamicCache) -> KV:
@@ -158,9 +175,9 @@ def kv_layers(cache: DynamicCache) -> KV:
     return [(layer.keys, layer.values) for layer in cache.layers]
 
 
-def cache_from(messages: list[LatentMessage]) -> DynamicCache:
+def cache_from(messages: list[LatentMessage], config=None) -> DynamicCache:
     """The relay's memory so far: the messages in a row, in the order they were born."""
-    return cache_from_pieces([piece for m in messages for piece in (m.kv_read, m.kv_thoughts)])
+    return cache_from_pieces([piece for m in messages for piece in (m.kv_read, m.kv_thoughts)], config)
 
 
 def slice_kv(cache: DynamicCache, start: int, end: int) -> KV:

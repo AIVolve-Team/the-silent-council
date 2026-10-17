@@ -1,0 +1,2 @@
+- Signatures: a handwritten signature in or near a signature block.
+- Signature blocks: for each block (a line or box with a name, title or "Signature" label), say whether it is signed.

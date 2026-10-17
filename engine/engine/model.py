@@ -55,6 +55,7 @@ class Model:
         device: str | None = None,
         dtype: torch.dtype | None = None,
         realign: bool = True,
+        soft_tokens_per_page: int = 1120,
     ) -> None:
         self.name = name
         self.revision = revision
@@ -67,6 +68,9 @@ class Model:
         self.realign = realign
         self.matrix, self.norm = self._realignment()
         self.end_tokens = self._find_end_tokens()
+        # Gemma 4 takes 70 to 1120 soft tokens per image: a contract page in small print needs the most.
+        self.soft_tokens_per_page = soft_tokens_per_page
+        self.processor = None
 
     @property
     def n_layer(self) -> int:
@@ -129,13 +133,45 @@ class Model:
     def encode(self, text: str) -> torch.Tensor:
         return self.tokenizer(text, return_tensors="pt", add_special_tokens=False).input_ids.to(self.device)
 
+    def encode_with_pages(self, text: str, pages: list) -> tuple[torch.Tensor, dict]:
+        """A prompt with page images: each image placeholder in `text` becomes the page's soft tokens.
+
+        Only for models that read images (Gemma 4). Returns the ids and what the model needs besides them.
+        """
+        inputs = self._processor()(
+            text=[text],
+            images=[pages],
+            return_tensors="pt",
+            add_special_tokens=False,
+            max_soft_tokens=self.soft_tokens_per_page,
+        )
+        extra = {
+            "pixel_values": inputs["pixel_values"].to(self.device),
+            "image_position_ids": inputs["image_position_ids"].to(self.device),
+            "mm_token_type_ids": inputs["mm_token_type_ids"].to(self.device),
+        }
+        return inputs["input_ids"].to(self.device), extra
+
+    @property
+    def image_token(self) -> str:
+        """The placeholder of one page in a prompt."""
+        return self._processor().image_token
+
+    def _processor(self):
+        if self.processor is None:
+            from transformers import AutoProcessor
+
+            self.processor = AutoProcessor.from_pretrained(self.name, revision=self.revision)
+        return self.processor
+
     @torch.no_grad()
-    def read(self, ids: torch.Tensor, cache: DynamicCache) -> torch.Tensor:
+    def read(self, ids: torch.Tensor, cache: DynamicCache, extra: dict | None = None) -> torch.Tensor:
         """Reads `ids` on top of the cache, which grows, and returns the last hidden state, [1, D].
 
-        It is the state after the final normalisation, i.e. LatentMAS's `hidden_states[-1]`.
+        It is the state after the final normalisation, i.e. LatentMAS's `hidden_states[-1]`. `extra` carries the
+        page images of `encode_with_pages`.
         """
-        output = self.net.model(input_ids=ids, past_key_values=cache, use_cache=True)
+        output = self.net.model(input_ids=ids, past_key_values=cache, use_cache=True, **(extra or {}))
         return output.last_hidden_state[:, -1, :]
 
     def realign_vector(self, state: torch.Tensor) -> torch.Tensor:
@@ -170,12 +206,13 @@ class Model:
         allowed: Callable[[list[int]], list[int] | torch.Tensor] | None = None,
         alternatives: int = 5,
         observe: list[int] | None = None,
+        extra: dict | None = None,
     ) -> Generation:
         """Greedy decoding on top of the cache. With `allowed` it picks only among the allowed tokens (JSON schema).
 
         Logprobs, alternatives and `observed` come from the model's distribution before the constraint.
         """
-        state = self.read(ids, cache)
+        state = self.read(ids, cache, extra)
         prompt = ids[0].tolist()
         generated: list[int] = []
         steps: list[Step] = []

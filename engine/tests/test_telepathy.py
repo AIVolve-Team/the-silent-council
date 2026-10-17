@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from engine import TEXT, Engine, FingerprintCheck, LatentMessage, Outcome, Relay
+from engine import TEXT, Agent, Engine, FingerprintCheck, LatentMessage, Outcome, Relay
 from engine.seal import SealCheck, create_keys, load_private, load_public
 
 from .conftest import FINANCE, LEGAL, NAME, RAPPORTEUR, REVISION, RISK
@@ -204,3 +204,33 @@ def test_schema_with_field_order_and_observed_tokens(engine):
     assert written.text.index('"objections"') < written.text.index('"code_present"')
     assert not re.search(r"\s\s", written.text), written.text
     assert all(set(p.observed) == set(true + false) for p in written.steps)
+
+
+KEEPER = Agent("playbook", "You are the memory of the company: its rules and the precedents its people decided.")
+
+
+def test_the_institutional_memory_heads_every_review(engine):
+    """a base read once, in its own session, at the head of two reviews of other sessions."""
+    base = engine.think(KEEPER, code("4721"), [], session="institution", latent_steps=0, base=True)
+    texts = {"legal": "The supplier is Alfa.", "finance": "Payment in 30 days.", "risk": "Delivery in April."}
+    for session in ("first", "second"):
+        outcome = Relay(engine, [LEGAL, FINANCE, RISK], RAPPORTEUR, latent_steps=2).run(
+            session, texts | {"rapporteur": QUESTION}, max_tokens=24, base=[base]
+        )
+        assert outcome.stopped is None and "4721" in outcome.final.text
+        assert [m.label["number"] for m in outcome.messages] == [2, 3, 4]
+        assert outcome.messages[0].label["previous_hash"] == base.fingerprint
+        assert [m.fingerprint for m in outcome.base] == [base.fingerprint]
+
+
+def test_a_base_after_the_reviews_messages_or_with_a_changed_byte_stops(engine):
+    first = engine.think(LEGAL, "The supplier is Alfa.", [], session="review", latent_steps=0)
+    late = engine.think(KEEPER, code("4721"), [first], session="institution", latent_steps=0, base=True)
+    handoff = engine.deliver(late, [first])
+    assert not handoff.outcome.passed and handoff.outcome.check == "chain"
+
+    base = engine.think(KEEPER, code("4721"), [], session="institution", latent_steps=0, base=True)
+    base.kv_read[0][0].view(-1)[0] += 1
+    texts = {"legal": "a", "finance": "b", "risk": "c", "rapporteur": QUESTION}
+    outcome = Relay(engine, [LEGAL, FINANCE, RISK], RAPPORTEUR, latent_steps=0).run("review", texts, base=[base])
+    assert outcome.final is None and outcome.stopped.check == "fingerprint"

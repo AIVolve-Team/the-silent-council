@@ -1,0 +1,9 @@
+
+/* visual checks: only on the pages of complex PDFs, added by review.view.page */
+.visual-checks { background: var(--sheet); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: 16px 20px; display: grid; gap: 12px; min-width: 0; }
+.visual-checks ul, .visual-checks ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.visual-checks .checks { gap: 12px; }
+.visual-checks .question { font-weight: 650; }
+.visual-checks .answer { overflow-wrap: anywhere; }
+.visual-checks .objects { font-size: 0.9375rem; color: var(--muted); overflow-wrap: anywhere; }
+@media print { .visual-checks { border-color: #999; break-inside: avoid; } }

@@ -56,7 +56,13 @@ class ChainCheck:
         e = message.label
         if (e["model"], e["revision"]) != (self.model, self.revision):
             return Outcome(False, self.name, f"different model: {e['model']}@{e['revision']}")
-        if chain and e["session"] != chain[0].label["session"]:
+        # The institutional memory is a base: messages of its own session at the head of every chain, read once
+        # and reused. Bases come first; the review's messages share one session among themselves.
+        bases = [m for m in chain if m.label.get("base")]
+        if e.get("base") and len(bases) != len(chain):
+            return Outcome(False, self.name, "a base message after the review's messages")
+        same = bases if e.get("base") else chain[len(bases) :]
+        if same and e["session"] != same[0].label["session"]:
             return Outcome(False, self.name, f"different session: {e['session']}")
         if chain and e["mode"] != chain[0].label["mode"]:
             return Outcome(False, self.name, f"different mode: {e['mode']}")

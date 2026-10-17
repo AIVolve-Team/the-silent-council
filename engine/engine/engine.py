@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from dataclasses import dataclass
@@ -9,7 +10,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import torch
-from transformers import DynamicCache
 
 from .check import ChainCheck, Check, FingerprintCheck, Outcome
 from .message import (
@@ -17,6 +17,7 @@ from .message import (
     TEXT,
     VERSION,
     LatentMessage,
+    cache_for_writing,
     cache_from,
     cache_from_pieces,
     session_start_hash,
@@ -64,6 +65,15 @@ def allowed_mask(allowed) -> torch.Tensor:
     return bits.flatten().bool()
 
 
+def hash_pages(pages: list) -> str:
+    """SHA-256 of the page images' pixels, in order."""
+    h = hashlib.sha256()
+    for page in pages:
+        h.update(f"{page.mode}:{page.size}".encode())
+        h.update(page.tobytes())
+    return h.hexdigest()
+
+
 def with_colleagues(text: str, received: list[LatentMessage]) -> str:
     """In text mode the receiver reads what the previous agents wrote, never what they read."""
     written = [m for m in received if m.text]
@@ -106,27 +116,45 @@ class Engine:
         latent_steps: int = 10,
         mode: str = TELEPATHY,
         recipient: str | None = None,
+        base: bool = False,
+        pages: list | None = None,
     ) -> LatentMessage:
         """The agent reads its text on top of the received messages and returns its latent message.
 
-        In text mode it writes its analysis instead, at most `max_text_tokens` tokens.
+        In text mode it writes its analysis instead, at most `max_text_tokens` tokens. With `pages` the image
+        placeholders in `text` are the page images, read with no OCR; their hash goes in the label, so the seal covers
+        the pages the agent saw. A `base` message is institutional memory: it can head the chain of any review.
         """
         if mode == TEXT:
             prompt = self.model.prompt(agent.instructions, with_colleagues(text, received), thinking=False)
-            written = self.model.generate(DynamicCache(), self.model.encode(prompt), self.max_text_tokens)
+            cache = cache_for_writing(self.model.net.config)
+            if pages:
+                ids, extra = self.model.encode_with_pages(prompt, pages)
+            else:
+                ids, extra = self.model.encode(prompt), None
+            written = self.model.generate(cache, ids, self.max_text_tokens, extra=extra)
             label = self._label(agent, session, received, recipient, mode, prompt)
             label |= {"start": None, "n_read": 0, "latent_steps": 0}
+            if pages:
+                label |= {"pages": len(pages), "pages_hash": hash_pages(pages)}
             label |= {"tokens_read": written.tokens_read, "tokens_generated": written.tokens_generated}
             return self._close(LatentMessage(label, text=written.text))
 
         cache = cache_from(received)
         start = cache.get_seq_length()
         prompt = self.model.prompt(agent.instructions, text, thinking=True)
-        ids = self.model.encode(prompt)
-        states = self.model.latent_steps(cache, self.model.read(ids, cache), latent_steps)
+        if pages:
+            ids, extra = self.model.encode_with_pages(prompt, pages)
+        else:
+            ids, extra = self.model.encode(prompt), None
+        states = self.model.latent_steps(cache, self.model.read(ids, cache, extra), latent_steps)
         n = ids.shape[1]
         label = self._label(agent, session, received, recipient, mode, prompt)
         label |= {"start": start, "n_read": n, "latent_steps": latent_steps}
+        if base:
+            label["base"] = True
+        if pages:
+            label |= {"pages": len(pages), "pages_hash": hash_pages(pages)}
         label |= {"tokens_read": n, "tokens_generated": 0}
         message = LatentMessage(
             label,
@@ -188,10 +216,11 @@ class Engine:
         words stay and indentation, which costs tokens, goes away.
         `observe` records at every step the logprobs of those tokens, for confidence.
         """
+        # to write, the cache follows the model's config: with Gemma 4 the sliding layers stay sliding
         if mode == TEXT:
-            cache, text = DynamicCache(), with_colleagues(text, received)
+            cache, text = cache_for_writing(self.model.net.config), with_colleagues(text, received)
         else:
-            cache = cache_from(received)
+            cache = cache_from(received, self.model.net.config)
         ids = self.model.encode(self.model.prompt(agent.instructions, text, thinking=False))
         allowed = None if schema is None else self._constraint(schema, field_order, max_spaces)
         return self.model.generate(cache, ids, max_tokens or self.max_text_tokens, allowed=allowed, observe=observe)

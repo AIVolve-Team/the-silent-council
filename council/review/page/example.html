@@ -124,6 +124,13 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 details.dissent > summary { cursor: pointer; font-weight: 600; color: var(--minor); }
 details.dissent.major > summary { color: var(--major); }
 .choice { display: flex; flex-wrap: wrap; gap: 8px; }
+.correction { display: grid; gap: 6px; justify-items: start; }
+.correction button { font-size: 0.85rem; border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 4px 10px; }
+.correction button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.instruction { display: grid; gap: 6px; }
+.instruction h2 { margin: 0; }
+.instruction textarea { width: 100%; box-sizing: border-box; font: inherit; color: inherit; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.person-choice textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 8px; font: inherit; color: inherit; background: var(--sheet); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
 .choice button { border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 6px 12px; }
 .choice button[aria-pressed="true"] { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
 
@@ -178,6 +185,10 @@ const T = {
     minorDissent: (who) => `${who} non l'aveva segnalata: è il relatore ad averla trovata.`,
     confidences: (e, v) => `Confidenza dell'esperto: ${e}. Confidenza del verdetto: ${v}.`, unknown: "non nota",
     openMajor: "⚠ Un esperto non è d'accordo", openMinor: "⚠ Dissenso lieve",
+    why: "Perché? Facoltativo: il Consiglio lo impara per i prossimi contratti.",
+    wrong: "Questa risposta è sbagliata", wrongTo: (flag) => flag ? "La clausola va segnalata." : "La clausola non va segnalata.",
+    instructionTitle: "Un'istruzione per i prossimi contratti",
+    instructionHint: "Facoltativa. Per esempio: «Per noi una non concorrenza oltre 12 mesi va sempre segnalata». Il Consiglio la applica dal prossimo contratto.",
     whoIsRight: "Chi ha ragione?", isRight: (who) => `Ha ragione ${who}`, verdictIsRight: "Ha ragione il verdetto",
     toFlag: "da segnalare", noIssue: "nessun problema", undecided: "non deciso",
     shouldFlag: "va segnalata", nothing: "non c'è niente da segnalare",
@@ -202,7 +213,7 @@ const T = {
     objections: "Le obiezioni dell'avvocato del diavolo",
     showNotes: "Mostra cosa ha pensato ogni esperto", hideNotes: "Nascondi le note degli esperti", notesTitle: "Cosa ha pensato ogni esperto",
     print: "Scarica il riepilogo (PDF)", save: "Salva le scelte",
-    send: "Invia le scelte", sendFirst: "Scegli prima chi ha ragione su almeno un dissenso.", sending: "Invio in corso…",
+    send: "Invia le scelte", sendFirst: "Prima scegli chi ha ragione su un dissenso, segna una risposta sbagliata o scrivi un'istruzione.", sending: "Invio in corso…",
     sent: (n) => `Scelte inviate: ${n}.`, notSent: (e) => `Non inviate: ${e}`, noAnswer: "Non inviate: il server non risponde. Riprova, oppure salva le scelte.",
     cost: (v) => `Modello ${v.model}, modalità ${v.mode === "text" ? "testo" : "telepatia"}: ${v.cost.tokens_generated} token scritti, ${v.cost.latent_positions} pensieri latenti, ${v.cost.seconds} secondi.`,
     footer: ["Le citazioni sono controllate parola per parola nel contratto. Le firme dei messaggi si verificano con ", "python -m engine.verify", "."],
@@ -224,6 +235,10 @@ const T = {
     minorDissent: (who) => `${who} had not flagged it: the devil's advocate found it.`,
     confidences: (e, v) => `Expert's confidence: ${e}. Verdict's confidence: ${v}.`, unknown: "unknown",
     openMajor: "⚠ An expert disagrees", openMinor: "⚠ Mild dissent",
+    why: "Why? Optional: the council learns it for the next contracts.",
+    wrong: "This answer is wrong", wrongTo: (flag) => flag ? "The clause should be flagged." : "The clause should not be flagged.",
+    instructionTitle: "An instruction for the next contracts",
+    instructionHint: "Optional. For example: “For us a non-compete longer than 12 months is always flagged”. The council applies it from the next contract.",
     whoIsRight: "Who is right?", isRight: (who) => `${who.charAt(0).toUpperCase()}${who.slice(1)} is right`, verdictIsRight: "The verdict is right",
     toFlag: "flag it", noIssue: "no issue", undecided: "undecided",
     shouldFlag: "it should be flagged", nothing: "there is nothing to flag",
@@ -248,7 +263,7 @@ const T = {
     objections: "The devil's advocate's objections",
     showNotes: "Show what each expert thought", hideNotes: "Hide the experts' notes", notesTitle: "What each expert thought",
     print: "Download the summary (PDF)", save: "Save the choices",
-    send: "Send the choices", sendFirst: "First choose who is right on at least one dissent.", sending: "Sending…",
+    send: "Send the choices", sendFirst: "First choose who is right on a dissent, mark a wrong answer or write an instruction.", sending: "Sending…",
     sent: (n) => `Choices sent: ${n}.`, notSent: (e) => `Not sent: ${e}`, noAnswer: "Not sent: the server does not answer. Try again, or save the choices.",
     cost: (v) => `Model ${v.model}, ${v.mode === "text" ? "text" : "telepathy"} mode: ${v.cost.tokens_generated} tokens written, ${v.cost.latent_positions} latent thoughts, ${v.cost.seconds} seconds.`,
     footer: ["Quotes are checked word for word against the contract. Message signatures can be verified with ", "python -m engine.verify", "."],
@@ -327,6 +342,13 @@ function dissentBlock(view, row, choices) {
   return el("details", { class: `dissent ${d.type}` }, el("summary", {}, d.type === "major" ? t().openMajor : t().openMinor), ...body);
 }
 
+// The person's reasons, category → text: with the institutional memory on, the council learns the why.
+const reasons = {};
+// Rows without a dissent that the person marks as wrong (category → what the verdict should have said), and an
+// instruction for the next contracts.
+const corrections = {};
+let instruction = "";
+
 function personChoice(view, row, choices) {
   const container = el("div", { class: "choice", role: "group", "aria-label": t().whoIsRight });
   const options = [["expert", t().isRight(whoOf(row.dissent))], ["verdict", t().verdictIsRight]];
@@ -343,7 +365,14 @@ function personChoice(view, row, choices) {
     }, label);
     container.append(button);
   }
-  return container;
+  const why = el("textarea", { rows: "2", maxlength: "1000", "aria-label": t().why, placeholder: t().why });
+  why.value = reasons[row.key] ?? "";
+  why.addEventListener("input", () => { reasons[row.key] = why.value; });
+  return el("div", { class: "person-choice" }, container, why);
+}
+
+function reasonsFor(toSend) {
+  return Object.fromEntries(Object.entries(reasons).filter(([k, v]) => k in toSend && v.trim()));
 }
 
 function expertsBlock(view, r) {
@@ -372,7 +401,31 @@ function row(view, r, choices) {
     flagged && r.quote ? el("div", { class: "pills" }, quotePill(r.quote_found)) : null,
     flagged && r.rationale ? el("p", { class: "rationale" }, whole(r.rationale)) : null,
     expertsBlock(view, r),
-    r.dissent ? dissentBlock(view, r, choices) : null);
+    r.dissent ? dissentBlock(view, r, choices) : null,
+    !r.dissent && typeof r.flag === "boolean" && sameSite(view.choices_url) ? correctionBlock(r) : null);
+}
+
+function correctionBlock(r) {
+  const why = el("textarea", { rows: "2", maxlength: "1000", "aria-label": t().why, placeholder: t().why, hidden: !(r.key in corrections) });
+  why.value = reasons[r.key] ?? "";
+  why.addEventListener("input", () => { reasons[r.key] = why.value; });
+  const button = el("button", { type: "button", class: "secondary", "aria-pressed": String(r.key in corrections), onclick: () => {
+    const on = !(r.key in corrections);
+    if (on) corrections[r.key] = !r.flag; else delete corrections[r.key];
+    button.setAttribute("aria-pressed", String(on));
+    button.textContent = on ? `${t().wrong} · ${t().wrongTo(!r.flag)}` : t().wrong;
+    why.hidden = !on;
+  } }, r.key in corrections ? `${t().wrong} · ${t().wrongTo(!r.flag)}` : t().wrong);
+  return el("div", { class: "person-choice correction no-print" }, button, why);
+}
+
+function instructionBlock() {
+  const box = el("textarea", { id: "instruction", rows: "3", maxlength: "1000", "aria-describedby": "instruction-hint" });
+  box.value = instruction;
+  box.addEventListener("input", () => { instruction = box.value; });
+  return el("section", { class: "instruction no-print" },
+    el("label", { for: "instruction" }, el("h2", {}, t().instructionTitle)),
+    el("p", { class: "muted", id: "instruction-hint" }, t().instructionHint), box);
 }
 
 function notes(view) {
@@ -402,10 +455,10 @@ function downloadChoices(view, choices) {
 // With the council's server the page sends the choices to its address, with the key of the person's link.
 async function sendChoices(view, choices, outcome) {
   const toSend = Object.fromEntries(Object.entries(choices).filter(([k]) => view.rows.some(r => r.key === k && r.dissent)));
-  if (!Object.keys(toSend).length) { outcome.textContent = t().sendFirst; return; }
+  if (!Object.keys(toSend).length && !Object.keys(corrections).length && !instruction.trim()) { outcome.textContent = t().sendFirst; return; }
   outcome.textContent = t().sending;
   try {
-    const response = await fetch(view.choices_url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ choices: toSend }) });
+    const response = await fetch(view.choices_url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ choices: toSend, reasons: reasonsFor({ ...toSend, ...corrections }), corrections, instruction }) });
     const data = await response.json();
     outcome.textContent = response.ok ? t().sent(data.recorded) : t().notSent(data.error);
   } catch {
@@ -477,6 +530,7 @@ function show(view) {
     view.objections.length ? el("section", { class: "objections" }, el("h2", {}, t().objections),
       el("ul", {}, view.objections.map(o => el("li", {}, el("b", {}, language === "en" ? o.key : o.name_it), `: ${whole(o.objection)}`)))) : null,
     ...(r ? groups : []),
+    r && sending ? instructionBlock() : null,
     el("div", { class: "actions no-print" },
       notesButton,
       el("button", { type: "button", onclick: () => window.print() }, t().print),
