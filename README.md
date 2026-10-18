@@ -1,3 +1,5 @@
+![The Silent Council: memory, not messages](assets/banner.jpg)
+
 # Silent Council
 
 **AIVolve at the AMD Developer Hackathon ACT III.**
