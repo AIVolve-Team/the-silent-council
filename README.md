@@ -51,6 +51,40 @@ Domain terms are defined in [`CONTEXT.md`](CONTEXT.md). The end-to-end flow is i
   [`council/REPLICATION-REPORT-MI300X.md`](council/REPLICATION-REPORT-MI300X.md): the runs on the MI300X.
 - [`g1/RESULTS-MI300X.md`](g1/RESULTS-MI300X.md): the G1 results.
 
+## Built during the hackathon
+
+The hackathon ran from 12 to 18 October 2026. The commit history keeps its real dates: the work before 12 October is
+the starting point we brought to the event.
+
+**Before 12 October (2–9 October), the starting point:**
+
+- the telepathic engine (`engine/`): Qwen3 agents that pass each other latent messages, the relay, the Ed25519 seal;
+- the council on the engine (`council/review/`): roles, prompts, notes and verdict, a first verdict page, the trial
+  on a Mac with one command;
+- the measurement set (CUAD, ContractNLI, CLAUDETTE) and the fingerprints of the demo set;
+- the code of the pre-registered eval and of the calibration, not yet run on the MI300X;
+- a first council server for Evolus (two tools over MCP and HTTP) and a first judges' site with the MI300X scheduled
+  in windows;
+- G1, the first gate on GSM8K, ready to run.
+
+**From 12 to 17 October, during the hackathon:**
+
+- every run on the AMD Instinct MI300X: G1, the calibration of the latent steps, the pre-registered test (frozen on
+  12 October, re-frozen on 13 October) and the replication on the 72 never-used CUAD test contracts, with their
+  reports;
+- the judges' site as it is now: the home page with the engine's demonstration, live reviews while the MI300X is on,
+  recorded verdicts in English;
+- routing by contract length, Qwen3-14B for short contracts and Gemma 4 31B for long ones, with the engine on
+  transformers 5 and the fix for Gemma 4's sliding-window layers;
+- the Evolus workflow tested end to end, from the email with the contract to the notice for the person;
+- the specialists trial and the council against the solo agent;
+- the visual mode: the PDF inspector, the visual expert with Gemma 4 reading the page images, and the PDF read from
+  the contracts mailbox;
+- the institutional memory: the company playbook and the person's precedents at the head of every review, taught from
+  the verdict page;
+- `ask_council`: questions on a reviewed case, answered from the memory of its review;
+- the demo reviews recorded on the MI300X, the whole repository translated to English, and this README.
+
 ## Getting started
 
 Requirements: Python 3.12 with [uv](https://docs.astral.sh/uv/), Node.js 20 or later.
